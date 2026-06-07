@@ -438,19 +438,17 @@ export default function Home() {
             {/* <small>State-level Referee, Joint Secretary of Palghar District Volleyball Association</small> */}
           </div>
         </div>
-        <div className="col-md-6 col-lg-3 fade-in">
+        {/* <div className="col-md-6 col-lg-3 fade-in">
           <div className="card team-card">
             <div className="team-avatar">
-              {/* <i class="fas fa-people-carry"></i> */}
               <div className="event-image-placeholder event-image-placeholder-team ">
                 <img src="./images/team2.jpeg" alt="Annual Sports Championship" />
               </div>
             </div>
             <h5>Dr Friyana Irani</h5>
             <p className="text-muted">Psychologist .</p>
-            {/* <small>Former Kabaddi Player, DSO Coordinator, Palghar District</small> */}
           </div>
-        </div>
+        </div> */}
         <div className="col-md-6 col-lg-3 fade-in">
           <div className="card team-card">
             <div className="team-avatar">
