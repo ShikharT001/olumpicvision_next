@@ -50,14 +50,14 @@ body {
   z-index: 1050;
   background: transparent;
   backdrop-filter: none;
-  padding: 1.2rem 0;
+  padding: 1rem 0;
   transition: all 0.4s ease;
   box-shadow: none;
 }
 
 .navbar .container {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -110,8 +110,11 @@ body {
 
 .navbar-collapse {
   display: flex !important;
+  flex-basis: auto;
+  flex-grow: 0;
   justify-content: flex-end;
   align-items: center;
+  width: auto;
 }
 
 .navbar-collapse.show {

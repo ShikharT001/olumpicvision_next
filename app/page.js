@@ -1,5 +1,4 @@
 'use client';
-import Image from "next/image";
 import { useEffect, useState } from 'react';
 
 export default function Home() {
@@ -183,12 +182,9 @@ export default function Home() {
   <nav className="navbar fixed-top">
     <div className="container">
       <a className="navbar-brand" href="#home">
-        <img src="images/new logo.png" height="55px" />
+        <img src="/images/new logo.png" height="55" alt="Olympic Vision Sports and Event Management" />
       </a>
-
-      {/* Desktop Menu - hidden on mobile */}
-      <div className="navbar-collapse d-none d-lg-flex" id="navbarNav">
-        <ul className="navbar-nav ms-auto p-0">
+        <ul className="navbar-nav ms-auto p-0 d-none d-md-flex">
           <li className="nav-item"><a className="nav-link" href="#home">Home</a></li>
           <li className="nav-item"><a className="nav-link" href="#about">About</a></li>
           <li className="nav-item"><a className="nav-link" href="#events">Events</a></li>
@@ -197,8 +193,7 @@ export default function Home() {
           <li className="nav-item"><a className="nav-link" href="#services">Services</a></li>
           <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>
         </ul>
-      </div>
-
+  
       {/* Custom Mobile Toggler Button - hidden on desktop */}
       <button
         className={`mobile-nav-toggle d-lg-none ${menuOpen ? 'open' : ''}`}
@@ -216,7 +211,7 @@ export default function Home() {
       <div className={`mobile-nav-drawer d-lg-none ${menuOpen ? 'open' : ''}`}>
         <div className="mobile-nav-drawer-header">
           <a href="#home" onClick={() => setMenuOpen(false)}>
-            <img src="images/new logo.png" height="50px" />
+            <img src="/images/new logo.png" height="50" alt="Olympic Vision Sports and Event Management" />
           </a>
         </div>
         <ul className="mobile-nav-links">
@@ -623,14 +618,51 @@ export default function Home() {
       </div>
     </div>
   </section>
-  {/* Footer */}
-  <footer>
-    <div className="container">
-      <p className="mb-3"><img src="images\new logo.png" height="50px" /> <strong>Olympic Vision Sports &amp; Event Management</strong></p>
-      <p className="mb-1">Empowering Athletes | Building Champions | Creating Excellence</p>
-      <p className="text-white">© 2025 Olympic Vision. All rights reserved. design and developed by <a href="https://thetechnocyte.com/" target="_blank">Technocyte</a> </p>
+{/* Footer */}
+<footer className="bg-dark text-light py-5">
+  <div className="container">
+    <div className="row align-items-center">
+
+      {/* Logo + Brand */}
+      <div className="col-md-6 mb-4 mb-md-0 d-flex align-items-center gap-3">
+        <img
+          src="/images/new logo.png"
+          alt="Olympic Vision Sports and Event Management"
+          width={120}
+          height={120}
+          style={{ objectFit: "contain" }}
+        />
+        <div>
+          <h5 className="mb-1 fw-bold">
+            Olympic Vision Sports & Event Management
+          </h5>
+          <p className="mb-0 text-secondary">
+            Empowering Athletes | Building Champions | Creating Excellence
+          </p>
+        </div>
+      </div>
+
+      {/* Links / Credits */}
+      <div className="col-md-6 text-md-end text-center">
+        <p className="mb-1">
+          © 2025 Olympic Vision. All rights reserved.
+        </p>
+        <p className="mb-0">
+          Designed & Developed by{" "}
+          <a
+            href="https://thetechnocyte.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-info text-decoration-none"
+          >
+            Technocyte
+          </a>
+        </p>
+      </div>
+
     </div>
-  </footer>
+  </div>
+</footer>
 </div>
 
     </>
