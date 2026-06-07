@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import SportsCoachingSection from '../components/SportsCoachingSection';
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -466,7 +467,7 @@ export default function Home() {
     </div>
   </section>
   {/* Coaching Section */}
-  <section id="coaching">
+  {/* <section id="coaching">
     <div className="container">
       <h2 className="section-title fade-in">Sports Coaching Offered</h2>
       <p className="text-center mb-5 fade-in">We provide certified coaches in the following disciplines</p>
@@ -488,7 +489,8 @@ export default function Home() {
         <div className="sport-item"><i className="fa-solid fa-hand-fist" /><div>Boxing</div></div>
       </div>
     </div>
-  </section>
+  </section> */}
+<SportsCoachingSection />
   {/* Services Section */}
   <section id="services" className="bg-light">
     <div className="container">
