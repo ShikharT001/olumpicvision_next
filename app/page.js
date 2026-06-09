@@ -5,6 +5,7 @@ import SportsCoachingSection from '../components/SportsCoachingSection';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -243,6 +244,7 @@ export default function Home() {
       {/* <div class="hero-emoji">🏅</div> */}
       <h1>Olympic Vision Sports &amp; Event Management</h1>
       <p>Empowering Athletes | Building Champions | Creating Excellence</p>
+ 
       <a href="#contact" className="btn btn-lg" style={{background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem'}}>Get Started</a>
     </div>
   </section>

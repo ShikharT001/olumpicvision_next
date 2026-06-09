@@ -2,21 +2,21 @@
 import React from 'react';
 import './SportsCoaching.css';
 const sports = [
-  { num: '01', color: 'blue',   icon: 'ti-run',              name: 'Athletics',    cat: 'Track & field'  },
-  { num: '02', color: 'teal',   icon: 'ti-ball-volleyball',  name: 'Volleyball',   cat: 'Team sport'     },
-  { num: '03', color: 'coral',  icon: 'ti-users',            name: 'Kabaddi',      cat: 'Contact sport'  },
-  { num: '04', color: 'purple', icon: 'ti-ball-basketball',  name: 'Basketball',   cat: 'Team sport'     },
-  { num: '05', color: 'amber',  icon: 'ti-cricket',          name: 'Cricket',      cat: 'Bat & ball'     },
-  { num: '06', color: 'teal',   icon: 'ti-ninja',            name: 'Kho-Kho',      cat: 'Pursuit sport'  },
-  { num: '07', color: 'coral',  icon: 'ti-shield',           name: 'Self defence', cat: 'Martial art'    },
-  { num: '08', color: 'purple', icon: 'ti-award',            name: 'Taekwondo',    cat: 'Martial art'    },
-  { num: '09', color: 'blue',   icon: 'ti-ripple',           name: 'Swimming',     cat: 'Aquatics'       },
-  { num: '10', color: 'amber',  icon: 'ti-brand-snowflake',  name: 'Skating',      cat: 'Glide sport'    },
-  { num: '11', color: 'teal',   icon: 'ti-target',           name: 'Archery',      cat: 'Precision'      },
-  { num: '12', color: 'blue',   icon: 'ti-hand-stop',        name: 'Handball',     cat: 'Team sport'     },
-  { num: '13', color: 'purple', icon: 'ti-table-tennis',     name: 'Table Tennis', cat: 'Racket sport'   },
-  { num: '14', color: 'coral',  icon: 'ti-barbell',          name: 'Weightlifting',cat: 'Strength'       },
-  { num: '15', color: 'amber',  icon: 'ti-boxing',           name: 'Boxing',       cat: 'Combat sport'   },
+  { num: '01', color: 'blue',   icon: 'ti-run',              name: 'Athletics',      },
+  { num: '02', color: 'teal',   icon: 'ti-ball-volleyball',  name: 'Volleyball',      },
+  { num: '03', color: 'coral',  icon: 'ti-users',            name: 'Kabaddi',        },
+  { num: '04', color: 'purple', icon: 'ti-ball-basketball',  name: 'Basketball',      },
+  { num: '05', color: 'amber',  icon: 'ti-cricket',          name: 'Cricket',         },
+  { num: '06', color: 'teal',   icon: 'ti-ninja',            name: 'Kho-Kho',        },
+  { num: '07', color: 'coral',  icon: 'ti-shield',           name: 'Self defence',    },
+  { num: '08', color: 'purple', icon: 'ti-award',            name: 'Taekwondo',       },
+  { num: '09', color: 'blue',   icon: 'ti-ripple',           name: 'Swimming',        },
+  { num: '10', color: 'amber',  icon: 'ti-brand-snowflake',  name: 'Skating',         },
+  { num: '11', color: 'teal',   icon: 'ti-target',           name: 'Archery',         },
+  { num: '12', color: 'blue',   icon: 'ti-hand-stop',        name: 'Handball',        },
+  { num: '13', color: 'purple', icon: 'ti-table-tennis',     name: 'Table Tennis',   },
+  { num: '14', color: 'coral',  icon: 'ti-barbell',          name: 'Weightlifting',    },
+  { num: '15', color: 'amber',  icon: 'ti-boxing',           name: 'Boxing',          },
 ];
 
 const legendItems = [
@@ -37,15 +37,14 @@ export default function SportsCoachingSection() {
       <p className="text-center mb-5 fade-in">We provide certified coaches in the following disciplines</p>
 
         <div className="sc-grid">
-          {sports.map(({ num, color, icon, name, cat }) => (
+          {sports.map(({ num, color, icon, name }) => (
             <div key={num} className={`sc-card sc-card--${color}`}>
               <span className="sc-card__num">{num}</span>
               <div className="sc-card__slab">
                 <i className={`ti ${icon} sc-card__icon`} aria-hidden="true" />
               </div>
               <div className="sc-card__body">
-                <div className="sc-card__name">{name}</div>
-                <div className="sc-card__cat">{cat}</div>
+                <p>{name}</p>
               </div>
             </div>
           ))}
