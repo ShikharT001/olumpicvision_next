@@ -12,13 +12,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -128,6 +121,63 @@ body {
 
 .navbar-toggler-icon {
   filter: invert(1);
+}
+
+/* Slightly shortened from 135% to 120% to keep it sleek but not overly tall */
+.aspect-ratio-balanced-box {
+  position: relative;
+  width: 100%;
+  padding-top: 120%; 
+  background-color: #f8f9fa;
+}
+
+.team-member-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top; 
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Premium Card Wrapper Interaction styles */
+.team-governing-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.team-governing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 30px rgba(10, 61, 122, 0.1) !important;
+}
+
+.team-governing-card:hover .team-member-img {
+  transform: scale(1.04);
+}
+
+/* Clean dynamic roles badge */
+.role-badge {
+  background-color: #f0f4f8;
+  color: #0A3D7A;
+  font-size: 0.75rem;
+  letter-spacing: 0.8px;
+  transition: all 0.3s ease;
+}
+
+.team-governing-card:hover .role-badge {
+  background-color: #0A3D7A;
+  color: #ffffff;
+}
+
+/* Balanced text element row structure */
+.member-name {
+  line-height: 1.4;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Mobile Toggle Button */

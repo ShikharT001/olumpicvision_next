@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import SportsCoachingSection from '../components/SportsCoachingSection';
-
+import RegistrationSection from '../components/Registration';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   
@@ -433,58 +433,108 @@ export default function Home() {
         </section>
 
         {/* Team Section */}
-        <section id="team" className="bg-light">
-          <div className="container">
-            <h2 className="section-title fade-in">Our Team</h2>
-            <div className="row g-4 justify-content-center">
-              <div className="col-md-6 col-lg-3 fade-in">
-                <div className="card team-card">
-                  <div className="team-avatar">
-                    <div className="event-image-placeholder event-image-placeholder-team">
-                      <img src="./images/team1.jpeg" alt="Rohit bari" />
-                    </div>
-                  </div>
-                  <h5>Rohit bari</h5>
-                  <p className="text-muted">Founder.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-3 fade-in">
-                <div className="card team-card">
-                  <div className="team-avatar">
-                    <div className="event-image-placeholder event-image-placeholder-team">
-                      <img src="./images/team3.jpg" alt="Rakhi bari" />
-                    </div>
-                  </div>
-                  <h5>Rakhi bari</h5>
-                  <p className="text-muted">Co Founder.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-3 fade-in">
-                <div className="card team-card">
-                  <div className="team-avatar">
-                    <div className="event-image-placeholder event-image-placeholder-team">
-                      <img src="./images/team-4.jpeg" alt="Sumit Mishra" />
-                    </div>
-                  </div>
-                  <h5>Sumit Mishra</h5>
-                  <p className="text-muted">Team Cordinator.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-3 fade-in">
-                <div className="card team-card">
-                  <div className="team-avatar">
-                    <div className="event-image-placeholder event-image-placeholder-team">
-                      <img src="./images/team-5.jpeg" alt="Dr Kalpesh Girase" />
-                    </div>
-                  </div>
-                  <h5>Dr Kalpesh Girase</h5>
-                  <p className="text-muted">Physio.</p>
-                </div>
-              </div>
+        <section id="team" className="py-5 bg-light">
+  <div className="container py-4">
+    
+    {/* Section Header */}
+    <div className="text-center mb-5 position-relative">
+      <h2 className="section-title fade-in fw-bold text-dark mb-2" style={{ letterSpacing: '0.5px', color: '#0A3D7A' }}>
+        Our Team
+      </h2>
+    </div>
+
+    {/* Team Grid */}
+    <div className="row g-4 justify-content-center">
+      
+      {/* Member 1: Rohit bari */}
+      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+          {/* Balanced aspect ratio box for perfect length */}
+          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+            <img 
+              src="/images/team1.jpeg" 
+              alt="Rohit bari" 
+              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+            />
+          </div>
+          {/* Snug padding for a tighter, cleaner bottom area */}
+          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+              Rohit Bari
+            </h5>
+            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+              FOUNDER
             </div>
           </div>
-        </section>
+        </div>
+      </div>
 
+      {/* Member 2: Rakhi bari */}
+      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+            <img 
+              src="/images/team3.jpg" 
+              alt="Rakhi bari" 
+              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+            />
+          </div>
+          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+              Rakhi Bari
+            </h5>
+            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+              CO FOUNDER
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Member 3: Sumit Mishra */}
+      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+            <img 
+              src="/images/team-4.jpeg" 
+              alt="Sumit Mishra" 
+              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+            />
+          </div>
+          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+              Sumit Mishra
+            </h5>
+            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+              TEAM CORDINATOR
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Member 4: Dr Kalpesh Girase */}
+      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+            <img 
+              src="/images/team-5.jpeg" 
+              alt="Dr Kalpesh Girase" 
+              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+            />
+          </div>
+          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+              Dr Kalpesh Girase
+            </h5>
+            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+              PHYSIO
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
         {/* Coaching Section */}
         <SportsCoachingSection />
 
@@ -561,174 +611,7 @@ export default function Home() {
         </section>
 
         {/* Registration Form Section */}
-        <section id="register" className="py-5">
-  <div className="container">
-    <div className="row justify-content-center">
-      <div className="col-lg-10 col-xl-9 fade-in">
-        
-        {/* Main Unified Container Card */}
-        <div className="card shadow border-0 rounded-4 overflow-hidden">
-          
-          {/* Header Banner */}
-          <div className="p-4 text-center border-bottom text-white" style={{ background: 'linear-gradient(135deg, var(--secondary, #111), var(--dark, #222))' }}>
-            <h2 className="fw-bold mb-1" style={{ color: 'var(--accent, #ffcc00)', letterSpacing: '1px' }}>
-              BOISAR VARSHA MARATHON 2026
-            </h2>
-            <p className="mb-0 text-light opacity-75 small">Official Registration Portal &amp; Event Guidelines</p>
-          </div>
-
-          {/* Card Body Content */}
-          <div className="card-body p-4 p-md-5" style={{ color: 'var(--dark, #111)', backgroundColor: '#fff' }}>
-            
-            {/* 1. Official Invitation Text (Justified Layout) */}
-            <div className="mb-5 pb-4" style={{ lineHeight: '1.8', textAlign: 'justify' }}>
-              <p className="mb-1 fw-semibold text-muted">To,</p>
-              <p className="mb-4 text-muted">All Clubs / Institutions / Schools &amp; Colleges / Organizations</p>
-              
-              <p className="mb-3 fw-bold" style={{ fontSize: '1.1rem' }}>
-                Subject: Palghar District Boisar Varsha Marathon 2026
-              </p>
-              
-              <p className="mb-3">Respected Sir/Madam,</p>
-              
-              <p className="mb-4">
-                We are pleased to inform you that <em>Aadhar Pratishthan</em> is organizing the <em>Boisar Varsha Marathon 2026</em> at Otswal Empire, Near Madhur hotel, Boisar, Maharashtra. We kindly request you to enroll your students in this marathon. Our goal is to have a large number of participants, and we have received the necessary approvals from the District Sports Office Palghar. The marathon is being organized under the guidance and support of the Palghar District Athletic Association <strong>(Only Palghar District players can participate)</strong>.
-              </p>
-              
-              <div className="row g-4 mt-2">
-                {/* Awards Sub-section */}
-                <div className="col-md-6">
-                  <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">🏆 Awards and Recognition:</p>
-                  <ol className="ps-3 mb-0 text-muted small">
-                    <li className="mb-1">Top 5 winners get prize money, trophy, medal, and certificate.</li>
-                    <li className="mb-1">The top 10 athletes in each category will be awarded medals.</li>
-                    <li className="mb-1">Every participant will receive an E-Certificate of participation.</li>
-                    <li className="mb-1">Every participant will receive refreshment.</li>
-                    <li>Schools sending 100+ entries will be felicitated with a trophy.</li>
-                  </ol>
-                </div>
-
-                {/* Age Categories Sub-section */}
-                <div className="col-md-6">
-                  <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">🏃 Age Groups &amp; Tracks:</p>
-                  <ul className="list-unstyled ps-0 mb-0 text-muted small">
-                    <li className="mb-1">⏱️ <strong>3K (U-14)</strong> - Born on/after 01/01/2012</li>
-                    <li className="mb-1">⏱️ <strong>5K (U-17)</strong> - Born on/after 01/01/2009</li>
-                    <li className="mb-1">⏱️ <strong>6K (U-19)</strong> - Born on/after 01/01/2007</li>
-                    <li className="mb-1">⏱️ <strong>10K (Open)</strong> - Born on/before 01/01/2007</li>
-                    <li className="mb-1">⏱️ <strong>1K (Senior Citizens)</strong> - Born on/before 01/01/1970</li>
-                    <li>⏱️ <strong>1K (Couples)</strong> - Fun Run For Married Couples</li>
-                  </ul>
-                </div>
-              </div>
-
-              <p className="mt-4 mb-3 bg-light p-3 rounded border-start border-4 border-secondary small">
-                <strong>Proof of Age Requirement:</strong> Participants must provide a certificate issued by the Birth &amp; Death Registration Office of a Municipal Corporation, Nagar Palika, Mahapalika, District, Village Panchayat, or a 10th Standard Certificate.
-              </p>
-              
-              <p className="mb-4">
-                📅 <strong>Last Date of Entry:</strong> <span className="badge bg-danger fs-6">15th August 2026</span>
-              </p>
-              
-              <div className="d-flex justify-content-between align-items-end mt-4 pt-3 border-top text-muted small">
-                <div>
-                  <p className="mb-0">Thank you,</p>
-                  <p className="mb-0 fw-bold text-dark">Hon. Jagdish Bhagwan Dhodi</p>
-                  <p className="mb-0">Secretary, Aadhar Pratishthan</p>
-                </div>
-                <div className="text-center text-uppercase fw-bold text-warning tracking-wider">
-                  Olympic Vision
-                </div>
-              </div>
-            </div>
-
-            {/* Visual Separator */}
-            <div className="position-relative my-5">
-              <hr className="text-muted" />
-              <span className="position-absolute top-50 start-50 translate-middle px-3 bg-white fw-bold text-secondary text-uppercase small" style={{ letterSpacing: '2px' }}>
-                Registration Form
-              </span>
-            </div>
-
-            {/* 2. Controlled Interactive Form Entry Elements */}
-            {formSubmitted ? (
-              <div className="text-center py-5 bg-light rounded-3 border">
-                <div className="mb-3 text-success" style={{ fontSize: '4rem' }}>✓</div>
-                <h4 className="fw-bold">Registration Successful!</h4>
-                <p className="text-muted mb-4">Thank you for registering. Our team will verify the details and coordinate shortly.</p>
-                <button className="btn btn-dark px-4 btn-sm rounded-pill" onClick={() => setFormSubmitted(false)}>
-                  Register Another Athlete
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit}>
-                <div className="row g-4">
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">Full Name *</label>
-                    <input type="text" name="fullName" value={formData.fullName} onChange={handleInputChange} className="form-control form-control-lg fs-6" required placeholder="John Doe" />
-                  </div>
-                  
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">School / College Name</label>
-                    <input type="text" name="school" value={formData.school} onChange={handleInputChange} className="form-control form-control-lg fs-6" placeholder="Enter Institution Name" />
-                  </div>
-                  
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">Gender *</label>
-                    <select name="gender" value={formData.gender} onChange={handleInputChange} className="form-select form-control-lg fs-6" required>
-                      <option value="">-- Select Gender --</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">Date of Birth *</label>
-                    <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} className="form-control form-control-lg fs-6" required />
-                  </div>
-                  
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">Category *</label>
-                    <select name="category" value={formData.category} onChange={handleInputChange} className="form-select form-control-lg fs-6" required>
-                      <option value="">-- Choose a Category --</option>
-                      <option value="u14">U/14 (Born on or after 01/01/2012)</option>
-                      <option value="u17">U/17 (Born on or after 01/01/2009)</option>
-                      <option value="u19">U/19 (Born on or after 01/01/2007)</option>
-                      <option value="open">OPEN (Born on or after 01/01/2007)</option>
-                      <option value="abv55">Above 55+ (Born on or after 01/01/1970)</option>
-                      <option value="couple">Married Couple</option>
-                    </select>
-                  </div>
-                  
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">OPEN Race Track Options</label>
-                    <select name="experience" value={formData.experience} onChange={handleInputChange} className="form-select form-control-lg fs-6">
-                      <option value="10km">10KM Race</option>
-                    </select>
-                  </div>
-                  
-                  <div className="col-md-12">
-                    <label className="form-label fw-semibold small">Phone Number *</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="form-control form-control-lg fs-6" required placeholder="Your Mobile Number" />
-                  </div>
-                  
-                  <div className="col-12 text-center mt-5">
-                    <button type="submit" className="btn btn-lg w-100 fw-bold shadow-sm py-3" style={{ background: 'var(--accent, #ffcc00)', color: 'var(--dark, #111)', borderRadius: '12px', fontSize: '1.1rem' }}>
-                      Complete Registration Entry
-                    </button>
-                  </div>
-                </div>
-              </form>
-            )}
-
-          </div>
-        </div>
-        
-      </div>
-    </div>
-  </div>
-</section>
+        <RegistrationSection />
 
         {/* Contact Section */}
         <section id="contact" className="bg-light">
