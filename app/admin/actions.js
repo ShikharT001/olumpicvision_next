@@ -31,3 +31,31 @@ export async function logoutAdmin() {
   cookieStore.delete(ADMIN_COOKIE);
   redirect('/admin');
 }
+
+import { revalidatePath } from 'next/cache';
+import { deleteRow, updateRow, insertRow } from '@/lib/admin-db';
+
+async function checkAuth() {
+  const cookieStore = await cookies();
+  if (cookieStore.get(ADMIN_COOKIE)?.value !== 'true') {
+    throw new Error('Unauthorized');
+  }
+}
+
+export async function adminDeleteRow(tableName, idColumn, idValue) {
+  await checkAuth();
+  await deleteRow(tableName, idColumn, idValue);
+  revalidatePath('/admin');
+}
+
+export async function adminUpdateRow(tableName, idColumn, idValue, payload) {
+  await checkAuth();
+  await updateRow(tableName, idColumn, idValue, payload);
+  revalidatePath('/admin');
+}
+
+export async function adminInsertRow(tableName, payload) {
+  await checkAuth();
+  await insertRow(tableName, payload);
+  revalidatePath('/admin');
+}

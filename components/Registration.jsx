@@ -115,10 +115,28 @@ useEffect(() => {
   setAvailableCategories(validCats);
 }, [formData.dob, formData.gender]);
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log('Marathon Registration Submitted:', formData);
-    setFormSubmitted(true);
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setFormSubmitted(true);
+      } else {
+        const errData = await response.json();
+        console.error('Registration failed:', errData);
+        alert('Registration failed: ' + (errData.error || 'Please try again.'));
+      }
+    } catch (error) {
+      console.error('Error during registration submission:', error);
+      alert('Network error. Please try again later.');
+    }
   };
 
   return (

@@ -1,21 +1,38 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { adminDeleteRow, adminUpdateRow, adminInsertRow } from '@/app/admin/actions';
 
-function formatValue(value) {
+function formatValue(value, column) {
   if (value === null || value === undefined) {
-    return 'null';
+    return <span style={{ color: '#94a3b8' }}>-</span>;
+  }
+
+  if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+    return new Date(value).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   }
 
   if (typeof value === 'object') {
     return JSON.stringify(value);
   }
 
-  return String(value);
+  const strVal = String(value);
+  if ((column === 'id' || column === 'user_id' || column === 'registration_id') && strVal.length > 20) {
+    return <span title={strVal} style={{ fontFamily: 'monospace', fontSize: 13, color: '#475569' }}>{strVal.slice(0, 8) + '...'}</span>;
+  }
+
+  return strVal;
 }
 
 export default function Admin({ tables = [], logoutAction }) {
   const [activeTable, setActiveTable] = useState(tables[0]?.name || '');
+  const [editingRow, setEditingRow] = useState({ rowIndex: null, values: {} });
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const active = useMemo(
     () => tables.find((table) => table.name === activeTable) || tables[0] || null,
@@ -23,6 +40,79 @@ export default function Admin({ tables = [], logoutAction }) {
   );
 
   const totalRows = tables.reduce((sum, table) => sum + table.count, 0);
+
+  const idColumn = active?.columns.includes('id')
+    ? 'id'
+    : active?.columns.includes('code')
+    ? 'code'
+    : null;
+
+  const handleDelete = async (row) => {
+    if (!idColumn) return;
+    const confirmDelete = window.confirm(`Are you sure you want to delete this record?`);
+    if (confirmDelete) {
+      try {
+        await adminDeleteRow(active.name, idColumn, row[idColumn]);
+      } catch (err) {
+        alert('Failed to delete row: ' + err.message);
+      }
+    }
+  };
+
+  const handleEditClick = (rowIndex, row) => {
+    setIsAdding(false);
+    setEditingRow({ rowIndex, values: { ...row } });
+  };
+
+  const handleAddClick = () => {
+    setIsAdding(true);
+    setEditingRow({ rowIndex: -1, values: {} });
+  };
+
+  const handleCancelEdit = () => {
+    setIsAdding(false);
+    setEditingRow({ rowIndex: null, values: {} });
+  };
+
+  const handleSaveEdit = async (originalRow) => {
+    if (!idColumn) return;
+    setIsSaving(true);
+    try {
+      if (isAdding) {
+        const payload = {};
+        for (const col of active.columns) {
+          if (col !== idColumn && editingRow.values[col] !== undefined && editingRow.values[col] !== '') {
+            payload[col] = editingRow.values[col];
+          }
+        }
+        await adminInsertRow(active.name, payload);
+      } else {
+        const payload = {};
+        for (const col of active.columns) {
+          if (col !== idColumn && editingRow.values[col] !== originalRow[col]) {
+            payload[col] = editingRow.values[col] === 'null' ? null : editingRow.values[col];
+          }
+        }
+
+        if (Object.keys(payload).length > 0) {
+          await adminUpdateRow(active.name, idColumn, originalRow[idColumn], payload);
+        }
+      }
+      setIsAdding(false);
+      setEditingRow({ rowIndex: null, values: {} });
+    } catch (err) {
+      alert('Failed to save row: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleInputChange = (col, value) => {
+    setEditingRow((prev) => ({
+      ...prev,
+      values: { ...prev.values, [col]: value }
+    }));
+  };
 
   return (
     <div style={styles.shell}>
@@ -40,7 +130,10 @@ export default function Admin({ tables = [], logoutAction }) {
               <button
                 key={table.name}
                 type="button"
-                onClick={() => setActiveTable(table.name)}
+                onClick={() => {
+                  setActiveTable(table.name);
+                  handleCancelEdit();
+                }}
                 style={activeTable === table.name ? styles.activeTableButton : styles.tableButton}
               >
                 <span>{table.name}</span>
@@ -81,10 +174,17 @@ export default function Admin({ tables = [], logoutAction }) {
           {active ? (
             <>
               <div style={styles.sectionHeader}>
-                <h2 style={styles.sectionTitle}>{active.name}</h2>
-                <span style={styles.sectionMeta}>
-                  {active.count} row{active.count === 1 ? '' : 's'}
-                </span>
+                <div>
+                  <h2 style={styles.sectionTitle}>{active.name}</h2>
+                  <span style={styles.sectionMeta}>
+                    {active.count} row{active.count === 1 ? '' : 's'}
+                  </span>
+                </div>
+                {idColumn && !isAdding && editingRow.rowIndex === null && (
+                  <button style={styles.addBtn} onClick={handleAddClick}>
+                    + Add Record
+                  </button>
+                )}
               </div>
 
               <div style={styles.tableWrap}>
@@ -96,25 +196,107 @@ export default function Admin({ tables = [], logoutAction }) {
                           {column}
                         </th>
                       ))}
+                      {idColumn && <th style={styles.thAction}>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {active.rows.length === 0 ? (
+                    {/* Render Add Row if isAdding is true */}
+                    {isAdding && (
+                      <tr style={styles.newRowHighlight}>
+                        {active.columns.map((column) => (
+                          <td key={column} style={styles.td}>
+                            {column !== idColumn ? (
+                              <input
+                                style={styles.inlineInput}
+                                placeholder={`Enter ${column}`}
+                                value={editingRow.values[column] || ''}
+                                onChange={(e) => handleInputChange(column, e.target.value)}
+                              />
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 12 }}>Auto-generated</span>
+                            )}
+                          </td>
+                        ))}
+                        <td style={styles.tdAction}>
+                          <div style={styles.actionGroup}>
+                            <button
+                              style={styles.saveBtn}
+                              onClick={() => handleSaveEdit(null)}
+                              disabled={isSaving}
+                            >
+                              {isSaving ? 'Saving' : 'Save'}
+                            </button>
+                            <button style={styles.cancelBtn} onClick={handleCancelEdit}>
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {active.rows.length === 0 && !isAdding ? (
                       <tr>
-                        <td style={styles.td} colSpan={Math.max(active.columns.length, 1)}>
+                        <td style={styles.td} colSpan={Math.max(active.columns.length + (idColumn ? 1 : 0), 1)}>
                           No rows found in this table.
                         </td>
                       </tr>
                     ) : (
-                      active.rows.map((row, rowIndex) => (
-                        <tr key={`${active.name}-${rowIndex}`}>
-                          {active.columns.map((column) => (
-                            <td key={column} style={styles.td}>
-                              {formatValue(row[column])}
-                            </td>
-                          ))}
-                        </tr>
-                      ))
+                      active.rows.map((row, rowIndex) => {
+                        const isEditing = editingRow.rowIndex === rowIndex && !isAdding;
+
+                        return (
+                          <tr key={`${active.name}-${rowIndex}`}>
+                            {active.columns.map((column) => (
+                              <td key={column} style={styles.td}>
+                                {isEditing && column !== idColumn ? (
+                                  <input
+                                    style={styles.inlineInput}
+                                    value={editingRow.values[column] === null ? '' : editingRow.values[column]}
+                                    onChange={(e) => handleInputChange(column, e.target.value)}
+                                  />
+                                ) : (
+                                  formatValue(row[column], column)
+                                )}
+                              </td>
+                            ))}
+                            {idColumn && (
+                              <td style={styles.tdAction}>
+                                {isEditing ? (
+                                  <div style={styles.actionGroup}>
+                                    <button
+                                      style={styles.saveBtn}
+                                      onClick={() => handleSaveEdit(row)}
+                                      disabled={isSaving}
+                                    >
+                                      {isSaving ? 'Saving' : 'Save'}
+                                    </button>
+                                    <button style={styles.cancelBtn} onClick={handleCancelEdit}>
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div style={styles.actionGroup}>
+                                    <button 
+                                      style={styles.editBtn} 
+                                      onClick={() => handleEditClick(rowIndex, row)}
+                                      disabled={isAdding || editingRow.rowIndex !== null}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button 
+                                      style={styles.deleteBtn} 
+                                      onClick={() => handleDelete(row)}
+                                      disabled={isAdding || editingRow.rowIndex !== null}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -244,12 +426,30 @@ const styles = {
     borderBottom: '1px solid #cbd5e1',
     whiteSpace: 'nowrap',
   },
+  thAction: {
+    position: 'sticky',
+    top: 0,
+    background: '#e2e8f0',
+    color: '#0f172a',
+    textAlign: 'right',
+    padding: '12px 14px',
+    fontSize: 13,
+    borderBottom: '1px solid #cbd5e1',
+    whiteSpace: 'nowrap',
+  },
   td: {
     padding: '12px 14px',
     borderBottom: '1px solid #e2e8f0',
-    verticalAlign: 'top',
-    wordBreak: 'break-word',
+    verticalAlign: 'middle',
+    whiteSpace: 'nowrap',
     fontSize: 14,
+  },
+  tdAction: {
+    padding: '12px 14px',
+    borderBottom: '1px solid #e2e8f0',
+    verticalAlign: 'middle',
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
   },
   emptyState: {
     padding: 20,
@@ -258,4 +458,62 @@ const styles = {
     color: '#64748b',
     background: '#fff',
   },
+  inlineInput: {
+    width: '100%',
+    padding: '6px 8px',
+    borderRadius: 4,
+    border: '1px solid #cbd5e1',
+    fontSize: 14,
+  },
+  actionGroup: {
+    display: 'inline-flex',
+    gap: 8,
+  },
+  addBtn: {
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: 6,
+    background: '#0f172a',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  editBtn: {
+    padding: '4px 10px',
+    border: '1px solid #cbd5e1',
+    borderRadius: 4,
+    background: '#f8fafc',
+    cursor: 'pointer',
+    fontSize: 13,
+  },
+  deleteBtn: {
+    padding: '4px 10px',
+    border: '1px solid #fecaca',
+    borderRadius: 4,
+    background: '#fff1f2',
+    color: '#be123c',
+    cursor: 'pointer',
+    fontSize: 13,
+  },
+  saveBtn: {
+    padding: '4px 10px',
+    border: '1px solid #86efac',
+    borderRadius: 4,
+    background: '#f0fdf4',
+    color: '#166534',
+    cursor: 'pointer',
+    fontSize: 13,
+  },
+  cancelBtn: {
+    padding: '4px 10px',
+    border: '1px solid #cbd5e1',
+    borderRadius: 4,
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: 13,
+  },
+  newRowHighlight: {
+    backgroundColor: '#f8fafc',
+  }
 };
