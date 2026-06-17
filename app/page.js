@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import SportsCoachingSection from '../components/SportsCoachingSection';
 import RegistrationSection from '../components/Registration';
+import EventsAndHighlights from '@/components/EventSection';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   
@@ -313,124 +314,7 @@ export default function Home() {
         </section>
 
         {/* Events Section */}
-        <section id="events">
-          <div className="head">
-            <h2 className="section-title fade-in">Events &amp; Highlights</h2>
-            <div className="controls">
-              <button id="prev" className="nav-btn" aria-label="Prev">‹</button>
-              <button id="next" className="nav-btn" aria-label="Next">›</button>
-            </div>
-          </div>
-          <div className="slider">
-            <div className="track" id="track">
-              {/* SLIDE 1 */}
-              <article className="project-card" active="true">
-                <img className="project-card__bg" src="./images/event1.jpeg" alt="Boisar Varsha Marathon background" />
-                <div className="project-card__content">
-                  <img className="project-card__thumb" src="./images/event2.jpeg" alt="Boisar Varsha Marathon thumbnail" />
-                  <div>
-                    <h3 className="project-card__title">Boisar varsha marathon</h3>
-                    <button className="project-card__btn" data-bs-toggle="modal" data-bs-target="#imageGalleryModal">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </article>
-              {/* SLIDE 2 */}
-              <article className="project-card">
-                <img className="project-card__bg" src="./images/image1.jpeg" alt="Saphale Hill Marathon background" />
-                <div className="project-card__content">
-                  <img className="project-card__thumb" src="./images/image1.jpeg" alt="Saphale Hill Marathon thumbnail" />
-                  <div>
-                    <h3 className="project-card__title">Saphale Hill Marathon 2024</h3>
-                    <p className="project-card__desc">Saphale Lions Hill Marathon.</p>
-                    <button className="project-card__btn" data-bs-toggle="modal" data-bs-target="#imageGalleryModal">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </article>
-              {/* SLIDE 3 */}
-              <article className="project-card">
-                <img className="project-card__bg" src="./images/image6.jpeg" alt="Adivasi Jawar Marathon background" />
-                <div className="project-card__content">
-                  <img className="project-card__thumb" src="./images/image6.jpeg" alt="Adivasi Jawar Marathon thumbnail" />
-                  <div>
-                    <h3 className="project-card__title">Adhivasi Jawar Marathon 2024 &amp; 2025</h3>
-                    <button className="project-card__btn" data-folder="./images/image6.jpeg" data-bs-toggle="modal" data-bs-target="#imageGalleryModal">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </article>
-              {/* SLIDE 4 */}
-              <article className="project-card">
-                <img className="project-card__bg" src="./images/image5.jpeg" alt="Athletes Champ Dahanu background" />
-                <div className="project-card__content">
-                  <img className="project-card__thumb" src="./images/image5.jpeg" alt="Athletes Champ Dahanu thumbnail" />
-                  <div>
-                    <h3 className="project-card__title">Athletes Champ Dahanu</h3>
-                    <button className="project-card__btn" data-folder="./images/image5.jpeg" data-bs-toggle="modal" data-bs-target="#imageGalleryModal">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </article>
-              {/* SLIDE 5 */}
-              <article className="project-card">
-                <img className="project-card__bg" src="./images/image4.jpeg" alt="Volleyball Tournament background" />
-                <div className="project-card__content">
-                  <img className="project-card__thumb" src="./images/image11.jpeg" alt="Volleyball Tournament thumbnail" />
-                  <div>
-                    <h3 className="project-card__title">Volleyball Tournament</h3>
-                    <p className="project-card__desc">Palghar District Teacher Volleyball Tournament</p>
-                    <button className="project-card__btn" data-folder="./images/image11.jpeg" data-bs-toggle="modal" data-bs-target="#imageGalleryModal">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </article>
-              {/* SLIDE 6 */}
-              <article className="project-card">
-                <img className="project-card__bg" src="./images/image3.jpeg" alt="Cricket Tournament background" />
-                <div className="project-card__content">
-                  <img className="project-card__thumb" src="./images/image3.jpeg" alt="Cricket Tournament thumbnail" />
-                  <div>
-                    <h3 className="project-card__title">Cricket Tournament</h3>
-                    <p className="project-card__desc">Palghar District Teacher Cricket Tournament</p>
-                    <button className="project-card__btn" data-folder="./images/image3.jpeg" data-bs-toggle="modal" data-bs-target="#imageGalleryModal">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </div>
-
-          {/* Gallery Modal */}
-          <div className="modal fade" id="imageGalleryModal" tabIndex={-1} aria-hidden="true">
-            <div className="modal-dialog modal-xl modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header border-0">
-                  <h5 className="modal-title" id="galleryModalLabel" />
-                  <button type="button" className="btn-close" data-bs-dismiss="modal" />
-                </div>
-                <div className="modal-body p-0">
-                  <div id="projectCarousel" className="carousel slide" data-bs-ride="false">
-                    <div className="carousel-inner" id="carouselInner"></div>
-                    <button className="carousel-control-prev" type="button" data-bs-target="#projectCarousel" data-bs-slide="prev">
-                      <span className="carousel-control-prev-icon" />
-                    </button>
-                    <button className="carousel-control-next" type="button" data-bs-target="#projectCarousel" data-bs-slide="next">
-                      <span className="carousel-control-next-icon" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="dots" id="dots" />
-        </section>
+        <EventsAndHighlights />
 
         {/* Team Section */}
         <section id="team" className="py-5 bg-light">
