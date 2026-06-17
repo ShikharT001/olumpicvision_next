@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import SportsCoachingSection from '../components/SportsCoachingSection';
-import RegistrationSection from '../components/Registration';
 import EventsAndHighlights from '@/components/EventSection';
 import AboutSection from '@/components/AboutSection';
 import ServicesAndAcademy from '@/components/ServicesAndAcademy';
@@ -9,6 +8,16 @@ import ContactSection from '@/components/ContactSection';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   
+    const [showMarathonModal, setShowMarathonModal] = useState(false);
+
+
+    const announcements = [
+  {
+    id: 1,
+    text: "Boisar Varsha Marathon 2026",
+    action: () => setShowMarathonModal(true)
+  }
+];
   // Registration Form State
   const [formData, setFormData] = useState({
     fullName: '',
@@ -238,7 +247,6 @@ export default function Home() {
               <li className="nav-item"><a className="nav-link" href="#team">Team</a></li>
               <li className="nav-item"><a className="nav-link" href="#coaching">Coaching</a></li>
               <li className="nav-item"><a className="nav-link" href="#services">Services</a></li>
-              <li className="nav-item"><a className="nav-link" href="#register">Register</a></li>
               <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>
             </ul>
         
@@ -269,7 +277,6 @@ export default function Home() {
                 <li><a href="#team" onClick={() => setMenuOpen(false)}>Team</a></li>
                 <li><a href="#coaching" onClick={() => setMenuOpen(false)}>Coaching</a></li>
                 <li><a href="#services" onClick={() => setMenuOpen(false)}>Services</a></li>
-                <li><a href="#register" onClick={() => setMenuOpen(false)}>Register</a></li>
                 <li><a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a></li>
               </ul>
             </div>
@@ -290,7 +297,7 @@ export default function Home() {
           <div className="hero-content container">
             <h1>Olympic Vision Sports &amp; Event Management</h1>
             <p>Empowering Athletes | Building Champions | Creating Excellence</p>
-            <a href="#register" className="btn btn-lg" style={{background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem'}}>Register Now</a>
+            <a href="#events" className="btn btn-lg" style={{background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem'}}>Register Now</a>
           </div>
         </section>
 
@@ -409,9 +416,7 @@ export default function Home() {
         {/* Services Section */}
         <ServicesAndAcademy />
 
-        {/* Registration Form Section */}
-        <RegistrationSection />
-
+      
         {/* Contact Section */}
         <ContactSection />
 

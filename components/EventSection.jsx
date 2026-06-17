@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-
+import RegistrationSection from './Registration';
 export default function EventsAndHighlights() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showMarathonModal, setShowMarathonModal] = useState(false);
 
+
+  
   const eventsData = [
     {
       id: 1,
@@ -56,10 +59,13 @@ export default function EventsAndHighlights() {
     }
   ];
 
-  const announcements = [
-    { id: 1, text: "Boisar Varsha Marathon 2026", link: "#" }
-  ];
-
+const announcements = [
+  {
+    id: 1,
+    text: "Boisar Varsha Marathon 2026",
+    action: () => setShowMarathonModal(true)
+  }
+];
   // --- AUTOMATIC 3-SECOND TIMER ENGINE ---
   useEffect(() => {
     const autoSlideTimer = setInterval(() => {
@@ -133,13 +139,12 @@ export default function EventsAndHighlights() {
                       <p className="text-light opacity-75 mb-4 highlight-slide-desc">
                         {event.desc}
                       </p>
-                      <button 
-                        className="btn bg-white fw-semibold px-4 py-2.5 d-inline-flex align-items-center gap-2 highlight-explore-btn"
-                        data-bs-toggle="modal" 
-                        data-bs-target={event.modalTarget}
-                      >
-                        Explore Event <span className="action-arrow-icon">→</span>
-                      </button>
+                    <button
+  className="btn bg-white fw-semibold px-4 py-2.5 d-inline-flex align-items-center gap-2 highlight-explore-btn"
+  style={{ color: "#333" }}
+>
+  Explore Event <span style={{ color: "inherit" }}>→</span>
+</button>
                     </div>
                   </article>
                 ))}
@@ -168,12 +173,16 @@ export default function EventsAndHighlights() {
                 <ul className="list-group list-group-flush color-anim-list">
                   {announcements.map((item) => (
                     <li key={item.id} className="list-group-item announcement-item p-4 position-relative">
-                      <a href={item.link} className="text-decoration-none d-flex align-items-start gap-2">
+                      <button
+  type="button"
+  onClick={item.action}
+  className="border-0 bg-transparent p-0 text-decoration-none d-flex align-items-start gap-2 text-start w-100"
+>
                         <span className="announcement-bullet">•</span>
                         <span className="announcement-text fw-medium">
                           {item.text}
                         </span>
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -184,6 +193,46 @@ export default function EventsAndHighlights() {
         </div>
 
       </div>
+{showMarathonModal && (
+  <div
+    className="modal fade show d-block"
+    style={{
+      backgroundColor: "rgba(0,0,0,0.6)",
+      position: "fixed",
+      inset: 0,
+      zIndex: 1055
+    }}
+  >
+    <button
+      className="btn-close bg-white rounded-circle p-3 position-fixed"
+      style={{
+        top: "20px",
+        right: "20px",
+        zIndex: 9999
+      }}
+      onClick={() => setShowMarathonModal(false)}
+    />
+
+    <RegistrationSection />
+  </div>
+)}
     </section>
   );
 }
+
+<style jsx>{`
+.highlight-explore-btn,
+.highlight-explore-btn span {
+  color: #333 !important;
+}
+
+.highlight-explore-btn:hover,
+.highlight-explore-btn:hover span,
+.highlight-explore-btn:focus,
+.highlight-explore-btn:focus span,
+.highlight-explore-btn:active,
+.highlight-explore-btn:active span {
+  color: #6c757d !important;
+  background-color: #f1f1f1 !important;
+}
+`}</style>

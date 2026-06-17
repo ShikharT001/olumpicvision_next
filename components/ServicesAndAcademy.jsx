@@ -3,6 +3,8 @@
 import React from 'react';
 import './ServicesAndAcademy.css'; // Adjust path based on your directory structure
 
+import BrandCarousel from '@/components/BrandCarousel';
+
 export default function ServicesAndAcademy() {
   const servicesData = [
     {
@@ -90,6 +92,10 @@ export default function ServicesAndAcademy() {
 
         </div>
       </section>
+
+
+        {/* Brand Carousel Section */}
+        <BrandCarousel />
 
       {/* ================= ACADEMY LOCATIONS SECTION ================= */}
       <section id="academy" className="py-6 bg-white position-relative overflow-hidden">
