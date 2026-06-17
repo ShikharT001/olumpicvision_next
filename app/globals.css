@@ -76,7 +76,7 @@
    ========================================= */
 .announcements-card {
   border-color: #e2e8f0 !important;
-  height: 100%;
+  height: 40%;
   min-height: 480px; /* Aligns identically to Carousel slide component height */
 }
 
@@ -112,6 +112,43 @@
 
 .announcements-footer:hover {
   background-color: #082f63;
+}
+.color-anim-list .announcement-item {
+  background-color: #ffffff;
+  border-bottom: 1px solid #f1f5f9 !important;
+  /* Smoothly transition background and colors over 0.2s */
+  transition: background-color 0.2s ease-in-out;
+}
+
+.color-anim-list .announcement-text {
+  color: #334155;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  transition: color 0.2s ease-in-out;
+}
+
+.color-anim-list .announcement-bullet {
+  color: #0A3D7A; /* Default dark blue bullet */
+  font-size: 1.25rem;
+  line-height: 1;
+  margin-top: -2px;
+  transition: color 0.2s ease-in-out;
+}
+
+/* --- THE HOVER COLOR ANIMATION CHANGES --- */
+
+.color-anim-list .announcement-item:hover {
+  background-color: #0A3D7A !important; /* Full card changes to deep corporate blue */
+}
+
+/* Inverts text to pure white for crisp contrast against the blue background */
+.color-anim-list .announcement-item:hover .announcement-text {
+  color: #ffffff !important;
+}
+
+/* Changes the bullet to white as well */
+.color-anim-list .announcement-item:hover .announcement-bullet {
+  color: #ffffff !important;
 }
 
 .footer-circle-arrow {

@@ -1,97 +1,92 @@
-/* ── wrapper ─────────────────────────────────────────────── */
-.sc-section        { padding: 4rem 1rem; }
-.sc-container      { max-width: 960px; margin: 0 auto; }
+/* ==========================================================================
+   SPORTS COACHING SECTION PREMIUM STYLESHEET
+   ========================================================================== */
 
-/* ── accessibility ───────────────────────────────────────── */
-.sc-visually-hidden {
-  position: absolute; width: 1px; height: 1px;
-  overflow: hidden; clip: rect(0,0,0,0);
+.sc-section {
+  background-color: #ffffff;
 }
 
-/* ── header ──────────────────────────────────────────────── */
-.sc-header         { text-align: center; margin-bottom: 2rem; }
-.sc-title          { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
-.sc-subtitle       { font-size: 13px; color: #888; margin-top: 4px; }
-
-/* ── grid ────────────────────────────────────────────────── */
-.sc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 14px;
+/* Base Grey Shadow Variable Adjustments */
+.text-light-gray-tint {
+  color: #94a3b8;
 }
 
-/* ── card base ───────────────────────────────────────────── */
-.sc-card {
-  position: relative;
-  background: #fff;
-  border-radius: 14px;
-  padding: 22px 10px 16px;
-  display: flex;
-  flex-direction: column;
+.text-dark-blue-tint {
+  color: #1e293b;
+}
+
+/* Category Variable Configurations */
+.sc-card--aquatic   { --category-color: #378add; --bg-gradient: rgba(55, 138, 221, 0.04); }
+.sc-card--team      { --category-color: #1d9e75; --bg-gradient: rgba(29, 158, 117, 0.04); }
+.sc-card--martial   { --category-color: #7f77dd; --bg-gradient: rgba(127, 119, 221, 0.04); }
+.sc-card--combat    { --category-color: #d85a30; --bg-gradient: rgba(216, 90, 48, 0.04); }
+.sc-card--precision { --category-color: #ba7517; --bg-gradient: rgba(186, 117, 23, 0.04); }
+
+/* Premium Card Structural Block Design layout */
+.sc-premium-card {
+  background-color: #ffffff;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  border: 1px solid #f1f5f9 !important;
+}
+
+.sc-card-top-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--category-color);
+  transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Premium Icon Container Space Layer */
+.sc-premium-card .sc-icon-hub {
+  width: 64px;
+  height: 64px;
+  background-color: #f8fafc;
+  color: var(--category-color);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Legend UI Elements layout */
+.sc-legend-container .sc-legend__pill {
+  border-color: #e2e8f0 !important;
+  background-color: #ffffff !important;
+}
+
+/* --- THE PREMIUM HOVER STATES ANIMATIONS --- */
+
+.sc-premium-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 20px -4px rgba(10, 61, 122, 0.08) !important;
+  background-color: var(--bg-gradient) !important;
+  border-color: rgba(10, 61, 122, 0.1) !important;
+}
+
+/* Expand the top color border to cover the background slightly on hover */
+.sc-premium-card:hover .sc-card-top-strip {
+  height: 6px;
+}
+
+/* Pop individual icons visually into inverted state matches */
+.sc-premium-card:hover .sc-icon-hub {
+  background-color: var(--category-color);
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: transparent;
+}
+
+/* Accentuate typography color changes on hover matches */
+.sc-premium-card:hover .card-title {
+  color: #0A3D7A !important;
+}
+
+/* Update just this selector block inside your SportsCoaching.css file */
+.sc-premium-card .sc-icon-hub i {
+  font-size: 1.5rem !important; /* Forces uniform size constraints across Font Awesome glyph structural sets */
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 4px 0 0 rgba(0,0,0,0.10), 0 6px 12px rgba(0,0,0,0.07);
-  transition: transform 0.15s, box-shadow 0.15s;
-  user-select: none;
+  justify-content: center;
 }
-.sc-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 7px 0 0 rgba(0,0,0,0.10), 0 10px 20px rgba(0,0,0,0.10);
-}
-.sc-card:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.07);
-}
-
-/* ── card number ─────────────────────────────────────────── */
-.sc-card__num {
-  position: absolute; top: 8px; right: 10px;
-  font-size: 10px; font-weight: 500; color: #aaa;
-}
-
-/* ── icon slab ───────────────────────────────────────────── */
-.sc-card__slab {
-  width: 58px; height: 58px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(0,0,0,0.06);
-}
-.sc-card__icon { font-size: 24px; }
-
-/* ── color variants ──────────────────────────────────────── */
-.sc-card--blue   .sc-card__slab { background: #e6f1fb; border-bottom: 3px solid #85b7eb; }
-.sc-card--blue   .sc-card__icon { color: #185fa5; }
-
-.sc-card--teal   .sc-card__slab { background: #e1f5ee; border-bottom: 3px solid #5dcaa5; }
-.sc-card--teal   .sc-card__icon { color: #0f6e56; }
-
-.sc-card--purple .sc-card__slab { background: #eeedfe; border-bottom: 3px solid #afa9ec; }
-.sc-card--purple .sc-card__icon { color: #534ab7; }
-
-.sc-card--coral  .sc-card__slab { background: #faece7; border-bottom: 3px solid #f0997b; }
-.sc-card--coral  .sc-card__icon { color: #993c1d; }
-
-.sc-card--amber  .sc-card__slab { background: #faeeda; border-bottom: 3px solid #ef9f27; }
-.sc-card--amber  .sc-card__icon { color: #854f0b; }
-
-/* ── card text ───────────────────────────────────────────── */
-.sc-card__body   { text-align: center; }
-.sc-card__name   { font-size: 12px; font-weight: 500; color: #222; line-height: 1.3; }
-.sc-card__cat    { font-size: 10px; color: #aaa; margin-top: 2px; }
-
-/* ── legend ──────────────────────────────────────────────── */
-.sc-legend {
-  display: flex; justify-content: center;
-  flex-wrap: wrap; gap: 8px;
-  margin-top: 1.5rem;
-}
-.sc-legend__pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; border-radius: 999px;
-  border: 0.5px solid rgba(0,0,0,0.10);
-  font-size: 12px; color: #666;
-  background: #f7f7f7;
-}
-.sc-legend__dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }

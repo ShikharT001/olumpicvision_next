@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function EventsAndHighlights() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -9,25 +9,49 @@ export default function EventsAndHighlights() {
     {
       id: 1,
       title: "Boisar Varsha Marathon 2025",
-      tag: "Marathon",
+      tag: "MARATHON",
       bgImage: "/images/event1.jpeg",
-      desc: "Innovating the future with top industry leaders and cutting-edge tech.",
+      desc: "An exhilarating monsoon run uniting thousands of passionate athletes to promote fitness and community spirit.",
       modalTarget: "#imageGalleryModal"
     },
     {
       id: 2,
-      title: "Cultural Fest 'Goonj'",
-      tag: "CULTURE",
+      title: "Saphale Lions Hill Marathon 2024",
+      tag: "MARATHON",
       bgImage: "/images/image1.jpeg",
-      desc: "A vibrant celebration of art, music, and our rich cultural heritage.",
+      desc: "A challenging scenic run testing endurance and grit against beautiful rolling hill landscapes.",
       modalTarget: "#imageGalleryModal"
     },
     {
       id: 3,
-      title: "Saphale Hill Marathon 2024",
-      tag: "RACING",
+      title: "Adhivasi Jawar Marathon 2024 & 2025",
+      tag: "MARATHON",
       bgImage: "/images/image6.jpeg",
-      desc: "Saphale Lions Hill Marathon event bringing athletes together.",
+      desc: "An impactful cultural run celebrating local heritage and empowering tribal communities through running.",
+      modalTarget: "#imageGalleryModal"
+    },
+    {
+      id: 4,
+      title: "Atheletes Camp Dahanu",
+      tag: "TRAINING CAMP",
+      bgImage: "/images/image5.jpeg",
+      desc: "An intensive high-performance residential camp providing elite coaching and structured training regimens for young prospects.",
+      modalTarget: "#imageGalleryModal"
+    },
+    {
+      id: 5,
+      title: "Volleyball Tournament",
+      tag: "CHAMPIONSHIP",
+      bgImage: "/images/image4.jpeg",
+      desc: "A high-energy competitive championship showcasing incredible spiked rallies, teamwork, and tactical court mastery.",
+      modalTarget: "#imageGalleryModal"
+    },
+    {
+      id: 6,
+      title: "Cricket Tournament",
+      tag: "CHAMPIONSHIP",
+      bgImage: "/images/image3.jpeg",
+      desc: "A thrilling regional tournament capturing intense rivalries, strategic play, and premium local talent under the pressure of the chase.",
       modalTarget: "#imageGalleryModal"
     }
   ];
@@ -35,6 +59,17 @@ export default function EventsAndHighlights() {
   const announcements = [
     { id: 1, text: "Boisar Varsha Marathon 2026", link: "#" }
   ];
+
+  // --- AUTOMATIC 3-SECOND TIMER ENGINE ---
+  useEffect(() => {
+    const autoSlideTimer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % eventsData.length);
+    }, 3000); // 3000ms = 3 seconds
+
+    // Cleanup phase: safely tears down the interval on component unmount 
+    // or when currentIndex changes to cycle the 3s clock properly
+    return () => clearInterval(autoSlideTimer);
+  }, [currentIndex, eventsData.length]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % eventsData.length);
@@ -48,22 +83,18 @@ export default function EventsAndHighlights() {
     <section id="events" className="py-5 bg-white">
       <div className="container-fluid px-4 px-md-5">
         
-        {/* Main Side-by-Side Flex Grid Layout */}
         <div className="row g-4 align-items-stretch">
           
-          {/* LEFT SIDE: The Main Event Carousel Wrapper (75% width on desktop) */}
+          {/* LEFT SIDE: The Main Event Carousel Wrapper */}
           <div className="col-12 col-lg-9 d-flex flex-column justify-content-between">
             
-            {/* Carousel Header Block with Title & Controls */}
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div className="position-relative">
                 <h2 className="section-title fw-bold mb-0 text-dark" style={{ fontSize: '2.25rem', color: '#0A3D7A' }}>
                   Events Highlights
                 </h2>
-                
               </div>
               
-              {/* Carousel Arrows */}
               <div className="d-flex gap-2">
                 <button 
                   onClick={handlePrev}
@@ -82,7 +113,6 @@ export default function EventsAndHighlights() {
               </div>
             </div>
 
-            {/* Slider Window Container */}
             <div className="classic-carousel-window overflow-hidden rounded-4 shadow-sm position-relative flex-grow-1">
               <div 
                 className="classic-carousel-track d-flex"
@@ -116,7 +146,6 @@ export default function EventsAndHighlights() {
               </div>
             </div>
 
-            {/* Pagination Dash Indicator Bars */}
             <div className="d-flex gap-2 justify-content-start mt-4 px-2 align-items-center">
               {eventsData.map((_, index) => (
                 <span 
@@ -128,7 +157,7 @@ export default function EventsAndHighlights() {
             </div>
           </div>
 
-          {/* RIGHT SIDE: Announcements Card Panel (25% width on desktop) */}
+          {/* RIGHT SIDE: Announcements Card Panel */}
           <div className="col-12 col-lg-3 d-flex mt-5 mt-lg-0">
             <div className="announcements-card border rounded-4 shadow-sm d-flex flex-column w-100 bg-white overflow-hidden">
               <div className="announcements-header p-4 border-bottom">
@@ -136,12 +165,12 @@ export default function EventsAndHighlights() {
               </div>
               
               <div className="announcements-body flex-grow-1 overflow-auto p-0">
-                <ul className="list-group list-group-flush">
+                <ul className="list-group list-group-flush color-anim-list">
                   {announcements.map((item) => (
-                    <li key={item.id} className="list-group-item announcement-item p-4 border-bottom-0 position-relative">
-                      <a href={item.link} className="text-decoration-none d-flex align-items-start gap-3 text-secondary-hover">
-                        <span className="announcement-bullet mt-1.5">•</span>
-                        <span className="fw-medium text-dark-blue-tint transition-all" style={{ fontSize: '0.95rem', lineHeight: '1.45' }}>
+                    <li key={item.id} className="list-group-item announcement-item p-4 position-relative">
+                      <a href={item.link} className="text-decoration-none d-flex align-items-start gap-2">
+                        <span className="announcement-bullet">•</span>
+                        <span className="announcement-text fw-medium">
                           {item.text}
                         </span>
                       </a>
@@ -149,11 +178,6 @@ export default function EventsAndHighlights() {
                   ))}
                 </ul>
               </div>
-
-              <a href="#" className="announcements-footer p-4 text-white text-decoration-none d-flex justify-content-between align-items-center mt-auto">
-                <span className="fw-semibold">View All Announcements</span>
-                <span className="footer-circle-arrow">➔</span>
-              </a>
             </div>
           </div>
 

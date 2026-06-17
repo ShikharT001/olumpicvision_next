@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import SportsCoachingSection from '../components/SportsCoachingSection';
 import RegistrationSection from '../components/Registration';
 import EventsAndHighlights from '@/components/EventSection';
+import AboutSection from '@/components/AboutSection';
+import ServicesAndAcademy from '@/components/ServicesAndAcademy';
+import ContactSection from '@/components/ContactSection';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   
@@ -292,26 +295,7 @@ export default function Home() {
         </section>
 
         {/* About Section */}
-        <section id="about" className="bg-light">
-          <div className="container">
-            <h2 className="section-title fade-in">About Us</h2>
-            <div className="row align-items-center">
-              <div className="col-lg-6 fade-in">
-                <p className="lead" style={{fontSize: '1.1rem', lineHeight: '1.8'}}>
-                  Olympic Vision is a dedicated sports and event management organization focused on <strong>athlete development</strong>, <strong>certified coaching</strong>, and impactful event execution.
-                </p>
-                <p style={{fontSize: '1.1rem', lineHeight: '1.8'}}>
-                  We aim to promote sports culture, identify talent, and deliver excellence through structured programs and community engagement. Our mission is to nurture the next generation of champions while fostering a love for sports at every level.
-                </p>
-              </div>
-              <div className="col-lg-6 fade-in">
-                <div className="text-center">
-                  <img src="./images/aboutus.png" alt="About Us" className="img-fluid rounded" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <AboutSection />
 
         {/* Events Section */}
         <EventsAndHighlights />
@@ -423,137 +407,13 @@ export default function Home() {
         <SportsCoachingSection />
 
         {/* Services Section */}
-        <section id="services" className="bg-light">
-          <div className="container">
-            <h2 className="section-title fade-in">Our Services</h2>
-            <div className="row g-4">
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-chalkboard-teacher" />
-                  <h5>Certified Sports Coaching</h5>
-                  <p>Professional coaching from certified trainers across 16+ sports disciplines.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-user-graduate" />
-                  <h5>PE Teacher Placement</h5>
-                  <p>Connecting qualified physical education teachers with schools and institutions.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-school" />
-                  <h5>School &amp; College Events</h5>
-                  <p>Complete sports event management for educational institutions.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-building" />
-                  <h5>Corporate Events</h5>
-                  <p>Engaging sports events for corporate team building and community engagement.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-search" />
-                  <h5>Talent Hunt Programs</h5>
-                  <p>Identifying and nurturing young sporting talent for the future.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-bullhorn" />
-                  <h5>Sports Media &amp; Marketing</h5>
-                  <p>Comprehensive media coverage and marketing solutions for sports events.</p>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-4 fade-in">
-                <div className="service-card">
-                  <i className="fas fa-tshirt" />
-                  <h5>Product Merchandising</h5>
-                  <p>Custom sports merchandise and branding solutions.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Academy Location Section */}
-        <section id="academy">
-          <div className="container">
-            <h2 className="section-title fade-in">Academy Locations</h2>
-            <div className="text-center fade-in">
-              <div className="card" style={{background: 'linear-gradient(135deg, var(--secondary), var(--dark))', color: 'white', padding: '3rem'}}>
-                <i className="fas fa-map-marker-alt fa-4x mb-3" style={{color: 'var(--accent)'}} />
-                <h4>Coming Soon</h4>
-                <p>Details of our academy branches will be updated here, including addresses, coaching schedules, and available sports.</p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <ServicesAndAcademy />
 
         {/* Registration Form Section */}
         <RegistrationSection />
 
         {/* Contact Section */}
-        <section id="contact" className="bg-light">
-          <div className="container">
-            <h2 className="section-title fade-in">Contact Us</h2>
-            <div className="row justify-content-center">
-              <div className="col-lg-8 fade-in">
-                <div className="contact-info">
-                  <h4 className="mb-4">Get In Touch</h4>
-                  <p className="mb-4">We welcome inquiries for coaching, collaborations, and event execution.</p>
-                  <div className="contact-item">
-                    <i className="fas fa-envelope" />
-                    <div>
-                      <strong>Email</strong><br />
-                      <a
-                        href="mailto:olympicvisionindia@gmail.com"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          window.open('https://mail.google.com/mail/?view=cm&fs=1&to=olympicvisionindia@gmail.com', '_blank');
-                        }}
-                        style={{color: 'inherit', textDecoration: 'none'}}
-                      >
-                        olympicvisionindia@gmail.com
-                      </a>
-                    </div>
-                  </div>
-                  <div className="contact-item">
-                    <i className="fas fa-phone" />
-                    <div>
-                      <strong>Phone</strong><br />
-                      <a href="tel:+919284129950" target="_blank" style={{color: 'inherit', textDecoration: 'none'}}>
-                        +91 92841 29950
-                      </a>
-                    </div>
-                  </div>
-                  <div className="contact-item">
-                    <i className="fab fa-instagram" />
-                    <div>
-                      <strong>Instagram</strong><br />
-                      <a href="https://www.instagram.com/olympic_vision_india/" target="_blank" style={{color: 'inherit', textDecoration: 'none'}}>
-                        @olympic_vision_india
-                      </a>
-                    </div>
-                  </div>
-                  <div className="contact-item">
-                    <i className="fab fa-youtube" />
-                    <div>
-                      <strong>YouTube</strong><br />
-                      <a href="https://www.youtube.com/@OlympicVisionIndia" target="_blank" style={{color: 'inherit', textDecoration: 'none'}}>
-                        OlympicVisionIndia
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <ContactSection />
 
         {/* Footer */}
         <footer className="bg-dark text-light py-5">

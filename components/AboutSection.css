@@ -1,0 +1,51 @@
+/* ==========================================================================
+   ABOUT US SECTION PREMIUM STYLESHEET
+   ========================================================================== */
+
+/* Layout Base Background Setup */
+.bg-light-gradient {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.text-amber-gold {
+  color: #F2A900;
+}
+
+/* Subtle background glowing orb blur */
+.sc-bg-blur-accent {
+  width: 350px;
+  height: 350px;
+  background-color: #0A3D7A;
+  filter: blur(140px);
+  border-radius: 50%;
+}
+
+/* Photo Graphic Backing Geometric Box Frame */
+.sc-img-backing-frame {
+  border: 2px solid rgba(10, 61, 122, 0.08);
+  transform: scale(0.96) rotate(-2deg);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Image Hover Zoom Interaction Layer */
+.dynamic-img-wrapper img {
+  transform: scale(1);
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1;
+}
+
+.dynamic-img-wrapper:hover img {
+  transform: scale(1.04);
+}
+
+/* Institutional Impact Stat Metric Cards styling */
+.sc-stat-card {
+  border-color: #e2e8f0 !important;
+}
+
+.sc-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(10, 61, 122, 0.06) !important;
+  border-color: rgba(242, 169, 0, 0.4) !important; /* Highlights with brand golden tone */
+}
