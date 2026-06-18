@@ -3,29 +3,87 @@
 import { useMemo, useState } from 'react';
 import { adminDeleteRow, adminUpdateRow, adminInsertRow } from '@/app/admin/actions';
 
+const COMPACT_COLUMNS = new Set([
+  'id',
+  'registration_id',
+  'provider_order_id',
+  'provider_payment_id',
+  'provider_signature',
+  'razorpay_order_id',
+  'razorpay_payment_id',
+]);
+
+const TABLE_HIDDEN_COLUMNS = {
+  payment_transactions: ['raw_response', 'provider_signature'],
+  payment_transaction_details: ['raw_response'],
+};
+
+function labelize(value) {
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getVisibleColumns(table) {
+  const hiddenColumns = new Set(TABLE_HIDDEN_COLUMNS[table?.name] || []);
+  return (table?.columns || []).filter((column) => !hiddenColumns.has(column));
+}
+
 function formatValue(value, column) {
   if (value === null || value === undefined) {
     return <span style={{ color: '#94a3b8' }}>-</span>;
   }
 
   if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
-    return new Date(value).toLocaleDateString(undefined, {
+    return new Date(value).toLocaleString(undefined, {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
   if (typeof value === 'object') {
-    return JSON.stringify(value);
+    const keys = Object.keys(value);
+    return (
+      <span title={JSON.stringify(value)} style={styles.mutedValue}>
+        JSON {keys.length ? `(${keys.length} fields)` : ''}
+      </span>
+    );
   }
 
   const strVal = String(value);
-  if ((column === 'id' || column === 'user_id' || column === 'registration_id') && strVal.length > 20) {
-    return <span title={strVal} style={{ fontFamily: 'monospace', fontSize: 13, color: '#475569' }}>{strVal.slice(0, 8) + '...'}</span>;
+
+  if (column === 'amount_paise' || column === 'fee_amount_paise') {
+    return `Rs. ${(Number(value) / 100).toFixed(2)}`;
+  }
+
+  if (COMPACT_COLUMNS.has(column) && strVal.length > 18) {
+    return <span title={strVal} style={styles.monoValue}>{strVal.slice(0, 10) + '...'}</span>;
+  }
+
+  if (strVal.length > 80) {
+    return <span title={strVal}>{strVal.slice(0, 77)}...</span>;
   }
 
   return strVal;
+}
+
+function formatDetailValue(value) {
+  if (value === null || value === undefined || value === '') {
+    return <span style={{ color: '#94a3b8' }}>-</span>;
+  }
+
+  if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+    return new Date(value).toLocaleString();
+  }
+
+  if (typeof value === 'object') {
+    return <pre style={styles.jsonBlock}>{JSON.stringify(value, null, 2)}</pre>;
+  }
+
+  return String(value);
 }
 
 export default function Admin({ tables = [], logoutAction }) {
@@ -33,6 +91,7 @@ export default function Admin({ tables = [], logoutAction }) {
   const [editingRow, setEditingRow] = useState({ rowIndex: null, values: {} });
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [detailsRow, setDetailsRow] = useState(null);
 
   const active = useMemo(
     () => tables.find((table) => table.name === activeTable) || tables[0] || null,
@@ -46,9 +105,12 @@ export default function Admin({ tables = [], logoutAction }) {
     : active?.columns.includes('code')
     ? 'code'
     : null;
+  const isReadOnly = Boolean(active?.readOnly);
+  const visibleColumns = useMemo(() => getVisibleColumns(active), [active]);
+  const hasActions = Boolean(active);
 
   const handleDelete = async (row) => {
-    if (!idColumn) return;
+    if (!idColumn || isReadOnly) return;
     const confirmDelete = window.confirm(`Are you sure you want to delete this record?`);
     if (confirmDelete) {
       try {
@@ -60,11 +122,13 @@ export default function Admin({ tables = [], logoutAction }) {
   };
 
   const handleEditClick = (rowIndex, row) => {
+    if (isReadOnly) return;
     setIsAdding(false);
     setEditingRow({ rowIndex, values: { ...row } });
   };
 
   const handleAddClick = () => {
+    if (isReadOnly) return;
     setIsAdding(true);
     setEditingRow({ rowIndex: -1, values: {} });
   };
@@ -178,9 +242,10 @@ export default function Admin({ tables = [], logoutAction }) {
                   <h2 style={styles.sectionTitle}>{active.name}</h2>
                   <span style={styles.sectionMeta}>
                     {active.count} row{active.count === 1 ? '' : 's'}
+                    {isReadOnly ? ' - read only details view' : ''}
                   </span>
                 </div>
-                {idColumn && !isAdding && editingRow.rowIndex === null && (
+                {!isReadOnly && idColumn && !isAdding && editingRow.rowIndex === null && (
                   <button style={styles.addBtn} onClick={handleAddClick}>
                     + Add Record
                   </button>
@@ -191,19 +256,19 @@ export default function Admin({ tables = [], logoutAction }) {
                 <table style={styles.table}>
                   <thead>
                     <tr>
-                      {active.columns.map((column) => (
+                      {visibleColumns.map((column) => (
                         <th key={column} style={styles.th}>
                           {column}
                         </th>
                       ))}
-                      {idColumn && <th style={styles.thAction}>Actions</th>}
+                      {hasActions && <th style={styles.thAction}>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {/* Render Add Row if isAdding is true */}
                     {isAdding && (
                       <tr style={styles.newRowHighlight}>
-                        {active.columns.map((column) => (
+                        {visibleColumns.map((column) => (
                           <td key={column} style={styles.td}>
                             {column !== idColumn ? (
                               <input
@@ -217,7 +282,7 @@ export default function Admin({ tables = [], logoutAction }) {
                             )}
                           </td>
                         ))}
-                        <td style={styles.tdAction}>
+                        {hasActions && <td style={styles.tdAction}>
                           <div style={styles.actionGroup}>
                             <button
                               style={styles.saveBtn}
@@ -230,13 +295,13 @@ export default function Admin({ tables = [], logoutAction }) {
                               Cancel
                             </button>
                           </div>
-                        </td>
+                        </td>}
                       </tr>
                     )}
 
                     {active.rows.length === 0 && !isAdding ? (
                       <tr>
-                        <td style={styles.td} colSpan={Math.max(active.columns.length + (idColumn ? 1 : 0), 1)}>
+                        <td style={styles.td} colSpan={Math.max(visibleColumns.length + (hasActions ? 1 : 0), 1)}>
                           No rows found in this table.
                         </td>
                       </tr>
@@ -246,7 +311,7 @@ export default function Admin({ tables = [], logoutAction }) {
 
                         return (
                           <tr key={`${active.name}-${rowIndex}`}>
-                            {active.columns.map((column) => (
+                            {visibleColumns.map((column) => (
                               <td key={column} style={styles.td}>
                                 {isEditing && column !== idColumn ? (
                                   <input
@@ -259,7 +324,7 @@ export default function Admin({ tables = [], logoutAction }) {
                                 )}
                               </td>
                             ))}
-                            {idColumn && (
+                            {hasActions && (
                               <td style={styles.tdAction}>
                                 {isEditing ? (
                                   <div style={styles.actionGroup}>
@@ -276,20 +341,31 @@ export default function Admin({ tables = [], logoutAction }) {
                                   </div>
                                 ) : (
                                   <div style={styles.actionGroup}>
-                                    <button 
-                                      style={styles.editBtn} 
-                                      onClick={() => handleEditClick(rowIndex, row)}
+                                    <button
+                                      style={styles.detailsBtn}
+                                      onClick={() => setDetailsRow(row)}
                                       disabled={isAdding || editingRow.rowIndex !== null}
                                     >
-                                      Edit
+                                      Details
                                     </button>
-                                    <button 
-                                      style={styles.deleteBtn} 
-                                      onClick={() => handleDelete(row)}
-                                      disabled={isAdding || editingRow.rowIndex !== null}
-                                    >
-                                      Delete
-                                    </button>
+                                    {!isReadOnly && idColumn && (
+                                      <>
+                                        <button
+                                          style={styles.editBtn}
+                                          onClick={() => handleEditClick(rowIndex, row)}
+                                          disabled={isAdding || editingRow.rowIndex !== null}
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          style={styles.deleteBtn}
+                                          onClick={() => handleDelete(row)}
+                                          disabled={isAdding || editingRow.rowIndex !== null}
+                                        >
+                                          Delete
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </td>
@@ -307,6 +383,31 @@ export default function Admin({ tables = [], logoutAction }) {
           )}
         </section>
       </main>
+
+      {detailsRow ? (
+        <div style={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="Record details">
+          <div style={styles.modalPanel}>
+            <div style={styles.modalHeader}>
+              <div>
+                <h2 style={styles.modalTitle}>Transaction Details</h2>
+                <p style={styles.modalSubtitle}>{active?.name ? labelize(active.name) : 'Selected record'}</p>
+              </div>
+              <button style={styles.closeBtn} onClick={() => setDetailsRow(null)} aria-label="Close details">
+                Close
+              </button>
+            </div>
+
+            <div style={styles.detailGrid}>
+              {Object.entries(detailsRow).map(([key, value]) => (
+                <div key={key} style={styles.detailItem}>
+                  <div style={styles.detailLabel}>{labelize(key)}</div>
+                  <div style={styles.detailValue}>{formatDetailValue(value)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -496,6 +597,15 @@ const styles = {
     cursor: 'pointer',
     fontSize: 13,
   },
+  detailsBtn: {
+    padding: '4px 10px',
+    border: '1px solid #bae6fd',
+    borderRadius: 4,
+    background: '#f0f9ff',
+    color: '#0369a1',
+    cursor: 'pointer',
+    fontSize: 13,
+  },
   saveBtn: {
     padding: '4px 10px',
     border: '1px solid #86efac',
@@ -515,5 +625,99 @@ const styles = {
   },
   newRowHighlight: {
     backgroundColor: '#f8fafc',
-  }
+  },
+  mutedValue: {
+    color: '#64748b',
+    fontSize: 13,
+  },
+  monoValue: {
+    fontFamily: 'monospace',
+    fontSize: 13,
+    color: '#475569',
+  },
+  modalBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 50,
+    background: 'rgba(15, 23, 42, 0.55)',
+    display: 'grid',
+    placeItems: 'center',
+    padding: 24,
+  },
+  modalPanel: {
+    width: 'min(980px, 100%)',
+    maxHeight: '88vh',
+    overflow: 'auto',
+    background: '#fff',
+    borderRadius: 10,
+    boxShadow: '0 24px 70px rgba(15, 23, 42, 0.24)',
+    border: '1px solid #dbe3ee',
+  },
+  modalHeader: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 16,
+    padding: 18,
+    background: '#fff',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: 20,
+  },
+  modalSubtitle: {
+    margin: '4px 0 0',
+    color: '#64748b',
+    fontSize: 13,
+  },
+  closeBtn: {
+    padding: '7px 12px',
+    border: '1px solid #cbd5e1',
+    borderRadius: 6,
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  detailGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: 12,
+    padding: 18,
+  },
+  detailItem: {
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    background: '#f8fafc',
+    minWidth: 0,
+  },
+  detailLabel: {
+    marginBottom: 6,
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+  },
+  detailValue: {
+    color: '#0f172a',
+    fontSize: 14,
+    overflowWrap: 'anywhere',
+  },
+  jsonBlock: {
+    maxHeight: 320,
+    overflow: 'auto',
+    margin: 0,
+    padding: 10,
+    borderRadius: 6,
+    background: '#0f172a',
+    color: '#e2e8f0',
+    fontSize: 12,
+    lineHeight: 1.5,
+    whiteSpace: 'pre-wrap',
+  },
 };
