@@ -18,6 +18,40 @@ const TABLE_HIDDEN_COLUMNS = {
   payment_transaction_details: ['raw_response'],
 };
 
+const CHECKBOX_COLUMN_PRIORITY = [
+  'gender',
+  'sender_gender',
+  'registration_status',
+  'payment_status',
+  'registration_payment_status',
+  'transaction_status',
+  'status',
+  'category_code',
+  'category_label',
+  'gender_allowed',
+  'payment_required',
+  'provider',
+  'currency',
+];
+
+const CHECKBOX_COLUMN_EXCLUDED = new Set([
+  'id',
+  'registration_id',
+  'provider_order_id',
+  'provider_payment_id',
+  'provider_signature',
+  'razorpay_order_id',
+  'razorpay_payment_id',
+  'raw_response',
+  'full_name',
+  'sender_name',
+  'mobile_no',
+  'sender_mobile_no',
+  'school_college_name',
+  'description',
+  'bib_number',
+]);
+
 function labelize(value) {
   return String(value)
     .replace(/_/g, ' ')
@@ -27,6 +61,95 @@ function labelize(value) {
 function getVisibleColumns(table) {
   const hiddenColumns = new Set(TABLE_HIDDEN_COLUMNS[table?.name] || []);
   return (table?.columns || []).filter((column) => !hiddenColumns.has(column));
+}
+
+function serializeFilterValue(value) {
+  if (value === null || value === undefined || value === '') {
+    return 'blank';
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function getRowSearchText(row) {
+  return Object.values(row)
+    .map((value) => serializeFilterValue(value))
+    .join(' ')
+    .toLowerCase();
+}
+
+function getFilterGroups(table, visibleColumns) {
+  if (!table) {
+    return [];
+  }
+
+  const groups = visibleColumns
+    .filter((column) => {
+      if (CHECKBOX_COLUMN_EXCLUDED.has(column)) {
+        return false;
+      }
+
+      if (column.endsWith('_at') || column.includes('date')) {
+        return false;
+      }
+
+      return true;
+    })
+    .map((column) => {
+      const values = Array.from(
+        new Set(
+          table.rows.map((row) => serializeFilterValue(row[column]))
+        )
+      )
+        .filter((value) => value !== 'blank')
+        .sort((a, b) => a.localeCompare(b));
+
+      return { column, values };
+    })
+    .filter(({ values }) => (
+      values.length > 1 &&
+      values.length <= 10 &&
+      values.every((value) => value.length <= 42)
+    ));
+
+  return groups
+    .sort((a, b) => {
+      const aPriority = CHECKBOX_COLUMN_PRIORITY.indexOf(a.column);
+      const bPriority = CHECKBOX_COLUMN_PRIORITY.indexOf(b.column);
+      const normalizedA = aPriority === -1 ? 999 : aPriority;
+      const normalizedB = bPriority === -1 ? 999 : bPriority;
+
+      if (normalizedA !== normalizedB) {
+        return normalizedA - normalizedB;
+      }
+
+      return a.column.localeCompare(b.column);
+    })
+    .slice(0, 6);
+}
+
+function rowMatchesFilters(row, query, checkboxFilters) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (normalizedQuery && !getRowSearchText(row).includes(normalizedQuery)) {
+    return false;
+  }
+
+  for (const [column, selectedValues] of Object.entries(checkboxFilters)) {
+    if (!selectedValues || selectedValues.length === 0) {
+      continue;
+    }
+
+    if (!selectedValues.includes(serializeFilterValue(row[column]))) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function formatValue(value, column) {
@@ -88,10 +211,12 @@ function formatDetailValue(value) {
 
 export default function Admin({ tables = [], logoutAction }) {
   const [activeTable, setActiveTable] = useState(tables[0]?.name || '');
-  const [editingRow, setEditingRow] = useState({ rowIndex: null, values: {} });
+  const [editingRow, setEditingRow] = useState({ rowIndex: null, rowKey: null, values: {} });
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [detailsRow, setDetailsRow] = useState(null);
+  const [query, setQuery] = useState('');
+  const [checkboxFilters, setCheckboxFilters] = useState({});
 
   const active = useMemo(
     () => tables.find((table) => table.name === activeTable) || tables[0] || null,
@@ -107,7 +232,46 @@ export default function Admin({ tables = [], logoutAction }) {
     : null;
   const isReadOnly = Boolean(active?.readOnly);
   const visibleColumns = useMemo(() => getVisibleColumns(active), [active]);
+  const filterGroups = useMemo(
+    () => getFilterGroups(active, visibleColumns),
+    [active, visibleColumns]
+  );
+  const filteredRows = useMemo(() => {
+    if (!active) {
+      return [];
+    }
+
+    return active.rows.filter((row) => rowMatchesFilters(row, query, checkboxFilters));
+  }, [active, query, checkboxFilters]);
+  const selectedFilterCount = Object.values(checkboxFilters).reduce(
+    (sum, values) => sum + values.length,
+    0
+  );
+  const hasActiveFilters = query.trim().length > 0 || selectedFilterCount > 0;
   const hasActions = Boolean(active);
+
+  const resetFilters = () => {
+    setQuery('');
+    setCheckboxFilters({});
+  };
+
+  const handleFilterToggle = (column, value) => {
+    setCheckboxFilters((current) => {
+      const selected = current[column] || [];
+      const nextSelected = selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value];
+      const nextFilters = { ...current };
+
+      if (nextSelected.length > 0) {
+        nextFilters[column] = nextSelected;
+      } else {
+        delete nextFilters[column];
+      }
+
+      return nextFilters;
+    });
+  };
 
   const handleDelete = async (row) => {
     if (!idColumn || isReadOnly) return;
@@ -124,18 +288,22 @@ export default function Admin({ tables = [], logoutAction }) {
   const handleEditClick = (rowIndex, row) => {
     if (isReadOnly) return;
     setIsAdding(false);
-    setEditingRow({ rowIndex, values: { ...row } });
+    setEditingRow({
+      rowIndex,
+      rowKey: idColumn ? serializeFilterValue(row[idColumn]) : null,
+      values: { ...row },
+    });
   };
 
   const handleAddClick = () => {
     if (isReadOnly) return;
     setIsAdding(true);
-    setEditingRow({ rowIndex: -1, values: {} });
+    setEditingRow({ rowIndex: -1, rowKey: null, values: {} });
   };
 
   const handleCancelEdit = () => {
     setIsAdding(false);
-    setEditingRow({ rowIndex: null, values: {} });
+    setEditingRow({ rowIndex: null, rowKey: null, values: {} });
   };
 
   const handleSaveEdit = async (originalRow) => {
@@ -163,7 +331,7 @@ export default function Admin({ tables = [], logoutAction }) {
         }
       }
       setIsAdding(false);
-      setEditingRow({ rowIndex: null, values: {} });
+      setEditingRow({ rowIndex: null, rowKey: null, values: {} });
     } catch (err) {
       alert('Failed to save row: ' + err.message);
     } finally {
@@ -197,6 +365,7 @@ export default function Admin({ tables = [], logoutAction }) {
                 onClick={() => {
                   setActiveTable(table.name);
                   handleCancelEdit();
+                  resetFilters();
                 }}
                 style={activeTable === table.name ? styles.activeTableButton : styles.tableButton}
               >
@@ -241,7 +410,7 @@ export default function Admin({ tables = [], logoutAction }) {
                 <div>
                   <h2 style={styles.sectionTitle}>{active.name}</h2>
                   <span style={styles.sectionMeta}>
-                    {active.count} row{active.count === 1 ? '' : 's'}
+                    {filteredRows.length} of {active.count} row{active.count === 1 ? '' : 's'}
                     {isReadOnly ? ' - read only details view' : ''}
                   </span>
                 </div>
@@ -250,6 +419,72 @@ export default function Admin({ tables = [], logoutAction }) {
                     + Add Record
                   </button>
                 )}
+              </div>
+
+              <div style={styles.filterPanel}>
+                <div style={styles.searchWrap}>
+                  <i className="ti ti-search" aria-hidden="true" style={styles.searchIcon} />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search by name, phone number, gender, status..."
+                    aria-label="Search table rows"
+                    style={styles.searchInput}
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      aria-label="Clear search"
+                      title="Clear search"
+                      style={styles.iconButton}
+                    >
+                      <i className="ti ti-x" aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
+
+                {filterGroups.length > 0 ? (
+                  <div style={styles.checkboxGrid}>
+                    {filterGroups.map(({ column, values }) => (
+                      <fieldset key={column} style={styles.filterGroup}>
+                        <legend style={styles.filterLegend}>{labelize(column)}</legend>
+                        <div style={styles.filterOptions}>
+                          {values.map((value) => {
+                            const checked = (checkboxFilters[column] || []).includes(value);
+
+                            return (
+                              <label key={`${column}-${value}`} style={styles.checkboxLabel}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => handleFilterToggle(column, value)}
+                                  style={styles.checkboxInput}
+                                />
+                                <span style={styles.checkboxText}>{labelize(value)}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={styles.filterHint}>No checkbox filters available for this table.</div>
+                )}
+
+                <div style={styles.filterFooter}>
+                  <span>
+                    Showing <strong>{filteredRows.length}</strong> result{filteredRows.length === 1 ? '' : 's'}
+                    {selectedFilterCount > 0 ? ` with ${selectedFilterCount} selected filter${selectedFilterCount === 1 ? '' : 's'}` : ''}
+                  </span>
+                  {hasActiveFilters ? (
+                    <button type="button" onClick={resetFilters} style={styles.clearFiltersBtn}>
+                      Clear filters
+                    </button>
+                  ) : null}
+                </div>
               </div>
 
               <div style={styles.tableWrap}>
@@ -305,9 +540,20 @@ export default function Admin({ tables = [], logoutAction }) {
                           No rows found in this table.
                         </td>
                       </tr>
+                    ) : filteredRows.length === 0 && !isAdding ? (
+                      <tr>
+                        <td style={styles.td} colSpan={Math.max(visibleColumns.length + (hasActions ? 1 : 0), 1)}>
+                          No rows match the current search or checkbox filters.
+                        </td>
+                      </tr>
                     ) : (
-                      active.rows.map((row, rowIndex) => {
-                        const isEditing = editingRow.rowIndex === rowIndex && !isAdding;
+                      filteredRows.map((row, rowIndex) => {
+                        const rowKey = idColumn ? serializeFilterValue(row[idColumn]) : null;
+                        const isEditing = !isAdding && (
+                          rowKey
+                            ? editingRow.rowKey === rowKey
+                            : editingRow.rowIndex === rowIndex
+                        );
 
                         return (
                           <tr key={`${active.name}-${rowIndex}`}>
@@ -509,6 +755,129 @@ const styles = {
   },
   sectionTitle: { margin: 0, fontSize: 20 },
   sectionMeta: { color: '#64748b' },
+  filterPanel: {
+    display: 'grid',
+    gap: 14,
+    padding: 14,
+    marginBottom: 16,
+    border: '1px solid #dbe3ee',
+    borderRadius: 10,
+    background: '#fff',
+    boxShadow: '0 10px 26px rgba(15, 23, 42, 0.04)',
+  },
+  searchWrap: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 13,
+    color: '#64748b',
+    fontSize: 20,
+    pointerEvents: 'none',
+  },
+  searchInput: {
+    width: '100%',
+    minHeight: 44,
+    padding: '10px 46px 10px 42px',
+    border: '1px solid #cbd5e1',
+    borderRadius: 8,
+    background: '#f8fafc',
+    color: '#0f172a',
+    fontSize: 15,
+    outline: 'none',
+  },
+  iconButton: {
+    position: 'absolute',
+    right: 8,
+    width: 30,
+    height: 30,
+    display: 'inline-grid',
+    placeItems: 'center',
+    border: '1px solid #cbd5e1',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#475569',
+    cursor: 'pointer',
+    fontSize: 18,
+  },
+  checkboxGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+    gap: 12,
+  },
+  filterGroup: {
+    minWidth: 0,
+    margin: 0,
+    padding: 10,
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    background: '#f8fafc',
+  },
+  filterLegend: {
+    padding: '0 4px',
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: 800,
+    textTransform: 'uppercase',
+  },
+  filterOptions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  checkboxLabel: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    padding: '6px 8px',
+    border: '1px solid #dbe3ee',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#0f172a',
+    cursor: 'pointer',
+    fontSize: 13,
+    lineHeight: 1.2,
+  },
+  checkboxInput: {
+    width: 15,
+    height: 15,
+    accentColor: '#0f172a',
+    flex: '0 0 auto',
+  },
+  checkboxText: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+  },
+  filterHint: {
+    padding: '10px 12px',
+    borderRadius: 8,
+    background: '#f8fafc',
+    color: '#64748b',
+    fontSize: 13,
+  },
+  filterFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    color: '#475569',
+    fontSize: 13,
+    flexWrap: 'wrap',
+  },
+  clearFiltersBtn: {
+    padding: '7px 12px',
+    border: '1px solid #cbd5e1',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#0f172a',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 700,
+  },
   tableWrap: {
     overflow: 'auto',
     border: '1px solid #dbe3ee',

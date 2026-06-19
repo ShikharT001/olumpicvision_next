@@ -1,11 +1,21 @@
 'use client';
 
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import {
   OPEN_CATEGORY_FEE_RUPEES,
   getAvailableRaceCategories,
   isPaidCategory,
 } from '@/lib/marathon';
+
+const SPONSOR_IMAGES = [
+  { src: '/images/brands/form001.png', alt: 'Mira Bhayander Vasai Virar Police supporter logo', width: 1171, height: 912 },
+  { src: '/images/brands/form002.png', alt: 'Boisar Varsha Marathon organizing partners logo', width: 1408, height: 768 },
+  { src: '/images/brands/form003.png', alt: 'Palghar District Athletics Association supporter logo', width: 1408, height: 768 },
+  { src: '/images/brands/form004.png', alt: 'Western Railway supporter logo', width: 1408, height: 768 },
+  { src: '/images/brands/form005.png', alt: 'Aryanz Sports promoter logo', width: 1120, height: 955 },
+  { src: '/images/brands/form006.png', alt: 'Indian Athletics and Maharashtra Athletics Association logo', width: 1152, height: 918 },
+];
 
 function loadRazorpayCheckout() {
   return new Promise((resolve, reject) => {
@@ -400,6 +410,75 @@ export default function RegistrationSection() {
                     </div>
                   </form>
                 )}
+
+                <div
+                  className="mt-5 pt-4 border-top"
+                  aria-label="Sponsors and supporters"
+                >
+                  <div className="text-center mb-4">
+                    <p className="text-uppercase fw-bold small text-secondary mb-2" style={{ letterSpacing: '0.1em' }}>
+                      Sponsored &amp; Supported By
+                    </p>
+                    <div
+                      aria-hidden="true"
+                      className="mx-auto"
+                      style={{
+                        width: 72,
+                        height: 3,
+                        borderRadius: 999,
+                        background: 'var(--accent, #ffcc00)',
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                      gap: '16px',
+                    }}
+                  >
+                    {SPONSOR_IMAGES.map((image) => (
+                      <div
+                        key={image.src}
+                        style={{
+                          minWidth: 0,
+                          display: 'grid',
+                          placeItems: 'center',
+                          minHeight: 178,
+                          border: '1px solid rgba(15, 23, 42, 0.1)',
+                          borderRadius: '8px',
+                          background: '#fff',
+                          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.06)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: 'relative',
+                            width: '100%',
+                            aspectRatio: '16 / 10',
+                            background: '#fff',
+                          }}
+                        >
+                          <Image
+                            src={image.src}
+                            alt={image.alt}
+                            width={image.width}
+                            height={image.height}
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 180px"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              padding: '18px',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
