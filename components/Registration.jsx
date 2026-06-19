@@ -431,53 +431,118 @@ export default function RegistrationSection() {
                     />
                   </div>
 
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-                      gap: '16px',
-                    }}
-                  >
-                    {SPONSOR_IMAGES.map((image) => (
-                      <div
-                        key={image.src}
-                        style={{
-                          minWidth: 0,
-                          display: 'grid',
-                          placeItems: 'center',
-                          minHeight: 178,
-                          border: '1px solid rgba(15, 23, 42, 0.1)',
-                          borderRadius: '8px',
-                          background: '#fff',
-                          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.06)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <div
-                          style={{
-                            position: 'relative',
-                            width: '100%',
-                            aspectRatio: '16 / 10',
-                            background: '#fff',
-                          }}
-                        >
+                  <div className="sponsor-carousel" aria-label="Event sponsors and supporters">
+                    <div className="sponsor-track">
+                      {SPONSOR_IMAGES.map((image) => (
+                        <div className="sponsor-card" key={image.src}>
                           <Image
                             src={image.src}
                             alt={image.alt}
                             width={image.width}
                             height={image.height}
-                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 180px"
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'contain',
-                              padding: '18px',
-                            }}
+                            sizes="(max-width: 768px) 60vw, (max-width: 1200px) 28vw, 220px"
+                            className="sponsor-logo"
                           />
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                      {SPONSOR_IMAGES.map((image) => (
+                        <div className="sponsor-card" key={`${image.src}-loop`} aria-hidden="true">
+                          <Image
+                            src={image.src}
+                            alt=""
+                            width={image.width}
+                            height={image.height}
+                            sizes="(max-width: 768px) 60vw, (max-width: 1200px) 28vw, 220px"
+                            className="sponsor-logo"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  <style jsx>{`
+                    .sponsor-carousel {
+                      overflow: hidden;
+                      padding: 4px 0 14px;
+                      mask-image: linear-gradient(
+                        90deg,
+                        transparent,
+                        #000 9%,
+                        #000 91%,
+                        transparent
+                      );
+                    }
+
+                    .sponsor-track {
+                      display: flex;
+                      width: max-content;
+                      gap: 16px;
+                      animation: sponsor-marquee 24s linear infinite;
+                    }
+
+                    .sponsor-carousel:hover .sponsor-track {
+                      animation-play-state: paused;
+                    }
+
+                    .sponsor-card {
+                      flex: 0 0 clamp(190px, 24vw, 250px);
+                      display: grid;
+                      place-items: center;
+                      min-height: 178px;
+                      border: 1px solid rgba(15, 23, 42, 0.1);
+                      border-radius: 8px;
+                      background: #fff;
+                      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+                      overflow: hidden;
+                    }
+
+                    .sponsor-logo {
+                      width: 100%;
+                      height: 160px;
+                      object-fit: contain;
+                      padding: 18px;
+                    }
+
+                    @keyframes sponsor-marquee {
+                      from {
+                        transform: translateX(0);
+                      }
+
+                      to {
+                        transform: translateX(calc(-50% - 8px));
+                      }
+                    }
+
+                    @media (max-width: 576px) {
+                      .sponsor-track {
+                        gap: 12px;
+                        animation-duration: 20s;
+                      }
+
+                      .sponsor-card {
+                        flex-basis: 210px;
+                        min-height: 150px;
+                      }
+
+                      .sponsor-logo {
+                        height: 136px;
+                        padding: 14px;
+                      }
+                    }
+
+                    @media (prefers-reduced-motion: reduce) {
+                      .sponsor-track {
+                        animation: none;
+                        flex-wrap: wrap;
+                        justify-content: center;
+                        width: 100%;
+                      }
+
+                      .sponsor-card[aria-hidden='true'] {
+                        display: none;
+                      }
+                    }
+                  `}</style>
                 </div>
               </div>
             </div>
