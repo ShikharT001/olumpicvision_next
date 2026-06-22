@@ -248,6 +248,7 @@ export default function Home() {
                   className="btn-register-orange"
                   onClick={() => setShowMarathonModal(true)}
                 >
+                  <span className="pulse-ring"></span>
                   Register Now
                 </button>
 
@@ -274,6 +275,14 @@ export default function Home() {
                   <img src="/images/new logo.png" height="50" alt="Olympic Vision Sports and Event Management" />
                 </a>
               </div>
+               <button
+                  type="button"
+                  className="btn-register-orange"
+                  onClick={() => setShowMarathonModal(true)}
+                >
+                  <span className="pulse-ring"></span>
+                  Register Now
+                </button>
               <ul className="mobile-nav-links">
                 <li><a href="#home" onClick={() => setMenuOpen(false)}>Home</a></li>
                 <li><a href="#about" onClick={() => setMenuOpen(false)}>About</a></li>
@@ -301,10 +310,13 @@ export default function Home() {
           <div className="hero-content container">
             <h1>Olympic Vision Sports &amp; Event Management</h1>
             <p>Empowering Athletes | Building Champions | Creating Excellence</p>
-            <a href="#events" className="btn btn-lg" style={{background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem'}}>Register Now</a>
+            <a href="#contact" className="btn btn-lg" style={{background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem'}}>Contact Us</a>
           </div>
           
-                 {showMarathonModal && (
+               
+
+        </section>
+  {showMarathonModal && (
                   <div
                     className="modal fade show d-block"
                     style={{
@@ -327,9 +339,6 @@ export default function Home() {
                       <RegistrationSection />
                     </div>
                   )}
-
-        </section>
-
         {/* About Section */}
         <AboutSection />
 

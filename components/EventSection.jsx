@@ -171,22 +171,20 @@ useEffect(() => {
                 <h3 className="h4 fw-bold mb-0" style={{ color: '#0A3D7A' }}>Announcements</h3>
               </div>
 
-              <div className="announcements-body flex-grow-1 overflow-auto p-0">
-                <ul className="list-group list-group-flush color-anim-list">
-                  <li className="list-group-item announcement-item p-4 position-relative">
-                   <button
-                  type="button"
-                  className="border-0 bg-transparent p-0 text-decoration-none d-flex align-items-start gap-2 text-start w-100"
-                  onClick={() => setShowMarathonModal(true)}
-                >
-                   <span className="announcement-bullet">&bull;</span>
-                        <span className="announcement-text fw-medium">
-                  Boisar Varsha Marathon 2025
-                  </span>
-                </button>
-                </li>
-                </ul>
-              </div>
+            <div className="announcements-body flex-grow-1 overflow-auto p-0">
+              <img
+                src="/images/banner.jpeg"
+                alt="Boisar Varsha Marathon 2025"
+                onClick={() => setShowMarathonModal(true)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  cursor: 'pointer',
+                }}
+              />
+            </div>
             </div>
           </div>
         </div>

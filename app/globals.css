@@ -1770,8 +1770,10 @@ footer {
 
 
 .btn-register-orange {
-  /* Core layout properties */
-  display: inline-block;
+  /* Core layout */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 12px 28px;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 15px;
@@ -1781,36 +1783,94 @@ footer {
   white-space: nowrap;
   cursor: pointer;
   border: none;
-  border-radius: 6px;
-  
-  /* Color theme: Deep vibrant orange text & background */
+  border-radius: 50px;
+  position: relative;
+  letter-spacing: 0.01em;
+
+  /* Premium gradient instead of flat color */
   color: #ffffff;
-  background-color: #ea580c; 
-  
-  /* Ambient static glow shadow map */
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
-  
-  /* High-performance hardware accelerated transitions */
-  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #f97316 100%);
+
+  /* Layered glow: border ring + mid halo + base shadow */
+  box-shadow:
+    0 0 0 1px rgba(234, 88, 12, 0.4),
+    0 4px 14px rgba(234, 88, 12, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.18);
+
+  /* Glassmorphic top shine */
+  overflow: hidden;
+
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    filter 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Hover effect: Elastic scale up + intense lighting glow */
+/* Top gloss shine layer */
+.btn-register-orange::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
+}
+
+/* Outer bloom halo — expands on hover */
+.btn-register-orange::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 54px;
+  box-shadow: 0 0 0px 0px rgba(249, 115, 22, 0);
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+/* Pulse ring animation */
+.btn-register-orange .pulse-ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 54px;
+  border: 1.5px solid rgba(249, 115, 22, 0.5);
+  animation: btn-pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes btn-pulse-ring {
+  0%   { opacity: 0.8; transform: scale(1); }
+  70%  { opacity: 0;   transform: scale(1.16); }
+  100% { opacity: 0;   transform: scale(1.16); }
+}
+
+/* Hover: lift + intensify all glow layers */
 .btn-register-orange:hover {
-  background-color: #f97316; /* Lighter bright orange */
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.5);
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px rgba(249, 115, 22, 0.6),
+    0 8px 28px rgba(249, 115, 22, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    0 0 40px rgba(249, 115, 22, 0.22);
 }
 
-/* Focused state: High-contrast outer safety ring for accessibility navigation */
+.btn-register-orange:hover::after {
+  box-shadow: 0 0 22px 6px rgba(249, 115, 22, 0.35);
+}
+
+/* Focus ring for keyboard nav */
 .btn-register-orange:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px #fdba74; 
+  box-shadow:
+    0 0 0 3px rgba(253, 186, 116, 0.7),
+    0 4px 14px rgba(234, 88, 12, 0.45);
 }
 
-/* Active click feedback: Immediate compression down */
+/* Click compression */
 .btn-register-orange:active {
-  transform: translateY(0px) scale(0.96);
-  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.4);
+  transform: translateY(0) scale(0.97);
+  filter: brightness(0.97);
+  box-shadow:
+    0 0 0 1px rgba(234, 88, 12, 0.5),
+    0 2px 8px rgba(234, 88, 12, 0.45);
 }
