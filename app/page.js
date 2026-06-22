@@ -349,8 +349,28 @@ export default function Home() {
 
     {/* Team Grid */}
     <div className="row g-4 justify-content-center">
-      
-      {/* Member 1: Rohit bari */}
+      {/* Member 1: Rakhi bari */}
+      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+            <img 
+              src="/images/team3.jpg" 
+              alt="Rakhi bari" 
+              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+            />
+          </div>
+          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+              Rakhi Bari
+            </h5>
+            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+              FOUNDER
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Member 2: Rohit bari */}
       <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
         <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
           {/* Balanced aspect ratio box for perfect length */}
@@ -367,33 +387,13 @@ export default function Home() {
               Rohit Bari
             </h5>
             <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
-              FOUNDER
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Member 2: Rakhi bari */}
-      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
-        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
-          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
-            <img 
-              src="/images/team3.jpg" 
-              alt="Rakhi bari" 
-              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
-            />
-          </div>
-          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
-            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
-              Rakhi Bari
-            </h5>
-            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
               CO FOUNDER
             </div>
           </div>
         </div>
       </div>
 
+      
       {/* Member 3: Sumit Mishra */}
       <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
         <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
