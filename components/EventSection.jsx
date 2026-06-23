@@ -167,7 +167,7 @@ useEffect(() => {
 
           <div className="col-12 col-lg-3 d-flex mt-5 mt-lg-0">
             <div className="announcements-card border rounded-4 shadow-sm d-flex flex-column w-100 bg-white overflow-hidden">
-              <div className="announcements-header p-4 border-bottom">
+              <div className="announcements-header p-4 border-bottom" style={{ height:'60px' }}>
                 <h3 className="h4 fw-bold mb-0" style={{ color: '#0A3D7A' }}>Announcements</h3>
               </div>
 
@@ -179,7 +179,7 @@ useEffect(() => {
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover',
+                  objectFit: 'contain',
                   display: 'block',
                   cursor: 'pointer',
                 }}

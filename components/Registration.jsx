@@ -49,6 +49,16 @@ export default function RegistrationSection() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [errors, setErrors] = useState({
+    fullName: '',
+    phone: '',
+    dob: '',
+    gender: '',
+    school: '',
+    category: ''
+  });
+
   const [formData, setFormData] = useState({
     fullName: '',
     school: '',
@@ -75,11 +85,70 @@ export default function RegistrationSection() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+
+    if (name === 'phone') {
+      const cleanValue = value.replace(/\D/g, '');
+      if (cleanValue.length > 10) return;
+      
+      setFormData((prev) => ({ ...prev, [name]: cleanValue }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        ...((name === 'dob' || name === 'gender') && { category: '' }),
+      }));
+    }
+
+    setErrors((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: '',
       ...((name === 'dob' || name === 'gender') && { category: '' }),
     }));
+  };
+
+  const validateForm = () => {
+    let valid = true;
+    const newErrors = { fullName: '', phone: '', dob: '', gender: '', school: '', category: '' };
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full Name is required.';
+      valid = false;
+    } else if (formData.fullName.trim().length < 3) {
+      newErrors.fullName = 'Name must be at least 3 characters.';
+      valid = false;
+    }
+
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!formData.phone) {
+      newErrors.phone = 'Contact number is required.';
+      valid = false;
+    } else if (!phoneRegex.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid 10-digit mobile number.';
+      valid = false;
+    }
+
+    if (!formData.dob) {
+      newErrors.dob = 'Date of birth is required.';
+      valid = false;
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = 'Please select your gender.';
+      valid = false;
+    }
+
+    if (!formData.school.trim()) {
+      newErrors.school = 'Institution/Locality name is required.';
+      valid = false;
+    }
+
+    if (!formData.category) {
+      newErrors.category = 'Please select an eligible race track category.';
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
   };
 
   const verifyPayment = async ({ registrationId, response }) => {
@@ -160,14 +229,14 @@ export default function RegistrationSection() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return; 
+
     setIsSubmitting(true);
 
     try {
       const response = await fetch('/api/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -196,54 +265,61 @@ export default function RegistrationSection() {
   };
 
   return (
-    <section id="register" className="py-5">
+    <section id="register" className="py-4 py-md-5">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-10 col-xl-9">
-            <div className="card shadow border-0 rounded-4 overflow-hidden">
+            <div
+              className="card border-0 rounded-4 overflow-hidden"
+              style={{
+                boxShadow: '0 20px 60px rgba(0,0,0,.08)',
+              }}
+            >
+              
+              {/* Responsive Header Container */}
               <div
-                className="position-relative p-4 text-center border-bottom text-white d-flex flex-column justify-content-center"
+                className="p-4 border-bottom text-white d-flex flex-column flex-md-row align-items-center justify-content-between gap-4 text-center text-md-start"
                 style={{
                   background: 'linear-gradient(135deg, var(--secondary, #111), var(--dark, #222))',
-                  minHeight: '120px',
                 }}
               >
+                {/* Left Logo */}
                 <img
                   src="/images/logo (1).png"
                   alt="Boisar Varsha Marathon Logo"
-                  className="position-absolute start-0 ms-4"
-                  style={{ width: '100px', height: '100px', top: '50%', transform: 'translateY(-50%)' }}
+                  style={{ width: '90px', height: '90px', objectFit: 'contain' }}
                 />
 
-                <div className="px-5mx-5">
-                  <h2 className="fw-bold mb-1" style={{ color: 'var(--accent, #ffcc00)', letterSpacing: '1px' }}>
+                {/* Main Header Text */}
+                <div className="flex-grow-1 text-center px-md-3">
+                  <h2 className="fw-bold mb-2 h3 responsive-heading" style={{ color: 'var(--accent, #ffcc00)', letterSpacing: '1px' }}>
                     BOISAR VARSHA MARATHON 2026
                   </h2>
                   <p className="mb-0 text-light opacity-75 small">Official Registration Portal &amp; Event Guidelines</p>
                 </div>
 
+                {/* Right Logo */}
                 <img
                   src="/images/Olympic vision logo 2.png"
                   alt="Olympic Vision India Logo"
-                  className="position-absolute end-0 me-4"
-                  style={{ width: '135px', height: '60px', top: '50%', transform: 'translateY(-50%)' }}
+                  style={{ width: '120px', height: '55px', objectFit: 'contain' }}
                 />
               </div>
 
-              <div className="card-body p-4 p-md-5" style={{ color: 'var(--dark, #111)', backgroundColor: '#fff' }}>
+              <div className="card-body p-3 p-sm-4 p-md-5" style={{ color: 'var(--dark, #111)', background: 'linear-gradient(to bottom,#ffffff,#fafbfc)' }}>
                 <div className="mb-5 pb-4 border-bottom" style={{ lineHeight: '1.8', textAlign: 'justify' }}>
-                  <p className="mb-1 fw-semibold text-muted">
+                  <p className="mb-1 fw-semibold text-muted small text-sm-start">
                     <strong>Boisar Varsha Marathon 2026</strong><br />
                     Organised by <em>Pratishthan</em> and <em>Shiv Sena</em><br />
                     Supported by <em>Olympic Vision India</em><br />
                     Under the aegis of <em>Palghar District Athletic Association</em> and <em>Maharashtra Athletic Association</em>
                   </p>
 
-                  <p className="mb-3 fw-bold mt-4" style={{ fontSize: '1.2rem', color: 'var(--dark, #111)' }}>
+                  <p className="mb-3 fw-bold mt-4 h5" style={{ color: 'var(--dark, #111)' }}>
                     Subject: Official Registration &amp; Race Categories
                   </p>
 
-                  <p className="mb-4 text-muted">
+                  <p className="mb-4 text-muted small">
                     We are pleased to open registrations for the <strong>Boisar Varsha Marathon 2026</strong>. Please enter date of birth and gender first so the form can show only eligible categories.
                   </p>
 
@@ -284,52 +360,79 @@ export default function RegistrationSection() {
                     <p className="mb-0">{successMessage}</p>
                   </div>
                 ) : (
-                  <form onSubmit={handleFormSubmit} className="needs-validation">
-                    <h4 className="fw-bold mb-4" style={{ color: 'var(--dark, #111)' }}>Participant Entry Form</h4>
+                  <form onSubmit={handleFormSubmit} noValidate>
+                    <div className="text-center mb-5">
+                      <span
+                        className="badge px-3 py-2 mb-3"
+                        style={{
+                          background: 'rgba(255,204,0,.15)',
+                          color: '#b8860b',
+                          letterSpacing: '1px',
+                        }}
+                      >
+                        REGISTRATION FORM
+                      </span>
 
-                    <div className="row g-4">
-                      <div className="col-md-6">
+                      <h3 className="fw-bold mb-2">
+                        Participant Entry Form
+                      </h3>
+
+                      <p className="text-muted mb-0">
+                        Fill in your details to register for Boisar Varsha Marathon 2026.
+                      </p>
+                    </div>
+
+                    <div className="row g-4 row-form-fields">
+                      {/* Full Name Field */}
+                      <div className="col-md-6 field-container">
                         <label className="form-label fw-semibold small text-secondary">Full Name (As per Govt ID)</label>
                         <input
                           type="text"
-                          className="form-control form-control-lg border-2"
+                          className={`form-control form-control-lg ${errors.fullName ? 'is-invalid' : ''}`}
                           name="fullName"
                           placeholder="Enter your full name"
                           value={formData.fullName}
                           onChange={handleInputChange}
                           required
                         />
+                        <div className="invalid-feedback">{errors.fullName}</div>
                       </div>
 
-                      <div className="col-md-6">
+                      {/* Contact Number Field */}
+                      <div className="col-md-6 field-container">
                         <label className="form-label fw-semibold small text-secondary">Contact Number</label>
                         <input
                           type="tel"
-                          className="form-control form-control-lg border-2"
+                          maxLength={10}
+                          className={`form-control form-control-lg  ${errors.phone ? 'is-invalid' : ''}`}
                           name="phone"
-                          placeholder="Enter your phone number"
+                          placeholder="Enter your 10-digit phone number"
                           value={formData.phone}
                           onChange={handleInputChange}
                           required
                         />
+                        <div className="invalid-feedback">{errors.phone}</div>
                       </div>
 
-                      <div className="col-md-6">
+                      {/* Date of Birth Field */}
+                      <div className="col-md-6 field-container">
                         <label className="form-label fw-semibold small text-secondary">Date of Birth</label>
                         <input
                           type="date"
-                          className="form-control form-control-lg border-2"
+                          className={`form-control form-control-lg ${errors.dob ? 'is-invalid' : ''}`}
                           name="dob"
                           value={formData.dob}
                           onChange={handleInputChange}
                           required
                         />
+                        <div className="invalid-feedback">{errors.dob}</div>
                       </div>
 
-                      <div className="col-md-6">
+                      {/* Gender Field */}
+                      <div className="col-md-6 field-container">
                         <label className="form-label fw-semibold small text-secondary">Gender</label>
                         <select
-                          className="form-select form-control-lg border-2"
+                          className={`form-select form-control-lg ${errors.gender ? 'is-invalid' : ''}`}
                           name="gender"
                           value={formData.gender}
                           onChange={handleInputChange}
@@ -340,25 +443,29 @@ export default function RegistrationSection() {
                           <option value="female">Female</option>
                           <option value="other">Other</option>
                         </select>
+                        <div className="invalid-feedback">{errors.gender}</div>
                       </div>
 
-                      <div className="col-md-12">
+                      {/* Institution / Locality Field */}
+                      <div className="col-md-12 field-container">
                         <label className="form-label fw-semibold small text-secondary">School / College / Organization Name</label>
                         <input
                           type="text"
-                          className="form-control form-control-lg border-2"
+                          className={`form-control form-control-lg ${errors.school ? 'is-invalid' : ''}`}
                           name="school"
                           placeholder="Enter your institution or residential locality"
                           value={formData.school}
                           onChange={handleInputChange}
                           required
                         />
+                        <div className="invalid-feedback">{errors.school}</div>
                       </div>
 
-                      <div className="col-md-12">
+                      {/* Race Track Dropdown Field */}
+                      <div className="col-md-12 field-container">
                         <label className="form-label fw-semibold small text-secondary">Available Race Track</label>
                         <select
-                          className="form-select form-control-lg border-2"
+                          className={`form-select form-control-lg ${errors.category ? 'is-invalid' : ''}`}
                           name="category"
                           value={formData.category}
                           onChange={handleInputChange}
@@ -374,9 +481,13 @@ export default function RegistrationSection() {
                             <option key={cat.value} value={cat.value}>{cat.label}</option>
                           ))}
                         </select>
-                        <div className="form-text text-muted small mt-1">
-                          The system filters categories by age and gender before registration.
-                        </div>
+                        {errors.category ? (
+                          <div className="invalid-feedback">{errors.category}</div>
+                        ) : (
+                          <div className="form-text text-muted small mt-1">
+                            The system filters categories by age and gender before registration.
+                          </div>
+                        )}
                       </div>
 
                       {selectedCategoryRequiresPayment ? (
@@ -387,7 +498,7 @@ export default function RegistrationSection() {
                         </div>
                       ) : null}
 
-                      <div className="col-12 mt-5">
+                      <div className="col-12 mt-4 mt-md-5">
                         <button
                           type="submit"
                           className="btn btn-lg w-100 text-uppercase fw-bold shadow-sm"
@@ -396,7 +507,7 @@ export default function RegistrationSection() {
                             background: 'var(--accent, #ffcc00)',
                             color: 'var(--dark, #111)',
                             borderRadius: '50px',
-                            padding: '1rem 2rem',
+                            padding: '0.85rem 1.5rem',
                             letterSpacing: '1px',
                           }}
                         >
@@ -411,10 +522,7 @@ export default function RegistrationSection() {
                   </form>
                 )}
 
-                <div
-                  className="mt-5 pt-4 border-top"
-                  aria-label="Sponsors and supporters"
-                >
+                <div className="mt-5 pt-4 border-top" aria-label="Sponsors and supporters">
                   <div className="text-center mb-4">
                     <p className="text-uppercase fw-bold small text-secondary mb-2" style={{ letterSpacing: '0.1em' }}>
                       Sponsored &amp; Supported By
@@ -460,7 +568,161 @@ export default function RegistrationSection() {
                     </div>
                   </div>
 
+                  {/* Subtle Web Dev Agency Credit Footer */}
+                  <div className="mt-5 pt-4 border-top d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 text-muted small">
+                    <p className="mb-0 text-center text-sm-start opacity-75">
+                      © 2026 Boisar Varsha Marathon. All rights reserved.
+                    </p>
+                    <p className="mb-0 text-center text-sm-end agency-credit">
+                      Designed &amp; Developed by{' '}
+                      <a 
+                        href="https://thetechnocyte.com" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="fw-semibold text-decoration-none agency-link"
+                      >
+                        Technocyte
+                      </a>
+                    </p>
+                  </div>
+
                   <style jsx>{`
+                    html,
+                    body {
+                      overflow-x: hidden;
+                      scroll-behavior: auto !important;
+                    }
+
+                    .card,
+                    .card-body,
+                    form,
+                    .field-container {
+                      transform: none !important;
+                    }
+                    /* =========================
+                       PROFESSIONAL FORM DESIGN
+                    ========================== */
+
+                    .field-container label {
+                      font-size: 0.85rem;
+                      letter-spacing: 0.5px;
+                      text-transform: uppercase;
+                      margin-bottom: 8px;
+                      font-weight: 700;
+                    }
+
+                    .field-container {
+                      min-height: 120px;
+                    }
+
+                    .field-container :global(.invalid-feedback) {
+                      display: block;
+                      min-height: 20px;
+                      margin-top: 6px;
+                    }
+
+                    .field-container :global(.form-text) {
+                      display: block;
+                      min-height: 20px;
+                      margin-top: 6px;
+                    }
+
+                    /* =========================
+                       INPUTS & SELECTS
+                    ========================== */
+
+                    :global(.form-control),
+                    :global(.form-select) {
+                      font-size: 16px !important;
+                      border: 2px solid #e5e7eb;
+                      border-radius: 12px;
+                      background: #fff;
+                      min-height: 58px;
+
+                      transition:
+                        border-color 0.2s ease,
+                        background-color 0.2s ease;
+
+                      transform: none !important;
+                    }
+
+                    :global(.form-control:hover),
+                    :global(.form-select:hover) {
+                      border-color: #d1d5db;
+                    }
+
+                    :global(.form-control:focus),
+                    :global(.form-select:focus) {
+                      border-color: #ffcc00;
+                      box-shadow: none !important;
+                      outline: none;
+                      background: #fff;
+                    }
+
+                    /* =========================
+                       BUTTON
+                    ========================== */
+
+                    button[type='submit'] {
+                      background: linear-gradient(
+                        135deg,
+                        #ffcc00,
+                        #ffb300
+                      ) !important;
+                      color: #111 !important;
+                      border: none !important;
+                      border-radius: 14px !important;
+                      box-shadow: 0 12px 30px rgba(255, 204, 0, 0.25);
+                      transition: all 0.3s ease;
+                    }
+
+                    button[type='submit']:hover:not(:disabled) {
+                      transform: translateY(-2px);
+                    }
+
+                    button[type='submit']:active:not(:disabled) {
+                      transform: translateY(0);
+                    }
+
+                    button[type='submit']:disabled {
+                      opacity: 0.8;
+                    }
+
+                    /* =========================
+                       ALERTS
+                    ========================== */
+
+                    :global(.alert-success) {
+                      border: none;
+                      border-radius: 18px;
+                      background: linear-gradient(
+                        135deg,
+                        rgba(25, 135, 84, 0.08),
+                        rgba(25, 135, 84, 0.15)
+                      );
+                    }
+
+                    :global(.alert-warning) {
+                      border-radius: 14px;
+                      border: none;
+                    }
+
+                    /* =========================
+                       CARD IMPROVEMENTS
+                    ========================== */
+
+                    :global(.card) {
+                      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+                    }
+
+                    /* =========================
+                       SPONSOR SECTION
+                    ========================== */
+
+                    .responsive-heading {
+                      font-size: clamp(1.2rem, 4vw, 1.75rem);
+                    }
+
                     .sponsor-carousel {
                       overflow: hidden;
                       padding: 4px 0 14px;
@@ -489,11 +751,16 @@ export default function RegistrationSection() {
                       display: grid;
                       place-items: center;
                       min-height: 178px;
-                      border: 1px solid rgba(15, 23, 42, 0.1);
-                      border-radius: 8px;
+                      border: 1px solid rgba(15, 23, 42, 0.08);
+                      border-radius: 14px;
                       background: #fff;
-                      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+                      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
                       overflow: hidden;
+                      transition: transform 0.3s ease;
+                    }
+
+                    .sponsor-card:hover {
+                      transform: translateY(-4px);
                     }
 
                     .sponsor-logo {
@@ -501,6 +768,45 @@ export default function RegistrationSection() {
                       height: 160px;
                       object-fit: contain;
                       padding: 18px;
+                    }
+
+                    /* =========================
+                       AGENCY FOOTER CREDIT
+                    ========================== */
+
+                    .agency-credit {
+                      font-size: 0.8rem;
+                      letter-spacing: 0.3px;
+                      opacity: 0.75;
+                      transition: opacity 0.2s ease;
+                    }
+
+                    .agency-credit:hover {
+                      opacity: 1;
+                    }
+
+                    :global(.agency-link) {
+                      color: var(--dark, #111) !important;
+                      position: relative;
+                      display: inline-block;
+                    }
+
+                    :global(.agency-link::after) {
+                      content: '';
+                      position: absolute;
+                      width: 100%;
+                      transform: scaleX(0);
+                      height: 2px;
+                      bottom: -2px;
+                      left: 0;
+                      background-color: var(--accent, #ffcc00);
+                      transform-origin: bottom right;
+                      transition: transform 0.25s ease-out;
+                    }
+
+                    :global(.agency-link:hover::after) {
+                      transform: scaleX(1);
+                      transform-origin: bottom left;
                     }
 
                     @keyframes sponsor-marquee {
