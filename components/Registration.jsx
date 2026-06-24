@@ -561,9 +561,7 @@ export default function RegistrationSection() {
 
                 <div className="mt-5 pt-4 border-top" aria-label="Sponsors and supporters">
                   <div className="text-center mb-4">
-                    <p className="text-uppercase fw-bold small text-secondary mb-2" style={{ letterSpacing: '0.1em' }}>
-                      Sponsored &amp; Supported By
-                    </p>
+                   
                     <div
                       aria-hidden="true"
                       className="mx-auto"
