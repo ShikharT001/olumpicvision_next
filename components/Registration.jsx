@@ -352,6 +352,43 @@ export default function RegistrationSection() {
                       </div>
                     </div>
                   </div>
+                  {/* ── Awards & Recognition ── insert this block right after the closing </div> of <div className="row g-4 mt-2"> and before the closing </div> of the mb-5 pb-4 border-bottom section ── */}
+
+                  <div className="mt-4 pt-4 border-top">
+                    <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
+                      Awards &amp; Recognition:
+                    </p>
+
+                    <div className="row g-3">
+                      {/* Race category prizes */}
+                      <div className="col-md-7">
+                        <div className="p-3 bg-light rounded-3 border">
+                          <p className="mb-2 fw-semibold small" style={{ color: '#b8860b' }}>
+                            🏆 Race Categories (11km, 8km, 6km, 5km, 3km)
+                          </p>
+                          <ul className="ps-3 mb-0 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
+                            <li className="mb-1"><strong>Top 5 finishers</strong> in each category receive cash prize, trophy, medal &amp; certificate.</li>
+                            <li className="mb-1"><strong>Top 10 finishers</strong> in each category receive a medal.</li>
+                            <li className="mb-1"><strong>Every participant</strong> receives a Certificate of Participation.</li>
+                            <li><strong>Every participant</strong> receives refreshments on event day.</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Special category prizes + school trophy */}
+                      <div className="col-md-5">
+                        <div className="p-3 bg-light rounded-3 border h-100">
+                          <p className="mb-2 fw-semibold small" style={{ color: '#b8860b' }}>
+                            🎁 Special Categories &amp; School Award
+                          </p>
+                          <ul className="ps-3 mb-0 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
+                            <li className="mb-1"><strong>Top 3 finishers</strong> in Senior Citizen Race &amp; Couples Race receive a gift.</li>
+                            <li>Schools with <strong>100+ participants</strong> will be felicitated with a trophy.</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {formSubmitted ? (

@@ -6,53 +6,58 @@ import RegistrationSection from '@/components/Registration';
 export default function EventsAndHighlights({ openModal }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMarathonModal, setShowMarathonModal] = useState(false);
+// Replace the eventsData array inside EventsAndHighlights.jsx with this:
 
-  const eventsData = [
-    {
-      id: 1,
-      title: 'Boisar Varsha Marathon 2025',
-      tag: 'MARATHON',
-      bgImage: '/images/event1.jpeg',
-      desc: 'An exhilarating monsoon run uniting thousands of passionate athletes to promote fitness and community spirit.',
-      href: '/events/boisar-varsha-marathon-2025',
-    },
-    {
-      id: 2,
-      title: 'Saphale Lions Hill Marathon 2024',
-      tag: 'MARATHON',
-      bgImage: '/images/image1.jpeg',
-      desc: 'A challenging scenic run testing endurance and grit against beautiful rolling hill landscapes.',
-    },
-    {
-      id: 3,
-      title: 'Adhivasi Jawar Marathon 2024 & 2025',
-      tag: 'MARATHON',
-      bgImage: '/images/image6.jpeg',
-      desc: 'An impactful cultural run celebrating local heritage and empowering tribal communities through running.',
-    },
-    {
-      id: 4,
-      title: 'Atheletes Camp Dahanu',
-      tag: 'TRAINING CAMP',
-      bgImage: '/images/image5.jpeg',
-      desc: 'An intensive high-performance residential camp providing elite coaching and structured training regimens for young prospects.',
-    },
-    {
-      id: 5,
-      title: 'Volleyball Tournament',
-      tag: 'CHAMPIONSHIP',
-      bgImage: '/images/image4.jpeg',
-      desc: 'A high-energy competitive championship showcasing incredible spiked rallies, teamwork, and tactical court mastery.',
-    },
-    {
-      id: 6,
-      title: 'Cricket Tournament',
-      tag: 'CHAMPIONSHIP',
-      bgImage: '/images/image3.jpeg',
-      desc: 'A thrilling regional tournament capturing intense rivalries, strategic play, and premium local talent under the pressure of the chase.',
-    },
-  ];
-
+const eventsData = [
+  {
+    id: 1,
+    title: 'Boisar Varsha Marathon 2025',
+    tag: 'MARATHON',
+    bgImage: '/images/boisar_marathon/event1.jpeg',
+    desc: 'An exhilarating monsoon run uniting thousands of passionate athletes to promote fitness and community spirit.',
+    href: '/events/boisar-varsha-marathon-2025',
+  },
+  {
+    id: 2,
+    title: 'Saphale Lions Hill Marathon 2024',
+    tag: 'MARATHON',
+    bgImage: '/images/saphale_marathon/image1.jpeg',
+    desc: 'A challenging scenic run testing endurance and grit against beautiful rolling hill landscapes.',
+    href: '/events/saphale-lions-hill-marathon-2024',
+  },
+  {
+    id: 3,
+    title: 'Adhivasi Jawar Marathon 2024 & 2025',
+    tag: 'MARATHON',
+    bgImage: '/images/jawar_marathon/image6.jpeg',
+    desc: 'An impactful cultural run celebrating local heritage and empowering tribal communities through running.',
+    href: '/events/adhivasi-jawar-marathon-2024-2025',
+  },
+  {
+    id: 4,
+    title: 'Atheletes Camp Dahanu',
+    tag: 'TRAINING CAMP',
+    bgImage: '/images/camp/image5.jpeg',
+    desc: 'An intensive high-performance residential camp providing elite coaching and structured training regimens for young prospects.',
+    href: '/events/athletes-camp-dahanu',
+  },
+  {
+    id: 5,
+    title: 'Volleyball Tournament',
+    tag: 'CHAMPIONSHIP',
+    bgImage: '/images/volleyball/image4.jpeg',
+    desc: 'A high-energy competitive championship showcasing incredible spiked rallies, teamwork, and tactical court mastery.',
+    href: '/events/volleyball-tournament',
+  },
+  {
+    id: 6,
+    title: 'Cricket Tournament',
+    tag: 'CHAMPIONSHIP',
+    bgImage: '/images/cricket/image3.jpeg',
+    desc: 'A thrilling regional tournament capturing intense rivalries, strategic play, and premium local talent under the pressure of the chase.',
+    href: '/events/cricket-tournament',
+  },
+];
 
 useEffect(() => {
   const openModalHandler = () => {
