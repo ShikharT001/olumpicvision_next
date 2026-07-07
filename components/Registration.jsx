@@ -9,12 +9,38 @@ import {
 } from '@/lib/marathon';
 
 const SPONSOR_IMAGES = [
-  { src: '/images/brands/form001.png', alt: 'Mira Bhayander Vasai Virar Police supporter logo', width: 1171, height: 912 },
-  { src: '/images/brands/form002.png', alt: 'Boisar Varsha Marathon organizing partners logo', width: 1408, height: 768 },
-  { src: '/images/brands/form003.png', alt: 'Palghar District Athletics Association supporter logo', width: 1408, height: 768 },
-  { src: '/images/brands/form004.png', alt: 'Western Railway supporter logo', width: 1408, height: 768 },
-  { src: '/images/brands/form005.png', alt: 'Aryanz Sports promoter logo', width: 1120, height: 955 },
-  { src: '/images/brands/form006.png', alt: 'Indian Athletics and Maharashtra Athletics Association logo', width: 1152, height: 918 },
+  {
+    src: '/images/brands/Maa_logo.webp',
+    alt: 'Mira Bhayander Vasai Virar Police supporter logo',
+    width: 1171,
+    height: 912,
+    role: 'Under the Aegis of',
+    name: 'MAA',
+  },
+  {
+    src: '/images/brands/Palghar_Police.webp',
+    alt: 'Boisar Varsha Marathon organizing partners logo',
+    width: 1408,
+    height: 768,
+    role: 'Supported by',
+    name: 'Palghar Police',
+  },
+  {
+    src: '/images/brands/Shivsena_logo.webp',
+    alt: 'Palghar District Athletics Association supporter logo',
+    width: 1408,
+    height: 768,
+    role: 'Organised by',
+    name: 'Shiv Sena',
+  },
+  {
+    src: '/images/brands/Aadhar_Pratishthan.webp',
+    alt: 'Western Railway supporter logo',
+    width: 1408,
+    height: 768,
+    role: 'Organised by',
+    name: 'Aadhar Pratishthan',
+  },
 ];
 
 function loadRazorpayCheckout() {
@@ -49,7 +75,7 @@ export default function RegistrationSection() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [errors, setErrors] = useState({
     fullName: '',
     phone: '',
@@ -89,7 +115,7 @@ export default function RegistrationSection() {
     if (name === 'phone') {
       const cleanValue = value.replace(/\D/g, '');
       if (cleanValue.length > 10) return;
-      
+
       setFormData((prev) => ({ ...prev, [name]: cleanValue }));
     } else {
       setFormData((prev) => ({
@@ -229,7 +255,7 @@ export default function RegistrationSection() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return; 
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
 
@@ -275,7 +301,7 @@ export default function RegistrationSection() {
                 boxShadow: '0 20px 60px rgba(0,0,0,.08)',
               }}
             >
-              
+
               {/* Responsive Header Container */}
               <div
                 className="p-4 border-bottom text-white d-flex flex-column flex-md-row align-items-center justify-content-between gap-4 text-center text-md-start"
@@ -352,7 +378,6 @@ export default function RegistrationSection() {
                       </div>
                     </div>
                   </div>
-                  {/* ── Awards & Recognition ── insert this block right after the closing </div> of <div className="row g-4 mt-2"> and before the closing </div> of the mb-5 pb-4 border-bottom section ── */}
 
                   <div className="mt-4 pt-4 border-top">
                     <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
@@ -561,7 +586,7 @@ export default function RegistrationSection() {
 
                 <div className="mt-5 pt-4 border-top" aria-label="Sponsors and supporters">
                   <div className="text-center mb-4">
-                   
+
                     <div
                       aria-hidden="true"
                       className="mx-auto"
@@ -578,26 +603,36 @@ export default function RegistrationSection() {
                     <div className="sponsor-track">
                       {SPONSOR_IMAGES.map((image) => (
                         <div className="sponsor-card" key={image.src}>
-                          <Image
-                            src={image.src}
-                            alt={image.alt}
-                            width={image.width}
-                            height={image.height}
-                            sizes="(max-width: 768px) 60vw, (max-width: 1200px) 28vw, 220px"
-                            className="sponsor-logo"
-                          />
+                          <span className="sponsor-role">{image.role}</span>
+                          <div className="sponsor-logo-wrap">
+                            <Image
+                              src={image.src}
+                              alt={image.alt}
+                              width={image.width}
+                              height={image.height}
+                              quality={100}
+                              sizes="(max-width: 768px) 60vw, (max-width: 1200px) 28vw, 220px"
+                              className="sponsor-logo"
+                            />
+                          </div>
+                          <span className="sponsor-name">{image.name}</span>
                         </div>
                       ))}
                       {SPONSOR_IMAGES.map((image) => (
                         <div className="sponsor-card" key={`${image.src}-loop`} aria-hidden="true">
-                          <Image
-                            src={image.src}
-                            alt=""
-                            width={image.width}
-                            height={image.height}
-                            sizes="(max-width: 768px) 60vw, (max-width: 1200px) 28vw, 220px"
-                            className="sponsor-logo"
-                          />
+                          <span className="sponsor-role">{image.role}</span>
+                          <div className="sponsor-logo-wrap">
+                            <Image
+                              src={image.src}
+                              alt=""
+                              width={image.width}
+                              height={image.height}
+                              quality={100}
+                              sizes="(max-width: 768px) 60vw, (max-width: 1200px) 28vw, 220px"
+                              className="sponsor-logo"
+                            />
+                          </div>
+                          <span className="sponsor-name">{image.name}</span>
                         </div>
                       ))}
                     </div>
@@ -610,9 +645,9 @@ export default function RegistrationSection() {
                     </p>
                     <p className="mb-0 text-center text-sm-end agency-credit">
                       Designed &amp; Developed by{' '}
-                      <a 
-                        href="https://thetechnocyte.com" 
-                        target="_blank" 
+                      <a
+                        href="https://thetechnocyte.com"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="fw-semibold text-decoration-none agency-link"
                       >
@@ -783,14 +818,18 @@ export default function RegistrationSection() {
 
                     .sponsor-card {
                       flex: 0 0 clamp(190px, 24vw, 250px);
-                      display: grid;
-                      place-items: center;
-                      min-height: 178px;
+                      height: 250px;
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: flex-start;
                       border: 1px solid rgba(15, 23, 42, 0.08);
                       border-radius: 14px;
                       background: #fff;
                       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
                       overflow: hidden;
+                      padding: 14px 10px 12px;
+                      box-sizing: border-box;
                       transition: transform 0.3s ease;
                     }
 
@@ -798,11 +837,50 @@ export default function RegistrationSection() {
                       transform: translateY(-4px);
                     }
 
-                    .sponsor-logo {
+                    .sponsor-role {
+                      display: block;
                       width: 100%;
-                      height: 160px;
+                      font-size: 0.68rem;
+                      font-weight: 700;
+                      text-transform: uppercase;
+                      letter-spacing: 0.6px;
+                      color: #b8860b;
+                      text-align: center;
+                      padding: 0 6px;
+                    }
+
+                    .sponsor-logo-wrap {
+                      width: 100%;
+                      height: 130px;
+                      overflow: hidden;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      padding: 8px 14px;
+                      box-sizing: border-box;
+                    }
+
+                    .sponsor-logo-wrap :global(img) {
+                      width: 100% !important;
+                      height: 100% !important;
+                      max-width: 100%;
+                      max-height: 100%;
                       object-fit: contain;
-                      padding: 18px;
+                      object-position: center;
+                      image-rendering: -webkit-optimize-contrast;
+                    }
+
+                    .sponsor-name {
+                      display: block;
+                      width: 100%;
+                      font-size: 0.82rem;
+                      font-weight: 700;
+                      color: var(--dark, #111);
+                      text-align: center;
+                      padding: 0 6px;
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
                     }
 
                     /* =========================
@@ -862,12 +940,21 @@ export default function RegistrationSection() {
 
                       .sponsor-card {
                         flex-basis: 210px;
-                        min-height: 150px;
+                        height: 225px;
+                        padding: 12px 8px 10px;
                       }
 
-                      .sponsor-logo {
-                        height: 136px;
-                        padding: 14px;
+                      .sponsor-role {
+                        font-size: 0.62rem;
+                      }
+
+                      .sponsor-logo-wrap {
+                        height: 112px;
+                        padding: 6px 10px;
+                      }
+
+                      .sponsor-name {
+                        font-size: 0.76rem;
                       }
                     }
 
