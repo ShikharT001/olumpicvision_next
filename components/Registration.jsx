@@ -35,11 +35,19 @@ const SPONSOR_IMAGES = [
   },
   {
     src: '/images/brands/Aadhar_Pratishthan.webp',
-    alt: 'Western Railway supporter logo',
+    alt: 'Aadhar_Pratishthan supporter logo',
     width: 1408,
     height: 768,
     role: 'Organised by',
     name: 'Aadhar Pratishthan',
+  },
+  {
+    src: '/images/brands/olympicvision.png',
+    alt: 'Olympic Vision supporter logo',
+    width: 1408,
+    height: 768,
+    role: 'Managed by',
+    name: 'Olympic Vision',
   },
 ];
 
@@ -581,8 +589,8 @@ export default function RegistrationSection() {
                           {isSubmitting
                             ? 'Processing...'
                             : selectedCategoryRequiresPayment
-                            ? `Pay Rs. ${OPEN_CATEGORY_FEE_RUPEES} & Submit Registration`
-                            : 'Submit Registration & Lock Category'}
+                              ? `Pay Rs. ${OPEN_CATEGORY_FEE_RUPEES} & Submit Registration`
+                              : 'Submit Registration & Lock Category'}
                         </button>
                       </div>
                     </div>
