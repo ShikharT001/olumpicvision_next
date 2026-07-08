@@ -6,10 +6,11 @@ import RegistrationSection from '@/components/Registration';
 import AboutSection from '@/components/AboutSection';
 import ServicesAndAcademy from '@/components/ServicesAndAcademy';
 import ContactSection from '@/components/ContactSection';
+import AdModal from '@/components/AdModal';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  
-    const [showMarathonModal, setShowMarathonModal] = useState(false);
+
+  const [showMarathonModal, setShowMarathonModal] = useState(false);
 
 
 
@@ -37,13 +38,13 @@ export default function Home() {
   // Form submission handler
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Process form data here (e.g., Send to a Next.js API route or external service)
     console.log('Registration Data Submitted:', formData);
 
     // Simulate successful API submission
     setFormSubmitted(true);
-    
+
     // Reset form fields
     setFormData({
       fullName: '',
@@ -67,7 +68,7 @@ export default function Home() {
           window.bootstrap = mod;
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // Scroll animation
     const observer = new IntersectionObserver((entries) => {
@@ -228,6 +229,12 @@ export default function Home() {
 
   return (
     <>
+      {/* First-visit Advertisement Modal */}
+      <AdModal
+        onRegister={() => setShowMarathonModal(true)}
+        onClose={() => { }}
+      />
+
       <div>
         {/* Navbar */}
         <nav className="navbar fixed-top">
@@ -243,18 +250,18 @@ export default function Home() {
               <li className="nav-item"><a className="nav-link" href="#coaching">Coaching</a></li>
               <li className="nav-item"><a className="nav-link" href="#services">Services</a></li>
               <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>
-               <button
-                  type="button"
-                  className="btn-register-orange"
-                  onClick={() => setShowMarathonModal(true)}
-                >
-                  <span className="pulse-ring"></span>
-                  Register Now
-                </button>
+              <button
+                type="button"
+                className="btn-register-orange"
+                onClick={() => setShowMarathonModal(true)}
+              >
+                <span className="pulse-ring"></span>
+                Register Now
+              </button>
 
-          
+
             </ul>
-        
+
             {/* Custom Mobile Toggler Button */}
             <button
               className={`mobile-nav-toggle d-lg-none ${menuOpen ? 'open' : ''}`}
@@ -275,14 +282,14 @@ export default function Home() {
                   <img src="/images/new logo.png" height="50" alt="Olympic Vision Sports and Event Management" />
                 </a>
               </div>
-               <button
-                  type="button"
-                  className="btn-register-orange"
-                  onClick={() => setShowMarathonModal(true)}
-                >
-                  <span className="pulse-ring"></span>
-                  Register Now
-                </button>
+              <button
+                type="button"
+                className="btn-register-orange"
+                onClick={() => setShowMarathonModal(true)}
+              >
+                <span className="pulse-ring"></span>
+                Register Now
+              </button>
               <ul className="mobile-nav-links">
                 <li><a href="#home" onClick={() => setMenuOpen(false)}>Home</a></li>
                 <li><a href="#about" onClick={() => setMenuOpen(false)}>About</a></li>
@@ -310,35 +317,35 @@ export default function Home() {
           <div className="hero-content container">
             <h1>Olympic Vision Sports &amp; Event Management</h1>
             <p>Empowering Athletes | Building Champions | Creating Excellence</p>
-            <a href="#contact" className="btn btn-lg" style={{background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem'}}>Contact Us</a>
+            <a href="#contact" className="btn btn-lg" style={{ background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '1rem 3rem' }}>Contact Us</a>
           </div>
-          
-               
+
+
 
         </section>
-  {showMarathonModal && (
-                  <div
-                    className="modal fade show d-block"
-                    style={{
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      position: 'fixed',
-                      inset: 0,
-                      zIndex: 1055,
-                    }}
-                  >
-                  <button
-                    className="btn-close bg-white rounded-circle p-3 position-fixed"
-                    style={{
-                      top: '20px',
-                      right: '20px',
-                      zIndex: 9999,
-                    }}
-                    onClick={() => setShowMarathonModal(false)}
-                  />
+        {showMarathonModal && (
+          <div
+            className="modal fade show d-block"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1055,
+            }}
+          >
+            <button
+              className="btn-close bg-white rounded-circle p-3 position-fixed"
+              style={{
+                top: '20px',
+                right: '20px',
+                zIndex: 9999,
+              }}
+              onClick={() => setShowMarathonModal(false)}
+            />
 
-                      <RegistrationSection />
-                    </div>
-                  )}
+            <RegistrationSection />
+          </div>
+        )}
         {/* About Section */}
         <AboutSection />
 
@@ -347,114 +354,114 @@ export default function Home() {
 
         {/* Team Section */}
         <section id="team" className="py-5 bg-light">
-  <div className="container py-4">
-    
-    {/* Section Header */}
-    <div className="text-center mb-5 position-relative">
-      <h2 className="section-title fade-in fw-bold text-dark mb-2" style={{ letterSpacing: '0.5px', color: '#0A3D7A' }}>
-        Our Team
-      </h2>
-    </div>
+          <div className="container py-4">
 
-    {/* Team Grid */}
-    <div className="row g-4 justify-content-center">
-      {/* Member 1: Rakhi bari */}
-      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
-        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
-          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
-            <img 
-              src="/images/team3.jpg" 
-              alt="Rakhi bari" 
-              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
-            />
-          </div>
-          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
-            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
-              Rakhi Bari
-            </h5>
-            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
-              FOUNDER
+            {/* Section Header */}
+            <div className="text-center mb-5 position-relative">
+              <h2 className="section-title fade-in fw-bold text-dark mb-2" style={{ letterSpacing: '0.5px', color: '#0A3D7A' }}>
+                Our Team
+              </h2>
+            </div>
+
+            {/* Team Grid */}
+            <div className="row g-4 justify-content-center">
+              {/* Member 1: Rakhi bari */}
+              <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+                <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+                  <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+                    <img
+                      src="/images/team3.jpg"
+                      alt="Rakhi bari"
+                      className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+                    />
+                  </div>
+                  <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+                    <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+                      Rakhi Bari
+                    </h5>
+                    <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+                      FOUNDER
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Member 2: Rohit bari */}
+              <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+                <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+                  {/* Balanced aspect ratio box for perfect length */}
+                  <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+                    <img
+                      src="/images/team1.jpeg"
+                      alt="Rohit bari"
+                      className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+                    />
+                  </div>
+                  {/* Snug padding for a tighter, cleaner bottom area */}
+                  <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+                    <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+                      Rohit Bari
+                    </h5>
+                    <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+                      CO FOUNDER
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              {/* Member 3: Sumit Mishra */}
+              <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+                <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+                  <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+                    <img
+                      src="/images/team-4.jpeg"
+                      alt="Sumit Mishra"
+                      className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+                    />
+                  </div>
+                  <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+                    <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+                      Sumit Mishra
+                    </h5>
+                    <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+                      TEAM CORDINATOR
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Member 4: Dr Kalpesh Girase */}
+              <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
+                <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
+                  <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
+                    <img
+                      src="/images/team-5.jpeg"
+                      alt="Dr Kalpesh Girase"
+                      className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
+                    />
+                  </div>
+                  <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
+                    <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
+                      Dr Kalpesh Girase
+                    </h5>
+                    <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
+                      PHYSIO
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Member 2: Rohit bari */}
-      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
-        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
-          {/* Balanced aspect ratio box for perfect length */}
-          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
-            <img 
-              src="/images/team1.jpeg" 
-              alt="Rohit bari" 
-              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
-            />
-          </div>
-          {/* Snug padding for a tighter, cleaner bottom area */}
-          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
-            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
-              Rohit Bari
-            </h5>
-            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
-              CO FOUNDER
-            </div>
-          </div>
-        </div>
-      </div>
-
-      
-      {/* Member 3: Sumit Mishra */}
-      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
-        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
-          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
-            <img 
-              src="/images/team-4.jpeg" 
-              alt="Sumit Mishra" 
-              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
-            />
-          </div>
-          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
-            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
-              Sumit Mishra
-            </h5>
-            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
-              TEAM CORDINATOR
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Member 4: Dr Kalpesh Girase */}
-      <div className="col-sm-6 col-md-6 col-lg-3 fade-in">
-        <div className="card h-100 border-0 shadow-sm overflow-hidden team-governing-card bg-white rounded-4">
-          <div className="position-relative overflow-hidden aspect-ratio-balanced-box">
-            <img 
-              src="/images/team-5.jpeg" 
-              alt="Dr Kalpesh Girase" 
-              className="card-img-top team-member-img object-fit-cover" style={{ height: '100%' }}
-            />
-          </div>
-          <div className="card-body p-3 text-center d-flex flex-column justify-content-between">
-            <h5 className="fw-bold text-dark mb-1 member-name" style={{ fontSize: '1.1rem', color: '#0A3D7A' }}>
-              Dr Kalpesh Girase
-            </h5>
-            <div className="role-badge py-2 px-3 rounded-3 mt-2 fw-semibold text-uppercase tracking-wider">
-              PHYSIO
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
+        </section>
         {/* Coaching Section */}
         <SportsCoachingSection />
 
         {/* Services Section */}
         <ServicesAndAcademy />
 
-      
+
         {/* Contact Section */}
         <ContactSection />
 
