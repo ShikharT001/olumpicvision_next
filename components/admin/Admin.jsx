@@ -9,8 +9,6 @@ const COMPACT_COLUMNS = new Set([
   'provider_order_id',
   'provider_payment_id',
   'provider_signature',
-  'razorpay_order_id',
-  'razorpay_payment_id',
 ]);
 
 const TABLE_HIDDEN_COLUMNS = {
@@ -40,8 +38,6 @@ const CHECKBOX_COLUMN_EXCLUDED = new Set([
   'provider_order_id',
   'provider_payment_id',
   'provider_signature',
-  'razorpay_order_id',
-  'razorpay_payment_id',
   'raw_response',
   'full_name',
   'sender_name',

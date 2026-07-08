@@ -43,22 +43,22 @@ const SPONSOR_IMAGES = [
   },
 ];
 
-function loadRazorpayCheckout() {
+function loadPhonePeCheckout(scriptUrl) {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
-      reject(new Error('Razorpay checkout can only open in the browser.'));
+      reject(new Error('PhonePe checkout can only open in the browser.'));
       return;
     }
 
-    if (window.Razorpay) {
+    if (window.PhonePeCheckout?.transact) {
       resolve(true);
       return;
     }
 
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.src = scriptUrl;
     script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error('Unable to load Razorpay checkout.'));
+    script.onerror = () => reject(new Error('Unable to load PhonePe checkout.'));
     document.body.appendChild(script);
   });
 }
@@ -177,17 +177,25 @@ export default function RegistrationSection() {
     return valid;
   };
 
-  const verifyPayment = async ({ registrationId, response }) => {
+  const verifyPayment = async ({ registrationId, orderId }) => {
     const verifyResponse = await fetch('/api/payments/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         registrationId,
-        ...response,
+        orderId,
       }),
     });
 
     const verifyData = await verifyResponse.json();
+
+    if (verifyResponse.status === 202) {
+      setSuccessMessage(
+        'Your registration is saved and the PhonePe payment is still pending. We will confirm it once PhonePe marks it successful.'
+      );
+      setFormSubmitted(true);
+      return;
+    }
 
     if (!verifyResponse.ok) {
       throw new Error(verifyData.error || 'Payment verification failed.');
@@ -197,59 +205,56 @@ export default function RegistrationSection() {
     setFormSubmitted(true);
   };
 
-  const openRazorpayPayment = async ({ registrationId, payment }) => {
-    await loadRazorpayCheckout();
+  const openPhonePePayment = async ({ registrationId, payment }) => {
+    await loadPhonePeCheckout(payment.checkoutScriptUrl);
 
     return new Promise((resolve, reject) => {
-      const checkout = new window.Razorpay({
-        key: payment.keyId,
-        amount: payment.amount,
-        currency: payment.currency,
-        name: 'Boisar Varsha Marathon 2026',
-        description: `${selectedCategory?.label || 'Open category'} registration`,
-        order_id: payment.orderId,
-        prefill: {
-          name: formData.fullName,
-          contact: formData.phone,
-        },
-        notes: {
-          registration_id: registrationId,
-          category: formData.category,
-        },
-        theme: {
-          color: '#ffcc00',
-        },
-        handler: async (response) => {
+      if (!window.PhonePeCheckout?.transact) {
+        reject(new Error('PhonePe checkout is unavailable. Please try again.'));
+        return;
+      }
+
+      let settled = false;
+
+      window.PhonePeCheckout.transact({
+        tokenUrl: payment.redirectUrl,
+        type: 'IFRAME',
+        callback: async (response) => {
+          if (settled) return;
+          settled = true;
+
           try {
-            await verifyPayment({ registrationId, response });
-            resolve();
+            if (response === 'USER_CANCEL') {
+              await postPaymentUpdate('/api/payments/cancel', {
+                registrationId,
+                orderId: payment.orderId,
+              });
+              reject(
+                new Error(
+                  'Payment was cancelled. Your registration is saved as payment pending.'
+                )
+              );
+              return;
+            }
+
+            if (response === 'CONCLUDED') {
+              await verifyPayment({ registrationId, orderId: payment.orderId });
+              resolve();
+              return;
+            }
+
+            await postPaymentUpdate('/api/payments/failure', {
+              registrationId,
+              orderId: payment.orderId,
+              reason: 'PhonePe checkout closed before payment conclusion',
+              rawResponse: { response },
+            });
+            reject(new Error('PhonePe payment was not completed.'));
           } catch (error) {
             reject(error);
           }
         },
-        modal: {
-          ondismiss: async () => {
-            await postPaymentUpdate('/api/payments/cancel', {
-              registrationId,
-              orderId: payment.orderId,
-            });
-            reject(new Error('Payment was cancelled. Your registration is saved as payment pending.'));
-          },
-        },
       });
-
-      checkout.on('payment.failed', async (event) => {
-        await postPaymentUpdate('/api/payments/failure', {
-          registrationId,
-          orderId: payment.orderId,
-          paymentId: event.error?.metadata?.payment_id,
-          reason: event.error?.description || 'Razorpay payment failed',
-          rawResponse: event.error,
-        });
-        reject(new Error(event.error?.description || 'Razorpay payment failed.'));
-      });
-
-      checkout.open();
     });
   };
 
@@ -273,7 +278,7 @@ export default function RegistrationSection() {
       }
 
       if (responseData.paymentRequired) {
-        await openRazorpayPayment({
+        await openPhonePePayment({
           registrationId: responseData.id,
           payment: responseData.payment,
         });
@@ -371,7 +376,7 @@ export default function RegistrationSection() {
                       </p>
                       <div className="p-3 bg-light rounded-3 border">
                         <ul className="ps-3 mb-0 text-muted small lh-lg">
-                          <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require Razorpay payment.</li>
+                          <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require PhonePe payment.</li>
                           <li className="mb-1">Open category fee: Rs. {OPEN_CATEGORY_FEE_RUPEES}.</li>
                           <li>U14, U17, U19, Senior, and Couple categories are free in this form.</li>
                         </ul>
@@ -555,7 +560,7 @@ export default function RegistrationSection() {
                       {selectedCategoryRequiresPayment ? (
                         <div className="col-12">
                           <div className="alert alert-warning mb-0" role="alert">
-                            This open category requires an online Razorpay payment of Rs. {OPEN_CATEGORY_FEE_RUPEES}. Your registration is confirmed only after payment succeeds.
+                            This open category requires an online PhonePe payment of Rs. {OPEN_CATEGORY_FEE_RUPEES}. Your registration is confirmed only after payment succeeds.
                           </div>
                         </div>
                       ) : null}

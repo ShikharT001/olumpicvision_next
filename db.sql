@@ -28,8 +28,8 @@ VALUES
   ('u14', 'U14 (Boys & Girls)', 3.0, 'Both', 'Under 14 years only', false, 0),
   ('u17', 'U17 (Boys & Girls)', 5.0, 'Both', 'Under 17 years only', false, 0),
   ('u19', 'U19 (Boys & Girls)', 6.0, 'Both', 'Under 19 years only', false, 0),
-  ('open_men', 'Open - Men', 11.0, 'male', 'Maharashtra State Only - Rs. 500 Razorpay fee', true, 50000),
-  ('open_women', 'Open - Women', 8.0, 'female', 'Maharashtra State Only - Rs. 500 Razorpay fee', true, 50000),
+  ('open_men', 'Open - Men', 11.0, 'male', 'Maharashtra State Only - Rs. 800 PhonePe fee', true, 80000),
+  ('open_women', 'Open - Women', 8.0, 'female', 'Maharashtra State Only - Rs. 800 PhonePe fee', true, 80000),
   ('senior', 'Senior Citizens Fun Run', 1.0, 'Both', '55+ Years Old', false, 0),
   ('couple', 'Married Couple Fun Run', 1.0, 'Mixed', 'Couples Race', false, 0)
 ON CONFLICT (code) DO UPDATE SET
@@ -95,7 +95,7 @@ WHERE r.category_code = rc.code;
 
 -- ================================================================
 -- 3. PAYMENT TRANSACTIONS TABLE
---    Stores Razorpay order/payment updates for admin visibility
+--    Stores PhonePe order/payment updates for admin visibility
 -- ================================================================
 CREATE TABLE IF NOT EXISTS payment_transactions (
   id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
   category_code         TEXT NOT NULL REFERENCES race_categories(code),
   amount_paise          INTEGER NOT NULL DEFAULT 0,
   currency              TEXT NOT NULL DEFAULT 'INR',
-  provider              TEXT NOT NULL DEFAULT 'razorpay',
+  provider              TEXT NOT NULL DEFAULT 'phonepe',
   provider_order_id     TEXT UNIQUE,
   provider_payment_id   TEXT,
   provider_signature    TEXT,
@@ -143,8 +143,8 @@ SELECT
   r.payment_status,
   r.fee_amount_paise,
   (r.fee_amount_paise / 100.0)::NUMERIC(10,2) AS fee_amount_rupees,
-  pt.provider_order_id AS razorpay_order_id,
-  pt.provider_payment_id AS razorpay_payment_id,
+  pt.provider_order_id,
+  pt.provider_payment_id,
   pt.status AS transaction_status,
   pt.paid_at,
   r.submitted_at
@@ -174,8 +174,8 @@ SELECT
   (pt.amount_paise / 100.0)::NUMERIC(10,2) AS amount_rupees,
   pt.currency,
   pt.provider,
-  pt.provider_order_id AS razorpay_order_id,
-  pt.provider_payment_id AS razorpay_payment_id,
+  pt.provider_order_id,
+  pt.provider_payment_id,
   pt.status AS transaction_status,
   r.payment_status AS registration_payment_status,
   r.registration_status,
@@ -255,5 +255,5 @@ INSERT INTO registrations
 VALUES
   ('Rahul Patil', '9876543210', '2014-05-10', 'male', 'Boisar High School', 'u14', 'confirmed', false, 'not_required', 0),
   ('Priya Sharma', '9876543211', '2011-08-22', 'female', 'St. Xavier College', 'u17', 'confirmed', false, 'not_required', 0),
-  ('Amit Thakur', '9876543212', '2000-03-15', 'male', 'Palghar Sports Academy', 'open_men', 'pending', true, 'payment_pending', 50000)
+  ('Amit Thakur', '9876543212', '2000-03-15', 'male', 'Palghar Sports Academy', 'open_men', 'pending', true, 'payment_pending', 80000)
 ON CONFLICT DO NOTHING;

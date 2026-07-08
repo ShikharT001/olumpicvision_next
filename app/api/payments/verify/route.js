@@ -1,37 +1,28 @@
-import crypto from 'crypto';
-import { Pool } from 'pg';
 import { NextResponse } from 'next/server';
+import { getDbClient } from '@/lib/postgres';
+import { getPhonePeOrderStatus } from '@/lib/phonepe';
 
 export const runtime = 'nodejs';
 
-const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+function getLatestPaymentDetail(statusPayload) {
+  const paymentDetails = Array.isArray(statusPayload.paymentDetails)
+    ? statusPayload.paymentDetails
+    : [];
 
-const pool = new Pool({
-  connectionString,
-  ssl: connectionString?.includes('supabase.com')
-    ? { rejectUnauthorized: false }
-    : undefined,
-});
+  return (
+    paymentDetails.find((paymentDetail) => paymentDetail.state === 'COMPLETED') ||
+    paymentDetails.at(-1) ||
+    null
+  );
+}
 
-function verifyRazorpaySignature({ orderId, paymentId, signature }) {
-  if (!razorpayKeySecret || razorpayKeySecret.includes('replace')) {
-    throw new Error('Razorpay key secret is not configured in .env.local');
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', razorpayKeySecret)
-    .update(`${orderId}|${paymentId}`)
-    .digest('hex');
-  const receivedSignature = String(signature || '');
-
-  if (receivedSignature.length !== expectedSignature.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature),
-    Buffer.from(receivedSignature)
+function getFailureReason(statusPayload, paymentDetail) {
+  return (
+    statusPayload.errorContext?.description ||
+    statusPayload.errorCode ||
+    paymentDetail?.errorCode ||
+    paymentDetail?.detailedErrorCode ||
+    'PhonePe payment failed'
   );
 }
 
@@ -39,34 +30,72 @@ export async function POST(request) {
   let client;
 
   try {
-    const {
-      registrationId,
-      razorpay_order_id: orderId,
-      razorpay_payment_id: paymentId,
-      razorpay_signature: signature,
-    } = await request.json();
+    const { registrationId, orderId, merchantOrderId = orderId } =
+      await request.json();
 
-    if (!registrationId || !orderId || !paymentId || !signature) {
+    if (!registrationId || !merchantOrderId) {
       return NextResponse.json(
-        { error: 'Missing Razorpay verification fields' },
+        { error: 'Missing PhonePe verification fields' },
         { status: 400 }
       );
     }
 
-    const isValid = verifyRazorpaySignature({ orderId, paymentId, signature });
-    client = await pool.connect();
+    const statusPayload = await getPhonePeOrderStatus(merchantOrderId);
+    const paymentDetail = getLatestPaymentDetail(statusPayload);
+    const providerPaymentId =
+      paymentDetail?.transactionId || statusPayload.orderId || null;
+    const rawResponse = JSON.stringify({ phonepeStatus: statusPayload });
+
+    client = await getDbClient();
     await client.query('BEGIN');
 
-    if (!isValid) {
+    if (statusPayload.state === 'COMPLETED') {
+      await client.query(
+        `UPDATE payment_transactions
+         SET status = 'captured',
+             provider_payment_id = $1,
+             raw_response = COALESCE(raw_response, '{}'::jsonb) || $2::jsonb,
+             paid_at = NOW(),
+             updated_at = NOW()
+         WHERE registration_id = $3 AND provider_order_id = $4`,
+        [providerPaymentId, rawResponse, registrationId, merchantOrderId]
+      );
+
+      await client.query(
+        `UPDATE registrations
+         SET payment_status = 'paid',
+             registration_status = 'confirmed'
+         WHERE id = $1`,
+        [registrationId]
+      );
+
+      await client.query('COMMIT');
+
+      return NextResponse.json({
+        success: true,
+        status: 'paid',
+        message: 'Payment verified and registration confirmed',
+      });
+    }
+
+    if (statusPayload.state === 'FAILED') {
+      const failureReason = getFailureReason(statusPayload, paymentDetail);
+
       await client.query(
         `UPDATE payment_transactions
          SET status = 'failed',
-             provider_payment_id = $1,
-             provider_signature = $2,
-             failure_reason = 'Invalid Razorpay signature',
+             provider_payment_id = COALESCE($1, provider_payment_id),
+             failure_reason = $2,
+             raw_response = COALESCE(raw_response, '{}'::jsonb) || $3::jsonb,
              updated_at = NOW()
-         WHERE registration_id = $3 AND provider_order_id = $4`,
-        [paymentId, signature, registrationId, orderId]
+         WHERE registration_id = $4 AND provider_order_id = $5`,
+        [
+          providerPaymentId,
+          failureReason,
+          rawResponse,
+          registrationId,
+          merchantOrderId,
+        ]
       );
 
       await client.query(
@@ -79,36 +108,38 @@ export async function POST(request) {
       await client.query('COMMIT');
 
       return NextResponse.json(
-        { error: 'Payment verification failed' },
+        { error: failureReason, status: 'failed' },
         { status: 400 }
       );
     }
 
     await client.query(
       `UPDATE payment_transactions
-       SET status = 'captured',
-           provider_payment_id = $1,
-           provider_signature = $2,
-           paid_at = NOW(),
+       SET status = 'created',
+           provider_payment_id = COALESCE($1, provider_payment_id),
+           raw_response = COALESCE(raw_response, '{}'::jsonb) || $2::jsonb,
            updated_at = NOW()
        WHERE registration_id = $3 AND provider_order_id = $4`,
-      [paymentId, signature, registrationId, orderId]
+      [providerPaymentId, rawResponse, registrationId, merchantOrderId]
     );
 
     await client.query(
       `UPDATE registrations
-       SET payment_status = 'paid',
-           registration_status = 'confirmed'
-       WHERE id = $1`,
+       SET payment_status = 'payment_pending'
+       WHERE id = $1 AND payment_status <> 'paid'`,
       [registrationId]
     );
 
     await client.query('COMMIT');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Payment verified and registration confirmed',
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        status: 'pending',
+        message: 'Payment is still pending with PhonePe.',
+      },
+      { status: 202 }
+    );
   } catch (error) {
     if (client) {
       await client.query('ROLLBACK').catch(() => {});
