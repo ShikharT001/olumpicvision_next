@@ -18,12 +18,28 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    const { fullName, phone, dob, gender, school, category } = data;
+    const { fullName, phone, dob, gender, school, category, documentUrl, partnerDocumentUrl } = data;
 
     // Validate required fields
     if (!fullName || !phone || !dob || !gender || !category) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Document is mandatory for every participant
+    if (!documentUrl) {
+      return NextResponse.json(
+        { error: 'Identity document upload is required for registration.' },
+        { status: 400 }
+      );
+    }
+
+    // For couple category, partner document is also required
+    if (category === 'couple' && !partnerDocumentUrl) {
+      return NextResponse.json(
+        { error: "Partner's identity document upload is required for couple registration." },
         { status: 400 }
       );
     }
@@ -55,10 +71,12 @@ export async function POST(request) {
             registration_status,
             payment_required,
             payment_status,
-            fee_amount_paise
+            fee_amount_paise,
+            document_url,
+            partner_document_url
           ) 
          VALUES 
-          ($1, $2, $3, $4, $5, $6, 'pending', $7, $8, $9) 
+          ($1, $2, $3, $4, $5, $6, 'pending', $7, $8, $9, $10, $11) 
          RETURNING id`,
         [
           fullName,
@@ -70,6 +88,8 @@ export async function POST(request) {
           paymentRequired,
           paymentRequired ? 'payment_pending' : 'not_required',
           feeAmountPaise,
+          documentUrl,
+          partnerDocumentUrl || null,
         ]
       );
 
@@ -125,14 +145,14 @@ export async function POST(request) {
         paymentRequired,
         payment: paymentRequired
           ? {
-              orderId: merchantOrderId,
-              phonePeOrderId: phonePeOrder.orderId || null,
-              redirectUrl: phonePeOrder.redirectUrl,
-              checkoutScriptUrl: getPhonePeCheckoutScriptUrl(),
-              amount: feeAmountPaise,
-              currency: 'INR',
-              feeRupees: feeAmountPaise / 100,
-            }
+            orderId: merchantOrderId,
+            phonePeOrderId: phonePeOrder.orderId || null,
+            redirectUrl: phonePeOrder.redirectUrl,
+            checkoutScriptUrl: getPhonePeCheckoutScriptUrl(),
+            amount: feeAmountPaise,
+            currency: 'INR',
+            feeRupees: feeAmountPaise / 100,
+          }
           : null,
       });
     } catch (error) {

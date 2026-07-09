@@ -33,7 +33,7 @@ export async function logoutAdmin() {
 }
 
 import { revalidatePath } from 'next/cache';
-import { deleteRow, updateRow, insertRow } from '@/lib/admin-db';
+import { deleteRow, updateRow, insertRow, confirmParticipation } from '@/lib/admin-db';
 
 async function checkAuth() {
   const cookieStore = await cookies();
@@ -59,3 +59,10 @@ export async function adminInsertRow(tableName, payload) {
   await insertRow(tableName, payload);
   revalidatePath('/admin');
 }
+
+export async function adminConfirmParticipation(registrationId) {
+  await checkAuth();
+  await confirmParticipation(registrationId);
+  revalidatePath('/admin');
+}
+

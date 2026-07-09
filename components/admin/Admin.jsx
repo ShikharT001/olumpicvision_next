@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { adminDeleteRow, adminUpdateRow, adminInsertRow } from '@/app/admin/actions';
+import { adminDeleteRow, adminUpdateRow, adminInsertRow, adminConfirmParticipation } from '@/app/admin/actions';
 
 const COMPACT_COLUMNS = new Set([
   'id',
@@ -178,6 +178,15 @@ function formatValue(value, column) {
     return `Rs. ${(Number(value) / 100).toFixed(2)}`;
   }
 
+  // Render document URLs as clickable links
+  if ((column === 'document_url' || column === 'partner_document_url') && strVal.startsWith('http')) {
+    return (
+      <a href={strVal} target="_blank" rel="noopener noreferrer" style={{ color: '#0d6efd', fontSize: 12 }}>
+        View Doc ↗
+      </a>
+    );
+  }
+
   if (COMPACT_COLUMNS.has(column) && strVal.length > 18) {
     return <span title={strVal} style={styles.monoValue}>{strVal.slice(0, 10) + '...'}</span>;
   }
@@ -196,6 +205,14 @@ function formatDetailValue(value) {
 
   if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
     return new Date(value).toLocaleString();
+  }
+
+  if (typeof value === 'string' && value.startsWith('http')) {
+    return (
+      <a href={value} target="_blank" rel="noopener noreferrer" style={{ color: '#0d6efd', wordBreak: 'break-all' }}>
+        {value.length > 60 ? value.slice(0, 60) + '…' : value} ↗
+      </a>
+    );
   }
 
   if (typeof value === 'object') {
@@ -224,8 +241,8 @@ export default function Admin({ tables = [], logoutAction }) {
   const idColumn = active?.columns.includes('id')
     ? 'id'
     : active?.columns.includes('code')
-    ? 'code'
-    : null;
+      ? 'code'
+      : null;
   const isReadOnly = Boolean(active?.readOnly);
   const visibleColumns = useMemo(() => getVisibleColumns(active), [active]);
   const filterGroups = useMemo(
@@ -592,6 +609,23 @@ export default function Admin({ tables = [], logoutAction }) {
                                     </button>
                                     {!isReadOnly && idColumn && (
                                       <>
+                                        {/* Confirm Participation button */}
+                                        {(row.registration_status === 'pending' || row.registration_status === 'payment_pending') && (
+                                          <button
+                                            style={styles.confirmBtn}
+                                            disabled={isAdding || editingRow.rowIndex !== null}
+                                            onClick={async () => {
+                                              if (!window.confirm(`Confirm participation for ${row.full_name || row.sender_name || 'this participant'}?`)) return;
+                                              try {
+                                                await adminConfirmParticipation(row.id || row.registration_id);
+                                              } catch (err) {
+                                                alert('Failed to confirm: ' + err.message);
+                                              }
+                                            }}
+                                          >
+                                            ✓ Confirm
+                                          </button>
+                                        )}
                                         <button
                                           style={styles.editBtn}
                                           onClick={() => handleEditClick(rowIndex, row)}
@@ -1137,5 +1171,18 @@ const styles = {
     fontSize: 12,
     lineHeight: 1.5,
     whiteSpace: 'pre-wrap',
+  },
+  confirmBtn: {
+    padding: '4px 10px',
+    border: 'none',
+    borderRadius: 6,
+    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.2px',
+    boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+    transition: 'opacity 0.2s',
   },
 };

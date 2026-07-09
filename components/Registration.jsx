@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import {
   OPEN_CATEGORY_FEE_RUPEES,
   getAvailableRaceCategories,
@@ -90,8 +90,33 @@ export default function RegistrationSection() {
     dob: '',
     gender: '',
     school: '',
-    category: ''
+    category: '',
+    document: '',
+    partnerDocument: '',
   });
+
+  const [docState, setDocState] = useState({
+    file: null,
+    url: '',
+    uploading: false,
+    uploaded: false,
+  });
+  const [partnerDocState, setPartnerDocState] = useState({
+    file: null,
+    url: '',
+    uploading: false,
+    uploaded: false,
+  });
+  const docInputRef = useRef(null);
+  const partnerDocInputRef = useRef(null);
+
+  const todayString = useMemo(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -116,6 +141,18 @@ export default function RegistrationSection() {
     (category) => category.value === formData.category
   );
   const selectedCategoryRequiresPayment = isPaidCategory(formData.category);
+  const isCoupleCategory = formData.category === 'couple';
+
+  // Upload a single document to Cloudinary
+  const uploadDoc = async (file, label) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('label', label);
+    const res = await fetch('/api/upload-document', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data.url;
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -142,7 +179,7 @@ export default function RegistrationSection() {
 
   const validateForm = () => {
     let valid = true;
-    const newErrors = { fullName: '', phone: '', dob: '', gender: '', school: '', category: '' };
+    const newErrors = { fullName: '', phone: '', dob: '', gender: '', school: '', category: '', document: '', partnerDocument: '' };
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full Name is required.';
@@ -164,6 +201,14 @@ export default function RegistrationSection() {
     if (!formData.dob) {
       newErrors.dob = 'Date of birth is required.';
       valid = false;
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dobDate = new Date(formData.dob);
+      if (dobDate > today) {
+        newErrors.dob = 'Date of birth cannot be in the future.';
+        valid = false;
+      }
     }
 
     if (!formData.gender) {
@@ -178,6 +223,16 @@ export default function RegistrationSection() {
 
     if (!formData.category) {
       newErrors.category = 'Please select an eligible race track category.';
+      valid = false;
+    }
+
+    if (!docState.uploaded || !docState.url) {
+      newErrors.document = 'Please upload your identity document (Aadhaar / PAN / Passport).';
+      valid = false;
+    }
+
+    if (isCoupleCategory && (!partnerDocState.uploaded || !partnerDocState.url)) {
+      newErrors.partnerDocument = "Please upload your partner's identity document.";
       valid = false;
     }
 
@@ -273,10 +328,30 @@ export default function RegistrationSection() {
     setIsSubmitting(true);
 
     try {
+      // Upload participant document if not already uploaded
+      let participantDocUrl = docState.url;
+      if (!participantDocUrl && docState.file) {
+        setDocState((prev) => ({ ...prev, uploading: true }));
+        participantDocUrl = await uploadDoc(docState.file, 'participant');
+        setDocState((prev) => ({ ...prev, url: participantDocUrl, uploaded: true, uploading: false }));
+      }
+
+      // Upload partner document for couple category
+      let partnerDocUrl = partnerDocState.url;
+      if (isCoupleCategory && !partnerDocUrl && partnerDocState.file) {
+        setPartnerDocState((prev) => ({ ...prev, uploading: true }));
+        partnerDocUrl = await uploadDoc(partnerDocState.file, 'partner');
+        setPartnerDocState((prev) => ({ ...prev, url: partnerDocUrl, uploaded: true, uploading: false }));
+      }
+
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          documentUrl: participantDocUrl,
+          partnerDocumentUrl: partnerDocUrl || undefined,
+        }),
       });
 
       const responseData = await response.json();
@@ -494,6 +569,7 @@ export default function RegistrationSection() {
                         <label className="form-label fw-semibold small text-secondary">Date of Birth</label>
                         <input
                           type="date"
+                          max={todayString}
                           className={`form-control form-control-lg ${errors.dob ? 'is-invalid' : ''}`}
                           name="dob"
                           value={formData.dob}
@@ -572,6 +648,274 @@ export default function RegistrationSection() {
                           </div>
                         </div>
                       ) : null}
+
+                      {/* =====================================================
+                          DOCUMENT UPLOAD SECTION (mandatory for all)
+                      ====================================================== */}
+                      <div className="col-12">
+                        <div
+                          style={{
+                            background: 'linear-gradient(135deg,rgba(255,204,0,.08),rgba(255,204,0,.03))',
+                            border: '2px dashed rgba(184,134,11,.35)',
+                            borderRadius: 16,
+                            padding: '24px 20px',
+                          }}
+                        >
+                          <div className="mb-3">
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                background: '#b8860b',
+                                color: '#fff',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.8px',
+                                textTransform: 'uppercase',
+                                borderRadius: 6,
+                                padding: '3px 10px',
+                                marginBottom: 10,
+                              }}
+                            >
+                              📄 Identity Verification — Required
+                            </span>
+                            <p className="text-muted small mb-0">
+                              Every participant must upload a valid government-issued identity proof (Aadhaar, PAN, Passport, Voter ID, Driving Licence). Accepted formats: JPG, PNG, PDF — max 5&nbsp;MB.
+                            </p>
+                          </div>
+
+                          {/* Participant document */}
+                          <div className="field-container mb-3">
+                            <label
+                              className="form-label fw-semibold small text-secondary"
+                              htmlFor="doc-upload"
+                            >
+                              Your Identity Proof (Aadhaar / PAN / Passport)
+                            </label>
+
+                            {!docState.uploaded ? (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <input
+                                  id="doc-upload"
+                                  ref={docInputRef}
+                                  type="file"
+                                  accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                  style={{ display: 'none' }}
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setErrors((prev) => ({ ...prev, document: '' }));
+                                    setDocState({ file, url: '', uploading: true, uploaded: false });
+                                    try {
+                                      const url = await uploadDoc(file, 'participant');
+                                      setDocState({ file, url, uploading: false, uploaded: true });
+                                    } catch (err) {
+                                      setDocState({ file: null, url: '', uploading: false, uploaded: false });
+                                      setErrors((prev) => ({ ...prev, document: err.message || 'Upload failed. Please try again.' }));
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary"
+                                  style={{ borderRadius: 10, fontWeight: 600, fontSize: '0.85rem' }}
+                                  onClick={() => docInputRef.current?.click()}
+                                  disabled={docState.uploading}
+                                >
+                                  {docState.uploading ? '⏳ Uploading…' : '📎 Choose File'}
+                                </button>
+                                {docState.file && !docState.uploading && (
+                                  <span className="text-muted small">{docState.file.name}</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  background: 'rgba(25,135,84,.08)',
+                                  border: '1.5px solid rgba(25,135,84,.3)',
+                                  borderRadius: 10,
+                                  padding: '10px 14px',
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <span style={{ color: '#198754', fontWeight: 700, fontSize: '1rem' }}>✅</span>
+                                <span className="small fw-semibold" style={{ color: '#198754' }}>
+                                  Document uploaded successfully
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger ms-auto"
+                                  style={{ borderRadius: 8, fontSize: '0.75rem', padding: '2px 10px' }}
+                                  onClick={() => {
+                                    setDocState({ file: null, url: '', uploading: false, uploaded: false });
+                                    if (docInputRef.current) docInputRef.current.value = '';
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Inline document preview */}
+                            {docState.uploaded && docState.url && (
+                              <div style={{ marginTop: 12 }}>
+                                {docState.file?.type?.startsWith('image/') || docState.url.match(/\.(jpg|jpeg|png|webp|gif)/i) ? (
+                                  <div style={{ textAlign: 'center', background: '#f8fafc', padding: 8, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                                    <img
+                                      src={docState.url}
+                                      alt="Identity Document Preview"
+                                      style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '160px',
+                                        borderRadius: 8,
+                                        objectFit: 'contain',
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f1f5f9', padding: '8px 12px', borderRadius: 8 }}>
+                                    <span style={{ fontSize: '1.2rem' }}>📎</span>
+                                    <span className="small text-muted" style={{ wordBreak: 'break-all' }}>
+                                      {docState.file?.name || 'Attached PDF Document'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {errors.document && (
+                              <div className="invalid-feedback" style={{ display: 'block' }}>
+                                {errors.document}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Partner document — only for couple category */}
+                          {isCoupleCategory && (
+                            <div className="field-container">
+                              <label
+                                className="form-label fw-semibold small text-secondary"
+                                htmlFor="partner-doc-upload"
+                              >
+                                Partner&apos;s Identity Proof (Aadhaar / PAN / Passport)
+                              </label>
+
+                              {!partnerDocState.uploaded ? (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <input
+                                    id="partner-doc-upload"
+                                    ref={partnerDocInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                    style={{ display: 'none' }}
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      setErrors((prev) => ({ ...prev, partnerDocument: '' }));
+                                      setPartnerDocState({ file, url: '', uploading: true, uploaded: false });
+                                      try {
+                                        const url = await uploadDoc(file, 'partner');
+                                        setPartnerDocState({ file, url, uploading: false, uploaded: true });
+                                      } catch (err) {
+                                        setPartnerDocState({ file: null, url: '', uploading: false, uploaded: false });
+                                        setErrors((prev) => ({ ...prev, partnerDocument: err.message || 'Upload failed. Please try again.' }));
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    style={{ borderRadius: 10, fontWeight: 600, fontSize: '0.85rem' }}
+                                    onClick={() => partnerDocInputRef.current?.click()}
+                                    disabled={partnerDocState.uploading}
+                                  >
+                                    {partnerDocState.uploading ? '⏳ Uploading…' : '📎 Choose File'}
+                                  </button>
+                                  {partnerDocState.file && !partnerDocState.uploading && (
+                                    <span className="text-muted small">{partnerDocState.file.name}</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    background: 'rgba(25,135,84,.08)',
+                                    border: '1.5px solid rgba(25,135,84,.3)',
+                                    borderRadius: 10,
+                                    padding: '10px 14px',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span style={{ color: '#198754', fontWeight: 700, fontSize: '1rem' }}>✅</span>
+                                  <span className="small fw-semibold" style={{ color: '#198754' }}>
+                                    Partner document uploaded
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger ms-auto"
+                                    style={{ borderRadius: 8, fontSize: '0.75rem', padding: '2px 10px' }}
+                                    onClick={() => {
+                                      setPartnerDocState({ file: null, url: '', uploading: false, uploaded: false });
+                                      if (partnerDocInputRef.current) partnerDocInputRef.current.value = '';
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Partner Inline document preview */}
+                              {partnerDocState.uploaded && partnerDocState.url && (
+                                <div style={{ marginTop: 12 }}>
+                                  {partnerDocState.file?.type?.startsWith('image/') || partnerDocState.url.match(/\.(jpg|jpeg|png|webp|gif)/i) ? (
+                                    <div style={{ textAlign: 'center', background: '#f8fafc', padding: 8, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                                      <img
+                                        src={partnerDocState.url}
+                                        alt="Partner Identity Document Preview"
+                                        style={{
+                                          maxWidth: '100%',
+                                          maxHeight: '160px',
+                                          borderRadius: 8,
+                                          objectFit: 'contain',
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f1f5f9', padding: '8px 12px', borderRadius: 8 }}>
+                                      <span style={{ fontSize: '1.2rem' }}>📎</span>
+                                      <span className="small text-muted" style={{ wordBreak: 'break-all' }}>
+                                        {partnerDocState.file?.name || 'Attached PDF Document'}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {errors.partnerDocument && (
+                                <div className="invalid-feedback" style={{ display: 'block' }}>
+                                  {errors.partnerDocument}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
                       <div className="col-12 mt-4 mt-md-5">
                         <button
