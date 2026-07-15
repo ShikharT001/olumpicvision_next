@@ -1,28 +1,26 @@
 import { NextResponse } from 'next/server';
 import { getDbClient } from '@/lib/postgres';
-import { getPhonePeOrderStatus } from '@/lib/phonepe';
+import { getCashfreeOrderStatus, getCashfreeOrderPayments } from '@/lib/cashfree';
 
 export const runtime = 'nodejs';
 
-function getLatestPaymentDetail(statusPayload) {
-  const paymentDetails = Array.isArray(statusPayload.paymentDetails)
-    ? statusPayload.paymentDetails
-    : [];
-
+function getLatestPaymentDetail(paymentsList) {
+  if (!Array.isArray(paymentsList) || paymentsList.length === 0) {
+    return null;
+  }
   return (
-    paymentDetails.find((paymentDetail) => paymentDetail.state === 'COMPLETED') ||
-    paymentDetails.at(-1) ||
+    paymentsList.find((p) => p.payment_status === 'SUCCESS') ||
+    paymentsList.at(-1) ||
     null
   );
 }
 
-function getFailureReason(statusPayload, paymentDetail) {
+function getFailureReason(paymentDetail) {
   return (
-    statusPayload.errorContext?.description ||
-    statusPayload.errorCode ||
-    paymentDetail?.errorCode ||
-    paymentDetail?.detailedErrorCode ||
-    'PhonePe payment failed'
+    paymentDetail?.payment_message ||
+    paymentDetail?.error_details?.error_description ||
+    paymentDetail?.error_details?.error_code ||
+    'Cashfree payment failed'
   );
 }
 
@@ -30,26 +28,26 @@ export async function POST(request) {
   let client;
 
   try {
-    const { registrationId, orderId, merchantOrderId = orderId } =
-      await request.json();
+    const { registrationId, orderId } = await request.json();
 
-    if (!registrationId || !merchantOrderId) {
+    if (!registrationId || !orderId) {
       return NextResponse.json(
-        { error: 'Missing PhonePe verification fields' },
+        { error: 'Missing Cashfree verification fields' },
         { status: 400 }
       );
     }
 
-    const statusPayload = await getPhonePeOrderStatus(merchantOrderId);
-    const paymentDetail = getLatestPaymentDetail(statusPayload);
-    const providerPaymentId =
-      paymentDetail?.transactionId || statusPayload.orderId || null;
-    const rawResponse = JSON.stringify({ phonepeStatus: statusPayload });
+    const orderPayload = await getCashfreeOrderStatus(orderId);
+    const paymentsList = await getCashfreeOrderPayments(orderId).catch(() => []);
+    const paymentDetail = getLatestPaymentDetail(paymentsList);
+
+    const providerPaymentId = paymentDetail?.cf_payment_id || orderPayload.cf_order_id || null;
+    const rawResponse = JSON.stringify({ cashfreeOrder: orderPayload, cashfreePayments: paymentsList });
 
     client = await getDbClient();
     await client.query('BEGIN');
 
-    if (statusPayload.state === 'COMPLETED') {
+    if (orderPayload.order_status === 'PAID') {
       await client.query(
         `UPDATE payment_transactions
          SET status = 'captured',
@@ -58,7 +56,7 @@ export async function POST(request) {
              paid_at = NOW(),
              updated_at = NOW()
          WHERE registration_id = $3 AND provider_order_id = $4`,
-        [providerPaymentId, rawResponse, registrationId, merchantOrderId]
+        [providerPaymentId, rawResponse, registrationId, orderId]
       );
 
       await client.query(
@@ -78,8 +76,8 @@ export async function POST(request) {
       });
     }
 
-    if (statusPayload.state === 'FAILED') {
-      const failureReason = getFailureReason(statusPayload, paymentDetail);
+    if (orderPayload.order_status === 'EXPIRED' || orderPayload.order_status === 'TERMINATED') {
+      const failureReason = getFailureReason(paymentDetail);
 
       await client.query(
         `UPDATE payment_transactions
@@ -94,7 +92,7 @@ export async function POST(request) {
           failureReason,
           rawResponse,
           registrationId,
-          merchantOrderId,
+          orderId,
         ]
       );
 
@@ -120,7 +118,7 @@ export async function POST(request) {
            raw_response = COALESCE(raw_response, '{}'::jsonb) || $2::jsonb,
            updated_at = NOW()
        WHERE registration_id = $3 AND provider_order_id = $4`,
-      [providerPaymentId, rawResponse, registrationId, merchantOrderId]
+      [providerPaymentId, rawResponse, registrationId, orderId]
     );
 
     await client.query(
@@ -136,13 +134,13 @@ export async function POST(request) {
       {
         success: false,
         status: 'pending',
-        message: 'Payment is still pending with PhonePe.',
+        message: 'Payment is still pending with Cashfree.',
       },
       { status: 202 }
     );
   } catch (error) {
     if (client) {
-      await client.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch(() => { });
     }
 
     console.error('Payment verification error:', error);

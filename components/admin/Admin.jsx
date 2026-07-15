@@ -46,9 +46,15 @@ const CHECKBOX_COLUMN_EXCLUDED = new Set([
   'school_college_name',
   'description',
   'bib_number',
+  'email',
+  'fee_amount_paise',
+  'amount_paise',
+  'fee_amount_rupees',
 ]);
 
 function labelize(value) {
+  if (value === 'fee_amount_paise') return 'Fee (₹)';
+  if (value === 'amount_paise') return 'Amount (₹)';
   return String(value)
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -106,11 +112,15 @@ function getFilterGroups(table, visibleColumns) {
 
       return { column, values };
     })
-    .filter(({ values }) => (
-      values.length > 1 &&
-      values.length <= 10 &&
-      values.every((value) => value.length <= 42)
-    ));
+    .filter(({ column, values }) => {
+      const isPriority = CHECKBOX_COLUMN_PRIORITY.includes(column);
+      const maxValues = isPriority ? 20 : 10;
+      return (
+        values.length >= 1 &&
+        values.length <= maxValues &&
+        values.every((value) => value.length <= 42)
+      );
+    });
 
   return groups
     .sort((a, b) => {
@@ -175,14 +185,15 @@ function formatValue(value, column) {
   const strVal = String(value);
 
   if (column === 'amount_paise' || column === 'fee_amount_paise') {
-    return `Rs. ${(Number(value) / 100).toFixed(2)}`;
+    const rupees = Number(value) / 100;
+    return `₹ ${rupees % 1 === 0 ? rupees.toFixed(0) : rupees.toFixed(2)}`;
   }
 
   // Render document URLs as clickable links
-  if ((column === 'document_url' || column === 'partner_document_url') && strVal.startsWith('http')) {
+  if ((column === 'document_url' || column === 'partner_document_url' || column === 'payment_screenshot_url') && strVal.startsWith('http')) {
     return (
       <a href={strVal} target="_blank" rel="noopener noreferrer" style={{ color: '#0d6efd', fontSize: 12 }}>
-        View Doc ↗
+        {column === 'payment_screenshot_url' ? 'View Slip ↗' : 'View Doc ↗'}
       </a>
     );
   }
@@ -198,9 +209,14 @@ function formatValue(value, column) {
   return strVal;
 }
 
-function formatDetailValue(value) {
+function formatDetailValue(value, key) {
   if (value === null || value === undefined || value === '') {
     return <span style={{ color: '#94a3b8' }}>-</span>;
+  }
+
+  if (key === 'amount_paise' || key === 'fee_amount_paise') {
+    const rupees = Number(value) / 100;
+    return <strong style={{ color: '#0f6' }}>₹ {rupees % 1 === 0 ? rupees.toFixed(0) : rupees.toFixed(2)}</strong>;
   }
 
   if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
@@ -506,7 +522,7 @@ export default function Admin({ tables = [], logoutAction }) {
                     <tr>
                       {visibleColumns.map((column) => (
                         <th key={column} style={styles.th}>
-                          {column}
+                          {labelize(column)}
                         </th>
                       ))}
                       {hasActions && <th style={styles.thAction}>Actions</th>}

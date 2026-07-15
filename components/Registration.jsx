@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import {
   OPEN_CATEGORY_FEE_RUPEES,
   getAvailableRaceCategories,
@@ -51,41 +51,15 @@ const SPONSOR_IMAGES = [
   },
 ];
 
-function loadPhonePeCheckout(scriptUrl) {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('PhonePe checkout can only open in the browser.'));
-      return;
-    }
-
-    if (window.PhonePeCheckout?.transact) {
-      resolve(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = scriptUrl;
-    script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error('Unable to load PhonePe checkout.'));
-    document.body.appendChild(script);
-  });
-}
-
-async function postPaymentUpdate(url, payload) {
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-}
-
 export default function RegistrationSection() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const [errors, setErrors] = useState({
     fullName: '',
+    email: '',
     phone: '',
     dob: '',
     gender: '',
@@ -93,6 +67,7 @@ export default function RegistrationSection() {
     category: '',
     document: '',
     partnerDocument: '',
+    screenshot: '',
   });
 
   const [docState, setDocState] = useState({
@@ -107,8 +82,16 @@ export default function RegistrationSection() {
     uploading: false,
     uploaded: false,
   });
+  const [screenshotState, setScreenshotState] = useState({
+    file: null,
+    url: '',
+    uploading: false,
+    uploaded: false,
+  });
+
   const docInputRef = useRef(null);
   const partnerDocInputRef = useRef(null);
+  const screenshotInputRef = useRef(null);
 
   const todayString = useMemo(() => {
     const today = new Date();
@@ -120,6 +103,7 @@ export default function RegistrationSection() {
 
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '',
     school: '',
     gender: '',
     dob: '',
@@ -179,7 +163,18 @@ export default function RegistrationSection() {
 
   const validateForm = () => {
     let valid = true;
-    const newErrors = { fullName: '', phone: '', dob: '', gender: '', school: '', category: '', document: '', partnerDocument: '' };
+    const newErrors = {
+      fullName: '',
+      email: '',
+      phone: '',
+      dob: '',
+      gender: '',
+      school: '',
+      category: '',
+      document: '',
+      partnerDocument: '',
+      screenshot: ''
+    };
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full Name is required.';
@@ -187,6 +182,17 @@ export default function RegistrationSection() {
     } else if (formData.fullName.trim().length < 3) {
       newErrors.fullName = 'Name must be at least 3 characters.';
       valid = false;
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email Address is required.';
+      valid = false;
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email address.';
+        valid = false;
+      }
     }
 
     const phoneRegex = /^[6-9]\d{9}$/;
@@ -236,89 +242,13 @@ export default function RegistrationSection() {
       valid = false;
     }
 
+    if (selectedCategoryRequiresPayment && (!screenshotState.uploaded || !screenshotState.url)) {
+      newErrors.screenshot = 'Please upload a screenshot of your payment transaction.';
+      valid = false;
+    }
+
     setErrors(newErrors);
     return valid;
-  };
-
-  const verifyPayment = async ({ registrationId, orderId }) => {
-    const verifyResponse = await fetch('/api/payments/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        registrationId,
-        orderId,
-      }),
-    });
-
-    const verifyData = await verifyResponse.json();
-
-    if (verifyResponse.status === 202) {
-      setSuccessMessage(
-        'Your registration is saved and the PhonePe payment is still pending. We will confirm it once PhonePe marks it successful.'
-      );
-      setFormSubmitted(true);
-      return;
-    }
-
-    if (!verifyResponse.ok) {
-      throw new Error(verifyData.error || 'Payment verification failed.');
-    }
-
-    setSuccessMessage('Payment successful. Your marathon registration is confirmed.');
-    setFormSubmitted(true);
-  };
-
-  const openPhonePePayment = async ({ registrationId, payment }) => {
-    await loadPhonePeCheckout(payment.checkoutScriptUrl);
-
-    return new Promise((resolve, reject) => {
-      if (!window.PhonePeCheckout?.transact) {
-        reject(new Error('PhonePe checkout is unavailable. Please try again.'));
-        return;
-      }
-
-      let settled = false;
-
-      window.PhonePeCheckout.transact({
-        tokenUrl: payment.redirectUrl,
-        type: 'IFRAME',
-        callback: async (response) => {
-          if (settled) return;
-          settled = true;
-
-          try {
-            if (response === 'USER_CANCEL') {
-              await postPaymentUpdate('/api/payments/cancel', {
-                registrationId,
-                orderId: payment.orderId,
-              });
-              reject(
-                new Error(
-                  'Payment was cancelled. Your registration is saved as payment pending.'
-                )
-              );
-              return;
-            }
-
-            if (response === 'CONCLUDED') {
-              await verifyPayment({ registrationId, orderId: payment.orderId });
-              resolve();
-              return;
-            }
-
-            await postPaymentUpdate('/api/payments/failure', {
-              registrationId,
-              orderId: payment.orderId,
-              reason: 'PhonePe checkout closed before payment conclusion',
-              rawResponse: { response },
-            });
-            reject(new Error('PhonePe payment was not completed.'));
-          } catch (error) {
-            reject(error);
-          }
-        },
-      });
-    });
   };
 
   const handleFormSubmit = async (e) => {
@@ -344,6 +274,14 @@ export default function RegistrationSection() {
         setPartnerDocState((prev) => ({ ...prev, url: partnerDocUrl, uploaded: true, uploading: false }));
       }
 
+      // Upload payment screenshot if category is paid
+      let paymentScreenshotUrl = screenshotState.url;
+      if (selectedCategoryRequiresPayment && !paymentScreenshotUrl && screenshotState.file) {
+        setScreenshotState((prev) => ({ ...prev, uploading: true }));
+        paymentScreenshotUrl = await uploadDoc(screenshotState.file, 'screenshot');
+        setScreenshotState((prev) => ({ ...prev, url: paymentScreenshotUrl, uploaded: true, uploading: false }));
+      }
+
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -351,6 +289,7 @@ export default function RegistrationSection() {
           ...formData,
           documentUrl: participantDocUrl,
           partnerDocumentUrl: partnerDocUrl || undefined,
+          paymentScreenshotUrl: paymentScreenshotUrl || undefined,
         }),
       });
 
@@ -360,15 +299,7 @@ export default function RegistrationSection() {
         throw new Error(responseData.error || 'Please try again.');
       }
 
-      if (responseData.paymentRequired) {
-        await openPhonePePayment({
-          registrationId: responseData.id,
-          payment: responseData.payment,
-        });
-        return;
-      }
-
-      setSuccessMessage('Registration successful. Your details have been submitted.');
+      setSuccessMessage(responseData.message || 'Registration successful. Your details have been submitted.');
       setFormSubmitted(true);
     } catch (error) {
       console.error('Registration failed:', error);
@@ -377,6 +308,7 @@ export default function RegistrationSection() {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <section id="register" className="py-4 py-md-5">
@@ -459,7 +391,7 @@ export default function RegistrationSection() {
                       </p>
                       <div className="p-3 bg-light rounded-3 border">
                         <ul className="ps-3 mb-0 text-muted small lh-lg">
-                          <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require PhonePe payment.</li>
+                          <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require online payment.</li>
                           <li className="mb-1">Open category fee: Rs. {OPEN_CATEGORY_FEE_RUPEES}.</li>
                           <li>U14, U17, U19, Senior, and Couple categories are free in this form.</li>
                         </ul>
@@ -564,6 +496,21 @@ export default function RegistrationSection() {
                         <div className="invalid-feedback">{errors.phone}</div>
                       </div>
 
+                      {/* Email Address Field */}
+                      <div className="col-md-6 field-container">
+                        <label className="form-label fw-semibold small text-secondary">Email Address</label>
+                        <input
+                          type="email"
+                          className={`form-control form-control-lg ${errors.email ? 'is-invalid' : ''}`}
+                          name="email"
+                          placeholder="Enter your email address"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        <div className="invalid-feedback">{errors.email}</div>
+                      </div>
+
                       {/* Date of Birth Field */}
                       <div className="col-md-6 field-container">
                         <label className="form-label fw-semibold small text-secondary">Date of Birth</label>
@@ -641,10 +588,215 @@ export default function RegistrationSection() {
                         )}
                       </div>
 
+                      {/* =====================================================
+                          UPI / QR CODE PAYMENT SECTION
+                      ====================================================== */}
                       {selectedCategoryRequiresPayment ? (
-                        <div className="col-12">
-                          <div className="alert alert-warning mb-0" role="alert">
-                            This open category requires an online PhonePe payment of Rs. {OPEN_CATEGORY_FEE_RUPEES}. Your registration is confirmed only after payment succeeds.
+                        <div className="col-12 mt-4">
+                          <div
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(255, 204, 0, 0.08), rgba(255, 204, 0, 0.03))',
+                              border: '2px dashed rgba(184,134,11,.45)',
+                              borderRadius: 16,
+                              padding: '24px 20px',
+                            }}
+                          >
+                            <div className="mb-4 text-center">
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  background: '#b8860b',
+                                  color: '#fff',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.8px',
+                                  textTransform: 'uppercase',
+                                  borderRadius: 6,
+                                  padding: '3px 10px',
+                                  marginBottom: 10,
+                                }}
+                              >
+                                💸 Registration Fee Payment - Rs. {OPEN_CATEGORY_FEE_RUPEES}
+                              </span>
+                              <h4 className="fw-bold mb-2">Direct UPI or QR Transfer</h4>
+                              <p className="text-muted small mb-0">
+                                Kindly make a direct payment of Rs. {OPEN_CATEGORY_FEE_RUPEES} by scanning the QR code or copying the UPI ID below.
+                                <br />
+                                <strong>Required:</strong> After sending the fee, you must upload the transaction screenshot below for verification.
+                              </p>
+                            </div>
+
+                            <div className="row g-4 align-items-center justify-content-center">
+                              {/* QR Code Column */}
+                              <div className="col-md-5 text-center">
+                                <div
+                                  className="p-2 bg-white rounded-3 shadow-sm d-inline-block border"
+                                  style={{ maxWidth: '200px', margin: '0 auto' }}
+                                >
+                                  <img
+                                    src="/images/payment_qr.png"
+                                    alt="Payment QR Code"
+                                    style={{
+                                      width: '100%',
+                                      height: 'auto',
+                                      borderRadius: 8,
+                                      display: 'block'
+                                    }}
+                                  />
+                                </div>
+                                <span className="d-block mt-2 text-muted x-small" style={{ fontSize: '0.75rem' }}>Scan using any UPI App (GPay/PhonePe/Paytm)</span>
+                              </div>
+
+                              {/* UPI ID Details Column */}
+                              <div className="col-md-7">
+                                <div className="p-3 bg-white rounded-3 border h-100">
+                                  <div className="mb-3">
+                                    <label className="form-label fw-bold text-uppercase text-secondary mb-1" style={{ fontSize: '0.70rem', display: 'block' }}>
+                                      Official UPI ID
+                                    </label>
+                                    <div className="d-flex align-items-center gap-2">
+                                      <input
+                                        type="text"
+                                        readOnly
+                                        value="olympicvision@upi"
+                                        className="form-control form-control-sm text-center fw-bold"
+                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', minHeight: 'unset', padding: '8px' }}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-dark"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText("olympicvision@upi");
+                                          setCopied(true);
+                                          setTimeout(() => setCopied(false), 2000);
+                                        }}
+                                        style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '8px', zIndex: 10 }}
+                                      >
+                                        {copied ? 'Copied! ✓' : 'Copy'}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="mb-3">
+                                    <label className="form-label fw-bold text-uppercase text-secondary mb-1" style={{ fontSize: '0.70rem', display: 'block' }}>
+                                      Account Name
+                                    </label>
+                                    <div className="fw-semibold text-dark small">Olympic Vision Sports Management</div>
+                                  </div>
+
+                                  <div className="mb-0">
+                                    <label className="form-label fw-bold text-uppercase text-secondary mb-1" style={{ fontSize: '0.70rem', display: 'block' }}>
+                                      Category Amount
+                                    </label>
+                                    <div className="fw-bold h5 text-dark mb-0">Rs. {OPEN_CATEGORY_FEE_RUPEES}.00</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Screenshot Upload field */}
+                            <div className="field-container mt-4 mb-0" style={{ minHeight: 'unset' }}>
+                              <label
+                                className="form-label fw-semibold small text-secondary"
+                                htmlFor="screenshot-upload"
+                              >
+                                Upload Payment Screenshot (Transaction Reference / UTR clearly visible)
+                              </label>
+
+                              {!screenshotState.uploaded ? (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <input
+                                    id="screenshot-upload"
+                                    ref={screenshotInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      setErrors((prev) => ({ ...prev, screenshot: '' }));
+                                      setScreenshotState({ file, url: '', uploading: true, uploaded: false });
+                                      try {
+                                        const url = await uploadDoc(file, 'screenshot');
+                                        setScreenshotState({ file, url, uploading: false, uploaded: true });
+                                      } catch (err) {
+                                        setScreenshotState({ file: null, url: '', uploading: false, uploaded: false });
+                                        setErrors((prev) => ({ ...prev, screenshot: err.message || 'Upload failed. Please try again.' }));
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    style={{ borderRadius: 10, fontWeight: 600, fontSize: '0.85rem' }}
+                                    onClick={() => screenshotInputRef.current?.click()}
+                                    disabled={screenshotState.uploading}
+                                  >
+                                    {screenshotState.uploading ? '⏳ Uploading…' : '📎 Choose Screenshot'}
+                                  </button>
+                                  {screenshotState.file && !screenshotState.uploading && (
+                                    <span className="text-muted small">{screenshotState.file.name}</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    background: 'rgba(25,135,84,.08)',
+                                    border: '1.5px solid rgba(25,135,84,.3)',
+                                    borderRadius: 10,
+                                    padding: '10px 14px',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span style={{ color: '#198754', fontWeight: 700, fontSize: '1rem' }}>✅</span>
+                                  <span className="small fw-semibold" style={{ color: '#198754' }}>
+                                    Screenshot uploaded successfully
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger ms-auto"
+                                    style={{ borderRadius: 8, fontSize: '0.75rem', padding: '2px 10px' }}
+                                    onClick={() => {
+                                      setScreenshotState({ file: null, url: '', uploading: false, uploaded: false });
+                                      if (screenshotInputRef.current) screenshotInputRef.current.value = '';
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Preview area */}
+                              {screenshotState.uploaded && screenshotState.url && (
+                                <div style={{ marginTop: 12, textAlign: 'center', background: '#f8fafc', padding: 8, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                                  <img
+                                    src={screenshotState.url}
+                                    alt="Transaction slip proof preview"
+                                    style={{
+                                      maxWidth: '100%',
+                                      maxHeight: '160px',
+                                      borderRadius: 8,
+                                      objectFit: 'contain',
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              {errors.screenshot && (
+                                <div className="invalid-feedback" style={{ display: 'block', color: '#dc3545' }}>
+                                  {errors.screenshot}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ) : null}

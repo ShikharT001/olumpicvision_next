@@ -5,11 +5,6 @@ import {
   isPaidCategory,
 } from '@/lib/marathon';
 import { getDbClient } from '@/lib/postgres';
-import {
-  createMerchantOrderId,
-  createPhonePePayment,
-  getPhonePeCheckoutScriptUrl,
-} from '@/lib/phonepe';
 
 export const runtime = 'nodejs';
 
@@ -18,10 +13,21 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    const { fullName, phone, dob, gender, school, category, documentUrl, partnerDocumentUrl } = data;
+    const {
+      fullName,
+      email,
+      phone,
+      dob,
+      gender,
+      school,
+      category,
+      documentUrl,
+      partnerDocumentUrl,
+      paymentScreenshotUrl,
+    } = data;
 
     // Validate required fields
-    if (!fullName || !phone || !dob || !gender || !category) {
+    if (!fullName || !email || !phone || !dob || !gender || !category) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -54,6 +60,14 @@ export async function POST(request) {
     const paymentRequired = isPaidCategory(category);
     const feeAmountPaise = getCategoryFeePaise(category);
 
+    // If payment is required, they must have uploaded a payment screenshot
+    if (paymentRequired && !paymentScreenshotUrl) {
+      return NextResponse.json(
+        { error: 'Payment verification screenshot is required for this category.' },
+        { status: 400 }
+      );
+    }
+
     client = await getDbClient();
 
     try {
@@ -63,6 +77,7 @@ export async function POST(request) {
         `INSERT INTO registrations 
           (
             full_name,
+            email,
             mobile_no,
             date_of_birth,
             gender,
@@ -73,13 +88,15 @@ export async function POST(request) {
             payment_status,
             fee_amount_paise,
             document_url,
-            partner_document_url
+            partner_document_url,
+            payment_screenshot_url
           ) 
          VALUES 
-          ($1, $2, $3, $4, $5, $6, 'pending', $7, $8, $9, $10, $11) 
+          ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10, $11, $12, $13) 
          RETURNING id`,
         [
           fullName,
+          email,
           phone,
           dob,
           gender,
@@ -90,70 +107,21 @@ export async function POST(request) {
           feeAmountPaise,
           documentUrl,
           partnerDocumentUrl || null,
+          paymentRequired ? paymentScreenshotUrl : null,
         ]
       );
 
       const registrationId = result.rows[0].id;
-      let phonePeOrder = null;
-      let merchantOrderId = null;
-
-      if (paymentRequired) {
-        const origin = new URL(request.url).origin;
-        merchantOrderId = createMerchantOrderId(registrationId);
-        phonePeOrder = await createPhonePePayment({
-          merchantOrderId,
-          amountPaise: feeAmountPaise,
-          registrationId,
-          fullName,
-          category,
-          redirectUrl: `${origin}/#register`,
-        });
-
-        await client.query(
-          `INSERT INTO payment_transactions
-            (
-              registration_id,
-              category_code,
-              amount_paise,
-              currency,
-              provider,
-              provider_order_id,
-              provider_payment_id,
-              status,
-              raw_response
-            )
-           VALUES ($1, $2, $3, 'INR', 'phonepe', $4, $5, 'created', $6)`,
-          [
-            registrationId,
-            category,
-            feeAmountPaise,
-            merchantOrderId,
-            phonePeOrder.orderId || null,
-            JSON.stringify(phonePeOrder),
-          ]
-        );
-      }
 
       await client.query('COMMIT');
 
       return NextResponse.json({
         success: true,
         message: paymentRequired
-          ? 'Registration created. Complete PhonePe payment to confirm.'
-          : 'Registration successful',
+          ? 'Registration and payment details submitted for verification. We will verify and confirm shortly.'
+          : 'Registration successful. Your details have been submitted.',
         id: registrationId,
         paymentRequired,
-        payment: paymentRequired
-          ? {
-            orderId: merchantOrderId,
-            phonePeOrderId: phonePeOrder.orderId || null,
-            redirectUrl: phonePeOrder.redirectUrl,
-            checkoutScriptUrl: getPhonePeCheckoutScriptUrl(),
-            amount: feeAmountPaise,
-            currency: 'INR',
-            feeRupees: feeAmountPaise / 100,
-          }
-          : null,
       });
     } catch (error) {
       await client.query('ROLLBACK');

@@ -12,7 +12,13 @@ export default function Home() {
 
   const [showMarathonModal, setShowMarathonModal] = useState(false);
 
-
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('cf_verify') === 'true') {
+      setShowMarathonModal(true);
+    }
+  }, []);
 
   // Registration Form State
   const [formData, setFormData] = useState({
