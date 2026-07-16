@@ -634,7 +634,7 @@ export default function RegistrationSection() {
                                   style={{ maxWidth: '200px', margin: '0 auto' }}
                                 >
                                   <img
-                                    src="/images/payment_qr.png"
+                                    src="/images/qr-code.jpeg"
                                     alt="Payment QR Code"
                                     style={{
                                       width: '100%',
@@ -658,7 +658,7 @@ export default function RegistrationSection() {
                                       <input
                                         type="text"
                                         readOnly
-                                        value="olympicvision@upi"
+                                        value="9579293671-3@axl@upi"
                                         className="form-control form-control-sm text-center fw-bold"
                                         style={{ background: '#f8fafc', borderColor: '#e2e8f0', minHeight: 'unset', padding: '8px' }}
                                       />
