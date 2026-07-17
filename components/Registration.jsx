@@ -49,6 +49,14 @@ const SPONSOR_IMAGES = [
     role: 'Managed by',
     name: 'Olympic Vision',
   },
+  {
+    src: '/images/brands/Pdaa_logo.webp',
+    alt: 'Pdaaa supporter logo',
+    width: 1408,
+    height: 768,
+    role: 'Supported by',
+    name: 'Paghar District Athletics Association',
+  },
 ];
 
 export default function RegistrationSection() {
