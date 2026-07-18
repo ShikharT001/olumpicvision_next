@@ -361,88 +361,151 @@ export default function RegistrationSection() {
               </div>
 
               <div className="card-body p-3 p-sm-4 p-md-5" style={{ color: 'var(--dark, #111)', background: 'linear-gradient(to bottom,#ffffff,#fafbfc)' }}>
-                <div className="mb-5 pb-4 border-bottom" style={{ lineHeight: '1.8', textAlign: 'justify' }}>
-                  <p className="mb-1 fw-semibold text-muted small text-sm-start">
-                    <strong>Boisar Varsha Marathon 2026</strong><br />
-                    Organised by <em>Pratishthan</em> and <em>Shiv Sena</em><br />
-                    Supported by <em>Olympic Vision India</em><br />
-                    Under the aegis of <em>Palghar District Athletic Association</em> and <em>Maharashtra Athletic Association</em>
-                  </p>
+                <div className="container-fluid px-0">
+  {/* Header Metadata Section */}
+  <div className="mb-4 pb-4 border-bottom text-justify" style={{ lineHeight: '1.7' }}>
+    <p className="mb-2 fw-semibold text-muted small text-start">
+      <strong>Boisar Varsha Marathon 2026</strong><br />
+      Organised by <em>Aadhar Pratishthan</em> and <em>Shiv Sena</em><br />
+      Supported by <em>Olympic Vision India</em><br />
+      Under the aegis of <em>Palghar District Athletic Association</em> and <em>Maharashtra Athletic Association</em>
+    </p>
 
-                  <p className="mb-3 fw-bold mt-4 h5" style={{ color: 'var(--dark, #111)' }}>
-                    Subject: Official Registration &amp; Race Categories
-                  </p>
+    <p className="mb-3 fw-bold mt-4 h5 text-dark">
+      Subject: Official Registration &amp; Race Categories
+    </p>
 
-                  <p className="mb-4 text-muted small">
-                    We are pleased to open registrations for the <strong>Boisar Varsha Marathon 2026</strong>. Please enter date of birth and gender first so the form can show only eligible categories.
-                  </p>
+    <p className="mb-4 text-muted small">
+      We are pleased to open registrations for the <strong>Boisar Varsha Marathon 2026</strong>. Please enter date of birth and gender first so the form can show only eligible categories.
+    </p>
 
-                  <div className="row g-4 mt-2">
-                    <div className="col-md-7">
-                      <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
-                        Race Categories &amp; Track Rules:
-                      </p>
-                      <ul className="ps-3 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
-                        <li className="mb-1"><strong>3 km U14:</strong> Available only for participants under 14.</li>
-                        <li className="mb-1"><strong>5 km U17:</strong> Available only for participants under 17 after U14 age.</li>
-                        <li className="mb-1"><strong>6 km U19:</strong> Available only for participants under 19 after U17 age.</li>
-                        <li className="mb-1"><strong>11 km Men&apos;s Open:</strong> Available for eligible men age 19+ with Rs. {OPEN_CATEGORY_FEE_RUPEES} online fee.</li>
-                        <li className="mb-1"><strong>8 km Women&apos;s Open:</strong> Available for eligible women age 19+ with Rs. {OPEN_CATEGORY_FEE_RUPEES} online fee.</li>
-                        <li className="mb-1"><strong>1 km Fun Run:</strong> Senior Citizens, ages 55+.</li>
-                        <li><strong>1 km Fun Run:</strong> Couples Race, husband and wife.</li>
-                      </ul>
-                    </div>
+    {/* Top Row: Track Rules & Fees */}
+    <div className="row g-4 mt-1">
+      <div className="col-12 col-md-7">
+        <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
+          Race Categories &amp; Track Rules:
+        </p>
+        <ul className="ps-3 text-muted small lh-lg mb-0" style={{ listStyleType: 'square' }}>
+          <li className="mb-2"><strong>3 km U14:</strong> Available only for participants under 14. <br/><span className="fw-bold text-dark small">CUT OFF: 01/01/2013</span></li>
+          <li className="mb-2"><strong>5 km U17:</strong> Available only for participants under 17 after U14 age. <br/><span className="fw-bold text-dark small">CUT OFF: 01/01/2010</span></li>
+          <li className="mb-2"><strong>6 km U19:</strong> Available only for participants under 19 after U17 age. <br/><span className="fw-bold text-dark small">CUT OFF: 01/01/2008</span></li>
+          <li className="mb-1"><strong>11 km Men&apos;s Open:</strong> Available for eligible men age 19+ with Rs. {OPEN_CATEGORY_FEE_RUPEES} online fee.</li>
+          <li className="mb-1"><strong>8 km Women&apos;s Open:</strong> Available for eligible women age 19+ with Rs. {OPEN_CATEGORY_FEE_RUPEES} online fee.</li>
+          <li className="mb-1"><strong>1 km Fun Run:</strong> Senior Citizens, ages 55+.</li>
+          <li><strong>1 km Fun Run:</strong> Couples Race, husband and wife.</li>
+        </ul>
+      </div>
 
-                    <div className="col-md-5">
-                      <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
-                        Fee &amp; Payment:
-                      </p>
-                      <div className="p-3 bg-light rounded-3 border">
-                        <ul className="ps-3 mb-0 text-muted small lh-lg">
-                          <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require online payment.</li>
-                          <li className="mb-1">Open category fee: Rs. {OPEN_CATEGORY_FEE_RUPEES}.</li>
-                          <li>U14, U17, U19, Senior, and Couple categories are free in this form.</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
+      <div className="col-12 col-md-5">
+        <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
+          Fee &amp; Payment:
+        </p>
+        <div className="p-3 bg-light rounded-3 border">
+          <ul className="ps-3 mb-0 text-muted small lh-lg">
+            <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require online payment.</li>
+            <li className="mb-1">Open category fee: Rs. {OPEN_CATEGORY_FEE_RUPEES}.</li>
+            <li>U14, U17, U19, Senior, and Couple categories are free in this form.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 
-                  <div className="mt-4 pt-4 border-top">
-                    <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
-                      Awards &amp; Recognition:
-                    </p>
+  {/* Bottom Section: Reconfigured Grid Layout */}
+  <div className="mt-4 pt-2">
+    <p className="mb-3 fw-bold text-uppercase tracking-wider small text-secondary">
+      🏆 Race Details, Awards &amp; Rules:
+    </p>
 
-                    <div className="row g-3">
-                      {/* Race category prizes */}
-                      <div className="col-md-7">
-                        <div className="p-3 bg-light rounded-3 border">
-                          <p className="mb-2 fw-semibold small" style={{ color: '#b8860b' }}>
-                            🏆 Race Categories (11km, 8km, 6km, 5km, 3km)
-                          </p>
-                          <ul className="ps-3 mb-0 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
-                            <li className="mb-1"><strong>Top 5 finishers</strong> in each category receive cash prize, trophy, medal &amp; certificate.</li>
-                            <li className="mb-1"><strong>Top 10 finishers</strong> in each category receive a medal.</li>
-                            <li className="mb-1"><strong>Every participant</strong> receives a Certificate of Participation.</li>
-                            <li><strong>Every participant</strong> receives refreshments on event day.</li>
-                          </ul>
-                        </div>
-                      </div>
+    <div className="row g-3">
+      {/* Box 1: Horizontal Race Categories spanning full width */}
+      <div className="col-12">
+        <div className="p-3 bg-light rounded-3 border">
+          <p className="mb-3 fw-semibold small text-primary">
+            🏃 Race Categories &amp; Fees
+          </p>
+          <div className="row g-3">
+            <div className="col-12 col-md-6">
+              <span className="badge bg-success mb-2">Palghar District (FREE)</span>
+              <ul className="ps-3 mb-0 text-muted small lh-base" style={{ listStyleType: 'square' }}>
+                <li className="mb-1">U14 Boys/Girls – 3 KM</li>
+                <li className="mb-1">U17 Boys/Girls – 5 KM</li>
+                <li className="mb-1">U19 Boys/Girls – 6 KM</li>
+                <li>Married Couples &amp; Senior Citizens – 1 KM</li>
+              </ul>
+            </div>
+            <div className="col-12 col-md-6">
+              <span className="badge bg-dark mb-2">Maharashtra Open (₹800)</span>
+              <ul className="ps-3 mb-0 text-muted small lh-base" style={{ listStyleType: 'square' }}>
+                <li className="mb-1">Open Men – 11 KM</li>
+                <li>Open Women – 8 KM</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                      {/* Special category prizes + school trophy */}
-                      <div className="col-md-5">
-                        <div className="p-3 bg-light rounded-3 border h-100">
-                          <p className="mb-2 fw-semibold small" style={{ color: '#b8860b' }}>
-                            🎁 Special Categories &amp; School Award
-                          </p>
-                          <ul className="ps-3 mb-0 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
-                            <li className="mb-1"><strong>Top 3 finishers</strong> in Senior Citizen Race &amp; Couples Race receive a gift.</li>
-                            <li>Schools with <strong>100+ participants</strong> will be felicitated with a trophy.</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {/* Box 2: Awards & Benefits (Below, left side) */}
+      <div className="col-12 col-md-6 d-flex">
+        <div className="p-3 bg-light rounded-3 border w-100">
+          <p className="mb-3 fw-semibold small" style={{ color: '#b8860b' }}>
+            🏅 Awards &amp; Entitlements
+          </p>
+          <ul className="ps-3 mb-0 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
+            <li className="mb-3">
+              <span className="fw-bold text-dark">U14 • U17 • U19:</span>
+              <div className="ps-2 text-secondary">
+                • 1st–5th: Cash Prize + Trophy + Medal<br />
+                • 6th–10th: Medal + Certificate<br />
+                • All: Participation Certificate
+              </div>
+            </li>
+            <li className="mb-3">
+              <span className="fw-bold text-dark">Couples &amp; Seniors:</span>
+              <div className="ps-2 text-secondary">
+                • Top 3: Gift + Trophy<br />
+                • All: Participation Certificate
+              </div>
+            </li>
+            <li>
+              <span className="fw-bold text-dark">Open Men &amp; Women:</span>
+              <div className="ps-2 text-secondary">
+                • Top 5: Cash Prize + Trophy<br />
+                • All: T-Shirt, Bib, Bag, Finisher Medal &amp; Energy Drink
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Box 3: Eligibility & Rules (Below, right side) */}
+      <div className="col-12 col-md-6 d-flex">
+        <div className="p-3 bg-light rounded-3 border w-100">
+          <p className="mb-3 fw-semibold small text-danger">
+            📋 Eligibility &amp; Guidelines
+          </p>
+          <ul className="ps-3 mb-0 text-muted small lh-lg" style={{ listStyleType: 'square' }}>
+            <li className="mb-2">
+              <strong className="text-dark">Palghar District Only:</strong> Valid for U14, U17, U19 &amp; Couples categories.
+            </li>
+            <li className="mb-2">
+              <strong className="text-dark">Maharashtra Residents:</strong> Valid for Open Men &amp; Women categories.
+            </li>
+            <li className="mb-2 text-danger">
+              <strong>Disqualification:</strong> Ineligible participants will be strictly disqualified.
+            </li>
+            <li className="mb-2">
+              <strong className="text-dark">Refunds:</strong> Entry fee is strictly non-refundable.
+            </li>
+            <li className="text-success fw-semibold mt-2 pt-1">
+              🥤 Refreshments will be provided for all participants.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
                 {formSubmitted ? (
                   <div className="alert alert-success text-center py-4 rounded-3 shadow-sm" role="alert">
