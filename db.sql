@@ -46,6 +46,7 @@ ON CONFLICT (code) DO UPDATE SET
 CREATE TABLE IF NOT EXISTS registrations (
   id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   full_name             TEXT NOT NULL,
+  email                 TEXT,
   mobile_no             TEXT NOT NULL,
   date_of_birth         DATE NOT NULL,
   gender                TEXT NOT NULL CHECK (gender IN ('male', 'female', 'other')),
@@ -60,6 +61,13 @@ CREATE TABLE IF NOT EXISTS registrations (
                           CHECK (payment_status IN ('not_required','payment_pending','paid','failed','cancelled')),
   fee_amount_paise      INTEGER NOT NULL DEFAULT 0,
 
+  -- T-shirt size: only set for open (paid) categories
+  tshirt_size           TEXT CHECK (tshirt_size IN ('S', 'M', 'L', 'XL', 'XXL')),
+
+  document_url          TEXT,
+  partner_document_url  TEXT,
+  payment_screenshot_url TEXT,
+
   submitted_at          TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
@@ -68,6 +76,17 @@ ALTER TABLE registrations
   ADD COLUMN IF NOT EXISTS payment_required BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'not_required',
   ADD COLUMN IF NOT EXISTS fee_amount_paise INTEGER NOT NULL DEFAULT 0;
+
+-- Migration: add tshirt_size column if it doesn't exist yet
+ALTER TABLE registrations
+  ADD COLUMN IF NOT EXISTS tshirt_size TEXT CHECK (tshirt_size IN ('S', 'M', 'L', 'XL', 'XXL'));
+
+-- Migration: add document URL columns if they don't exist yet
+ALTER TABLE registrations
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS document_url TEXT,
+  ADD COLUMN IF NOT EXISTS partner_document_url TEXT,
+  ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT;
 
 DO $$
 BEGIN
@@ -129,6 +148,7 @@ CREATE OR REPLACE VIEW registration_details AS
 SELECT
   r.id,
   r.full_name,
+  r.email,
   r.mobile_no,
   r.gender,
   r.date_of_birth,
@@ -143,6 +163,10 @@ SELECT
   r.payment_status,
   r.fee_amount_paise,
   (r.fee_amount_paise / 100.0)::NUMERIC(10,2) AS fee_amount_rupees,
+  r.tshirt_size,
+  r.document_url,
+  r.partner_document_url,
+  r.payment_screenshot_url,
   pt.provider_order_id,
   pt.provider_payment_id,
   pt.status AS transaction_status,

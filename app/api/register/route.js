@@ -39,6 +39,7 @@ export async function POST(request) {
       gender,
       school,
       category,
+      tshirtSize,
       documentUrl,
       partnerDocumentUrl,
       paymentScreenshotUrl,
@@ -90,6 +91,14 @@ export async function POST(request) {
       );
     }
 
+    const VALID_TSHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+    if (paymentRequired && (!tshirtSize || !VALID_TSHIRT_SIZES.includes(tshirtSize))) {
+      return NextResponse.json(
+        { error: 'A valid T-shirt size (S, M, L, XL, XXL) is required for Open category registration.' },
+        { status: 400 }
+      );
+    }
+
     client = await getDbClient();
 
     try {
@@ -115,10 +124,11 @@ export async function POST(request) {
             full_name, email, mobile_no, date_of_birth, gender,
             school_college_name, category_code,
             registration_status, payment_required, payment_status,
-            fee_amount_paise, document_url, partner_document_url, payment_screenshot_url
+            fee_amount_paise, document_url, partner_document_url, payment_screenshot_url,
+            tshirt_size
           ) 
          VALUES 
-          ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10, $11, $12, $13) 
+          ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10, $11, $12, $13, $14) 
          RETURNING id`,
         [
           fullName.trim(),
@@ -134,6 +144,7 @@ export async function POST(request) {
           documentUrl,
           partnerDocumentUrl || null,
           paymentRequired ? paymentScreenshotUrl : null,
+          paymentRequired ? tshirtSize : null,
         ]
       );
 

@@ -17,6 +17,7 @@ const TABLE_HIDDEN_COLUMNS = {
 };
 
 const CHECKBOX_COLUMN_PRIORITY = [
+  'tshirt_size',
   'gender',
   'sender_gender',
   'registration_status',
@@ -42,11 +43,14 @@ const CHECKBOX_COLUMN_EXCLUDED = new Set([
   'full_name',
   'sender_name',
   'mobile_no',
+  'email',
   'sender_mobile_no',
   'school_college_name',
   'description',
   'bib_number',
-  'email',
+  'document_url',
+  'partner_document_url',
+  'payment_screenshot_url',
   'fee_amount_paise',
   'amount_paise',
   'fee_amount_rupees',
@@ -55,6 +59,7 @@ const CHECKBOX_COLUMN_EXCLUDED = new Set([
 function labelize(value) {
   if (value === 'fee_amount_paise') return 'Fee (₹)';
   if (value === 'amount_paise') return 'Amount (₹)';
+  if (value === 'tshirt_size') return 'T-Shirt Size';
   return String(value)
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
