@@ -17,6 +17,7 @@ const SPONSOR_IMAGES = [
     role: 'Under the Aegis of',
     name: 'MAA',
   },
+  
   {
     src: '/images/brands/Palghar_Police.webp',
     alt: 'Boisar Varsha Marathon organizing partners logo',
