@@ -706,7 +706,7 @@ export default function RegistrationSection() {
                                   style={{ maxWidth: '200px', margin: '0 auto' }}
                                 >
                                   <img
-                                    src="/images/qr-code.jpeg"
+                                    src="/images/GooglePay_QR.png"
                                     alt="Payment QR Code"
                                     style={{
                                       width: '100%',
