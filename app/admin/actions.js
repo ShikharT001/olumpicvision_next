@@ -33,7 +33,7 @@ export async function logoutAdmin() {
 }
 
 import { revalidatePath } from 'next/cache';
-import { deleteRow, updateRow, insertRow, confirmParticipation } from '@/lib/admin-db';
+import { deleteRow, updateRow, insertRow, confirmParticipation, rejectParticipation } from '@/lib/admin-db';
 
 async function checkAuth() {
   const cookieStore = await cookies();
@@ -66,3 +66,8 @@ export async function adminConfirmParticipation(registrationId) {
   revalidatePath('/admin');
 }
 
+export async function adminRejectParticipation(registrationId, reason) {
+  await checkAuth();
+  await rejectParticipation(registrationId, reason);
+  revalidatePath('/admin');
+}

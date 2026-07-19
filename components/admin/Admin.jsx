@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { adminDeleteRow, adminUpdateRow, adminInsertRow, adminConfirmParticipation } from '@/app/admin/actions';
+import { adminDeleteRow, adminUpdateRow, adminInsertRow, adminConfirmParticipation, adminRejectParticipation } from '@/app/admin/actions';
 
 const COMPACT_COLUMNS = new Set([
   'id',
@@ -630,22 +630,40 @@ export default function Admin({ tables = [], logoutAction }) {
                                     </button>
                                     {!isReadOnly && idColumn && (
                                       <>
-                                        {/* Confirm Participation button */}
+                                        {/* Confirm / Reject Participation buttons */}
                                         {(row.registration_status === 'pending' || row.registration_status === 'payment_pending') && (
-                                          <button
-                                            style={styles.confirmBtn}
-                                            disabled={isAdding || editingRow.rowIndex !== null}
-                                            onClick={async () => {
-                                              if (!window.confirm(`Confirm participation for ${row.full_name || row.sender_name || 'this participant'}?`)) return;
-                                              try {
-                                                await adminConfirmParticipation(row.id || row.registration_id);
-                                              } catch (err) {
-                                                alert('Failed to confirm: ' + err.message);
-                                              }
-                                            }}
-                                          >
-                                            ✓ Confirm
-                                          </button>
+                                          <>
+                                            <button
+                                              style={styles.confirmBtn}
+                                              disabled={isAdding || editingRow.rowIndex !== null}
+                                              onClick={async () => {
+                                                if (!window.confirm(`Confirm participation for ${row.full_name || row.sender_name || 'this participant'}?`)) return;
+                                                try {
+                                                  await adminConfirmParticipation(row.id || row.registration_id);
+                                                } catch (err) {
+                                                  alert('Failed to confirm: ' + err.message);
+                                                }
+                                              }}
+                                            >
+                                              ✓ Confirm
+                                            </button>
+                                            <button
+                                              style={styles.rejectBtn}
+                                              disabled={isAdding || editingRow.rowIndex !== null}
+                                              onClick={async () => {
+                                                const name = row.full_name || row.sender_name || 'this participant';
+                                                if (!window.confirm(`Reject participation for ${name}? They will receive a rejection email.`)) return;
+                                                const reason = window.prompt('Optional: Enter a reason for rejection (leave blank to skip):', '') ?? '';
+                                                try {
+                                                  await adminRejectParticipation(row.id || row.registration_id, reason.trim() || null);
+                                                } catch (err) {
+                                                  alert('Failed to reject: ' + err.message);
+                                                }
+                                              }}
+                                            >
+                                              ✕ Reject
+                                            </button>
+                                          </>
                                         )}
                                         <button
                                           style={styles.editBtn}
@@ -1204,6 +1222,19 @@ const styles = {
     fontWeight: 700,
     letterSpacing: '0.2px',
     boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+    transition: 'opacity 0.2s',
+  },
+  rejectBtn: {
+    padding: '4px 10px',
+    border: 'none',
+    borderRadius: 6,
+    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.2px',
+    boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
     transition: 'opacity 0.2s',
   },
 };
