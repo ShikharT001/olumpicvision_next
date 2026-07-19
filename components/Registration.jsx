@@ -355,9 +355,9 @@ export default function RegistrationSection() {
 
                 {/* Right Logo */}
                 <img
-                  src="/images/Olympic vision logo 2.png"
-                  alt="Olympic Vision India Logo"
-                  style={{ width: '120px', height: '55px', objectFit: 'contain' }}
+                  src="/images/brands/Aadhar_Pratishthan.webp"
+                  alt="Aadhar Pratishthan Logo"
+                  style={{ width: '150px', height: '120px', objectFit: 'contain' }}
                 />
               </div>
 
