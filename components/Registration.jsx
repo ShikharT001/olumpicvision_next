@@ -463,13 +463,6 @@ export default function RegistrationSection() {
                                 • All: Participation Certificate
                               </div>
                             </li>
-                            <li>
-                              <span className="fw-bold text-dark">Open Men &amp; Women:</span>
-                              <div className="ps-2 text-secondary">
-                                • Top 5: Cash Prize + Trophy<br />
-                                • All: T-Shirt, Bib, Finisher Medal &amp; Energy Drink
-                              </div>
-                            </li>
                           </ul>
                         </div>
                       </div>
