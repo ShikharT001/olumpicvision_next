@@ -1,11 +1,9 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { useRef, useMemo, useState, useEffect } from 'react';
 import {
-  OPEN_CATEGORY_FEE_RUPEES,
   getAvailableRaceCategories,
-  isPaidCategory,
 } from '@/lib/marathon';
 
 const SPONSOR_IMAGES = [
@@ -135,8 +133,8 @@ export default function RegistrationSection() {
   const selectedCategory = availableCategories.find(
     (category) => category.value === formData.category
   );
-  const selectedCategoryRequiresPayment = isPaidCategory(formData.category);
   const isCoupleCategory = formData.category === 'couple';
+  const selectedCategoryRequiresPayment = false; // Open categories are now free
 
   // Upload a single document to Cloudinary
   const uploadDoc = async (file, label) => {
@@ -399,25 +397,13 @@ export default function RegistrationSection() {
                           <li className="mb-2"><strong>3 km U14:</strong> Available only for participants under 14. <br /><span className="fw-bold text-dark small">CUT OFF: 01/01/2013</span></li>
                           <li className="mb-2"><strong>5 km U17:</strong> Available only for participants under 17 after U14 age. <br /><span className="fw-bold text-dark small">CUT OFF: 01/01/2010</span></li>
                           <li className="mb-2"><strong>6 km U19:</strong> Available only for participants under 19 after U17 age. <br /><span className="fw-bold text-dark small">CUT OFF: 01/01/2008</span></li>
-                          <li className="mb-1"><strong>11 km Men&apos;s Open:</strong> Available for eligible men age 19+ with Rs. {OPEN_CATEGORY_FEE_RUPEES} online fee.</li>
-                          <li className="mb-1"><strong>8 km Women&apos;s Open:</strong> Available for eligible women age 19+ with Rs. {OPEN_CATEGORY_FEE_RUPEES} online fee.</li>
+                          <li className="mb-1"><strong>11 km Men&apos;s Open:</strong> Available for eligible men age 19+.</li>
+                          <li className="mb-1"><strong>8 km Women&apos;s Open:</strong> Available for eligible women age 19+.</li>
                           <li className="mb-1"><strong>1 km Fun Run:</strong> Senior Citizens, ages 55+.</li>
                           <li><strong>1 km Fun Run:</strong> Couples Race, husband and wife.</li>
                         </ul>
                       </div>
 
-                      <div className="col-12 col-md-5">
-                        <p className="mb-2 fw-bold text-uppercase tracking-wider small text-secondary">
-                          Fee &amp; Payment:
-                        </p>
-                        <div className="p-3 bg-light rounded-3 border">
-                          <ul className="ps-3 mb-0 text-muted small lh-lg">
-                            <li className="mb-1">Only Men&apos;s Open and Women&apos;s Open require online payment.</li>
-                            <li className="mb-1">Open category fee: Rs. {OPEN_CATEGORY_FEE_RUPEES}.</li>
-                            <li>U14, U17, U19, Senior, and Couple categories are free in this form.</li>
-                          </ul>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -445,7 +431,7 @@ export default function RegistrationSection() {
                               </ul>
                             </div>
                             <div className="col-12 col-md-6">
-                              <span className="badge bg-dark mb-2">Maharashtra Open (₹800)</span>
+                              <span className="badge bg-dark mb-2">Maharashtra Open (FREE)</span>
                               <ul className="ps-3 mb-0 text-muted small lh-base" style={{ listStyleType: 'square' }}>
                                 <li className="mb-1">Open Men – 11 KM</li>
                                 <li>Open Women – 8 KM</li>
@@ -481,7 +467,7 @@ export default function RegistrationSection() {
                               <span className="fw-bold text-dark">Open Men &amp; Women:</span>
                               <div className="ps-2 text-secondary">
                                 • Top 5: Cash Prize + Trophy<br />
-                                • All: T-Shirt, Bib, Bag, Finisher Medal &amp; Energy Drink
+                                • All: T-Shirt, Bib, Finisher Medal &amp; Energy Drink
                               </div>
                             </li>
                           </ul>
@@ -503,9 +489,6 @@ export default function RegistrationSection() {
                             </li>
                             <li className="mb-2 text-danger">
                               <strong>Disqualification:</strong> Ineligible participants will be strictly disqualified.
-                            </li>
-                            <li className="mb-2">
-                              <strong className="text-dark">Refunds:</strong> Entry fee is strictly non-refundable.
                             </li>
                             <li className="text-success fw-semibold mt-2 pt-1">
                               🥤 Refreshments will be provided for all participants.
@@ -669,248 +652,7 @@ export default function RegistrationSection() {
                         )}
                       </div>
 
-                      {/* =====================================================
-                          UPI / QR CODE PAYMENT SECTION
-                      ====================================================== */}
-                      {/* =====================================================
-                          T-SHIRT SIZE — only for paid categories
-                      ====================================================== */}
-                      {selectedCategoryRequiresPayment ? (
-                        <div className="col-md-6 field-container">
-                          <label className="form-label fw-semibold small text-secondary" htmlFor="tshirt-size">
-                            👕 T-Shirt Size <span className="text-danger">*</span>
-                          </label>
-                          <select
-                            id="tshirt-size"
-                            className={`form-select form-control-lg ${errors.tshirtSize ? 'is-invalid' : ''}`}
-                            name="tshirtSize"
-                            value={formData.tshirtSize}
-                            onChange={handleInputChange}
-                            required
-                          >
-                            <option value="">Select T-Shirt Size</option>
-                            <option value="S">Small (S)</option>
-                            <option value="M">Medium (M)</option>
-                            <option value="L">Large (L)</option>
-                            <option value="XL">Extra Large (XL)</option>
-                            <option value="XXL">Double XL (XXL)</option>
-                          </select>
-                          <div className="invalid-feedback">{errors.tshirtSize}</div>
-                          <div className="form-text text-muted small mt-1">
-                            T-shirt is included in your race kit for Open category participants.
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {selectedCategoryRequiresPayment ? (
-                        <div className="col-12 mt-4">
-                          <div
-                            style={{
-                              background: 'linear-gradient(135deg, rgba(255, 204, 0, 0.08), rgba(255, 204, 0, 0.03))',
-                              border: '2px dashed rgba(184,134,11,.45)',
-                              borderRadius: 16,
-                              padding: '24px 20px',
-                            }}
-                          >
-                            <div className="mb-4 text-center">
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  background: '#b8860b',
-                                  color: '#fff',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  letterSpacing: '0.8px',
-                                  textTransform: 'uppercase',
-                                  borderRadius: 6,
-                                  padding: '3px 10px',
-                                  marginBottom: 10,
-                                }}
-                              >
-                                💸 Registration Fee Payment - Rs. {OPEN_CATEGORY_FEE_RUPEES}
-                              </span>
-                              <h4 className="fw-bold mb-2">Direct UPI or QR Transfer</h4>
-                              <p className="text-muted small mb-0">
-                                Kindly make a direct payment of Rs. {OPEN_CATEGORY_FEE_RUPEES} by scanning the QR code or copying the UPI ID below.
-                                <br />
-                                <strong>Required:</strong> After sending the fee, you must upload the transaction screenshot below for verification.
-                              </p>
-                            </div>
-
-                            <div className="row g-4 align-items-center justify-content-center">
-                              {/* QR Code Column */}
-                              <div className="col-md-5 text-center">
-                                <div
-                                  className="p-2 bg-white rounded-3 shadow-sm d-inline-block border"
-                                  style={{ maxWidth: '200px', margin: '0 auto' }}
-                                >
-                                  <img
-                                    src="/images/GooglePay_QR.png"
-                                    alt="Payment QR Code"
-                                    style={{
-                                      width: '100%',
-                                      height: 'auto',
-                                      borderRadius: 8,
-                                      display: 'block'
-                                    }}
-                                  />
-                                </div>
-                                <span className="d-block mt-2 text-muted x-small" style={{ fontSize: '0.75rem' }}>Scan using any UPI App (GPay/PhonePe/Paytm)</span>
-                              </div>
-
-                              {/* UPI ID Details Column */}
-                              <div className="col-md-7">
-                                <div className="p-3 bg-white rounded-3 border h-100">
-                                  <div className="mb-3">
-                                    <label className="form-label fw-bold text-uppercase text-secondary mb-1" style={{ fontSize: '0.70rem', display: 'block' }}>
-                                      Official UPI ID
-                                    </label>
-                                    <div className="d-flex align-items-center gap-2">
-                                      <input
-                                        type="text"
-                                        readOnly
-                                        value="9579293671-3@axl@upi"
-                                        className="form-control form-control-sm text-center fw-bold"
-                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', minHeight: 'unset', padding: '8px' }}
-                                      />
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-outline-dark"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText("olympicvision@upi");
-                                          setCopied(true);
-                                          setTimeout(() => setCopied(false), 2000);
-                                        }}
-                                        style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '8px', zIndex: 10 }}
-                                      >
-                                        {copied ? 'Copied! ✓' : 'Copy'}
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  <div className="mb-3">
-                                    <label className="form-label fw-bold text-uppercase text-secondary mb-1" style={{ fontSize: '0.70rem', display: 'block' }}>
-                                      Account Name
-                                    </label>
-                                    <div className="fw-semibold text-dark small">Olympic Vision Sports Management</div>
-                                  </div>
-
-                                  <div className="mb-0">
-                                    <label className="form-label fw-bold text-uppercase text-secondary mb-1" style={{ fontSize: '0.70rem', display: 'block' }}>
-                                      Category Amount
-                                    </label>
-                                    <div className="fw-bold h5 text-dark mb-0">Rs. {OPEN_CATEGORY_FEE_RUPEES}.00</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Screenshot Upload field */}
-                            <div className="field-container mt-4 mb-0" style={{ minHeight: 'unset' }}>
-                              <label
-                                className="form-label fw-semibold small text-secondary"
-                                htmlFor="screenshot-upload"
-                              >
-                                Upload Payment Screenshot (Transaction Reference / UTR clearly visible)
-                              </label>
-
-                              {!screenshotState.uploaded ? (
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    flexWrap: 'wrap',
-                                  }}
-                                >
-                                  <input
-                                    id="screenshot-upload"
-                                    ref={screenshotInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: 'none' }}
-                                    onChange={async (e) => {
-                                      const file = e.target.files?.[0];
-                                      if (!file) return;
-                                      setErrors((prev) => ({ ...prev, screenshot: '' }));
-                                      setScreenshotState({ file, url: '', uploading: true, uploaded: false });
-                                      try {
-                                        const url = await uploadDoc(file, 'screenshot');
-                                        setScreenshotState({ file, url, uploading: false, uploaded: true });
-                                      } catch (err) {
-                                        setScreenshotState({ file: null, url: '', uploading: false, uploaded: false });
-                                        setErrors((prev) => ({ ...prev, screenshot: err.message || 'Upload failed. Please try again.' }));
-                                      }
-                                    }}
-                                  />
-                                  <button
-                                    type="button"
-                                    className="btn btn-outline-secondary"
-                                    style={{ borderRadius: 10, fontWeight: 600, fontSize: '0.85rem' }}
-                                    onClick={() => screenshotInputRef.current?.click()}
-                                    disabled={screenshotState.uploading}
-                                  >
-                                    {screenshotState.uploading ? '⏳ Uploading…' : '📎 Choose Screenshot'}
-                                  </button>
-                                  {screenshotState.file && !screenshotState.uploading && (
-                                    <span className="text-muted small">{screenshotState.file.name}</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    background: 'rgba(25,135,84,.08)',
-                                    border: '1.5px solid rgba(25,135,84,.3)',
-                                    borderRadius: 10,
-                                    padding: '10px 14px',
-                                    flexWrap: 'wrap',
-                                  }}
-                                >
-                                  <span style={{ color: '#198754', fontWeight: 700, fontSize: '1rem' }}>✅</span>
-                                  <span className="small fw-semibold" style={{ color: '#198754' }}>
-                                    Screenshot uploaded successfully
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-outline-danger ms-auto"
-                                    style={{ borderRadius: 8, fontSize: '0.75rem', padding: '2px 10px' }}
-                                    onClick={() => {
-                                      setScreenshotState({ file: null, url: '', uploading: false, uploaded: false });
-                                      if (screenshotInputRef.current) screenshotInputRef.current.value = '';
-                                    }}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Preview area */}
-                              {screenshotState.uploaded && screenshotState.url && (
-                                <div style={{ marginTop: 12, textAlign: 'center', background: '#f8fafc', padding: 8, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                                  <img
-                                    src={screenshotState.url}
-                                    alt="Transaction slip proof preview"
-                                    style={{
-                                      maxWidth: '100%',
-                                      maxHeight: '160px',
-                                      borderRadius: 8,
-                                      objectFit: 'contain',
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              {errors.screenshot && (
-                                <div className="invalid-feedback" style={{ display: 'block', color: '#dc3545' }}>
-                                  {errors.screenshot}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
+                      {/* T-shirt and payment sections removed — open categories are now free */}
 
                       {/* =====================================================
                           DOCUMENT UPLOAD SECTION (mandatory for all)
@@ -1193,11 +935,7 @@ export default function RegistrationSection() {
                             letterSpacing: '1px',
                           }}
                         >
-                          {isSubmitting
-                            ? 'Processing...'
-                            : selectedCategoryRequiresPayment
-                              ? `Pay Rs. ${OPEN_CATEGORY_FEE_RUPEES} & Submit Registration`
-                              : 'Submit Registration & Lock Category'}
+                          {isSubmitting ? 'Processing...' : 'Submit Registration & Lock Category'}
                         </button>
                       </div>
                     </div>

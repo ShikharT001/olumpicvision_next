@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import {
   getCategoryFeePaise,
   isAllowedCategoryForParticipant,
-  isPaidCategory,
 } from '@/lib/marathon';
 import { getDbClient } from '@/lib/postgres';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -81,23 +80,8 @@ export async function POST(request) {
       );
     }
 
-    const paymentRequired = isPaidCategory(category);
-    const feeAmountPaise = getCategoryFeePaise(category);
-
-    if (paymentRequired && !paymentScreenshotUrl) {
-      return NextResponse.json(
-        { error: 'Payment verification screenshot is required for this category.' },
-        { status: 400 }
-      );
-    }
-
-    const VALID_TSHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
-    if (paymentRequired && (!tshirtSize || !VALID_TSHIRT_SIZES.includes(tshirtSize))) {
-      return NextResponse.json(
-        { error: 'A valid T-shirt size (S, M, L, XL, XXL) is required for Open category registration.' },
-        { status: 400 }
-      );
-    }
+    // No payment required — open categories are now free
+    // (historical payment data in DB is preserved for admin access)
 
     client = await getDbClient();
 
@@ -138,13 +122,13 @@ export async function POST(request) {
           gender,
           school?.trim() || null,
           category,
-          paymentRequired,
-          paymentRequired ? 'payment_pending' : 'not_required',
-          feeAmountPaise,
+          false,
+          'not_required',
+          getCategoryFeePaise(category),
           documentUrl,
           partnerDocumentUrl || null,
-          paymentRequired ? paymentScreenshotUrl : null,
-          paymentRequired ? tshirtSize : null,
+          paymentScreenshotUrl || null,
+          tshirtSize || null,
         ]
       );
 
@@ -154,11 +138,9 @@ export async function POST(request) {
 
       return NextResponse.json({
         success: true,
-        message: paymentRequired
-          ? 'Registration submitted! Your payment is under verification. You will receive a confirmation email once approved.'
-          : 'Registration successful! Your details have been submitted.',
+        message: 'Registration successful! Your details have been submitted.',
         id: registrationId,
-        paymentRequired,
+        paymentRequired: false,
       });
     } catch (error) {
       await client.query('ROLLBACK');
