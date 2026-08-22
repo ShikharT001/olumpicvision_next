@@ -194,7 +194,6 @@ function formatValue(value, column) {
     return `₹ ${rupees % 1 === 0 ? rupees.toFixed(0) : rupees.toFixed(2)}`;
   }
 
-  // Render document URLs as clickable links
   if ((column === 'document_url' || column === 'partner_document_url' || column === 'payment_screenshot_url') && strVal.startsWith('http')) {
     return (
       <a href={strVal} target="_blank" rel="noopener noreferrer" style={{ color: '#0d6efd', fontSize: 12 }}>
@@ -248,6 +247,7 @@ export default function Admin({ tables = [], logoutAction }) {
   const [editingRow, setEditingRow] = useState({ rowIndex: null, rowKey: null, values: {} });
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [detailsRow, setDetailsRow] = useState(null);
   const [query, setQuery] = useState('');
   const [checkboxFilters, setCheckboxFilters] = useState({});
@@ -380,6 +380,53 @@ export default function Admin({ tables = [], logoutAction }) {
     }));
   };
 
+  const handleExportReport = async () => {
+    if (!filteredRows || filteredRows.length === 0) {
+      alert('No data available to export.');
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const XLSX = await import('xlsx');
+
+      const dataToExport = filteredRows.map((row) => {
+        const exportRow = {};
+        visibleColumns.forEach((col) => {
+          let value = row[col];
+
+          if (value === null || value === undefined) {
+            value = '';
+          } else if (col === 'amount_paise' || col === 'fee_amount_paise') {
+            const rupees = Number(value) / 100;
+            value = rupees % 1 === 0 ? rupees.toFixed(0) : rupees.toFixed(2);
+          } else if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+            value = new Date(value).toLocaleString();
+          } else if (typeof value === 'object') {
+            value = JSON.stringify(value);
+          }
+
+          exportRow[labelize(col)] = value;
+        });
+        return exportRow;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
+
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const fileName = `${active.name}_Report_${timestamp}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
+    } catch (err) {
+      alert('Failed to generate Excel report: ' + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div style={styles.shell}>
       <aside style={styles.sidebar}>
@@ -448,11 +495,20 @@ export default function Admin({ tables = [], logoutAction }) {
                     {isReadOnly ? ' - read only details view' : ''}
                   </span>
                 </div>
-                {!isReadOnly && idColumn && !isAdding && editingRow.rowIndex === null && (
-                  <button style={styles.addBtn} onClick={handleAddClick}>
-                    + Add Record
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button
+                    style={styles.exportBtn}
+                    onClick={handleExportReport}
+                    disabled={isExporting || filteredRows.length === 0}
+                  >
+                    {isExporting ? 'Exporting...' : '📊 Export Excel'}
                   </button>
-                )}
+                  {!isReadOnly && idColumn && !isAdding && editingRow.rowIndex === null && (
+                    <button style={styles.addBtn} onClick={handleAddClick}>
+                      + Add Record
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div style={styles.filterPanel}>
@@ -534,7 +590,6 @@ export default function Admin({ tables = [], logoutAction }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Render Add Row if isAdding is true */}
                     {isAdding && (
                       <tr style={styles.newRowHighlight}>
                         {visibleColumns.map((column) => (
@@ -551,20 +606,22 @@ export default function Admin({ tables = [], logoutAction }) {
                             )}
                           </td>
                         ))}
-                        {hasActions && <td style={styles.tdAction}>
-                          <div style={styles.actionGroup}>
-                            <button
-                              style={styles.saveBtn}
-                              onClick={() => handleSaveEdit(null)}
-                              disabled={isSaving}
-                            >
-                              {isSaving ? 'Saving' : 'Save'}
-                            </button>
-                            <button style={styles.cancelBtn} onClick={handleCancelEdit}>
-                              Cancel
-                            </button>
-                          </div>
-                        </td>}
+                        {hasActions && (
+                          <td style={styles.tdAction}>
+                            <div style={styles.actionGroup}>
+                              <button
+                                style={styles.saveBtn}
+                                onClick={() => handleSaveEdit(null)}
+                                disabled={isSaving}
+                              >
+                                {isSaving ? 'Saving' : 'Save'}
+                              </button>
+                              <button style={styles.cancelBtn} onClick={handleCancelEdit}>
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     )}
 
@@ -630,7 +687,6 @@ export default function Admin({ tables = [], logoutAction }) {
                                     </button>
                                     {!isReadOnly && idColumn && (
                                       <>
-                                        {/* Confirm / Reject Participation buttons */}
                                         {(row.registration_status === 'pending' || row.registration_status === 'payment_pending') && (
                                           <>
                                             <button
@@ -716,7 +772,7 @@ export default function Admin({ tables = [], logoutAction }) {
               {Object.entries(detailsRow).map(([key, value]) => (
                 <div key={key} style={styles.detailItem}>
                   <div style={styles.detailLabel}>{labelize(key)}</div>
-                  <div style={styles.detailValue}>{formatDetailValue(value)}</div>
+                  <div style={styles.detailValue}>{formatDetailValue(value, key)}</div>
                 </div>
               ))}
             </div>
@@ -872,6 +928,27 @@ const styles = {
   },
   sectionTitle: { margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.3px' },
   sectionMeta: { color: '#64748b', fontSize: 14, fontWeight: 500 },
+  addBtn: {
+    padding: '10px 16px',
+    borderRadius: 8,
+    border: 'none',
+    background: '#0f172a',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  exportBtn: {
+    padding: '10px 16px',
+    borderRadius: 8,
+    border: '1px solid #16a34a',
+    background: '#f0fdf4',
+    color: '#15803d',
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
   filterPanel: {
     display: 'grid',
     gap: 14,
@@ -918,323 +995,292 @@ const styles = {
     background: '#fff',
     color: '#475569',
     cursor: 'pointer',
-    fontSize: 18,
   },
   checkboxGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
     gap: 12,
   },
   filterGroup: {
-    minWidth: 0,
-    margin: 0,
-    padding: 10,
     border: '1px solid #e2e8f0',
     borderRadius: 8,
-    background: '#f8fafc',
+    padding: '8px 12px',
+    margin: 0,
+    background: '#fafafa',
   },
   filterLegend: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#475569',
     padding: '0 4px',
-    color: '#334155',
-    fontSize: 11,
-    fontWeight: 900,
-    textTransform: 'uppercase',
-    letterSpacing: '0.8px',
   },
   filterOptions: {
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: 8,
+    flexDirection: 'column',
+    gap: 6,
+    marginTop: 6,
+    maxHeight: 120,
+    overflowY: 'auto',
   },
   checkboxLabel: {
-    display: 'inline-flex',
+    display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    maxWidth: '100%',
-    padding: '6px 8px',
-    border: '1px solid #dbe3ee',
-    borderRadius: 6,
-    background: '#fff',
-    color: '#0f172a',
-    cursor: 'pointer',
+    gap: 8,
     fontSize: 13,
-    lineHeight: 1.2,
+    color: '#1e293b',
+    cursor: 'pointer',
   },
   checkboxInput: {
-    width: 15,
-    height: 15,
-    accentColor: '#0f172a',
-    flex: '0 0 auto',
+    cursor: 'pointer',
   },
   checkboxText: {
-    minWidth: 0,
-    overflowWrap: 'anywhere',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   filterHint: {
-    padding: '10px 12px',
-    borderRadius: 8,
-    background: '#f8fafc',
-    color: '#64748b',
     fontSize: 13,
+    color: '#94a3b8',
+    fontStyle: 'italic',
   },
   filterFooter: {
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    color: '#475569',
+    alignItems: 'center',
     fontSize: 13,
-    flexWrap: 'wrap',
+    color: '#64748b',
+    borderTop: '1px solid #f1f5f9',
+    paddingTop: 8,
   },
   clearFiltersBtn: {
-    padding: '7px 12px',
-    border: '1px solid #cbd5e1',
-    borderRadius: 6,
-    background: '#fff',
-    color: '#0f172a',
-    cursor: 'pointer',
+    border: 'none',
+    background: 'none',
+    color: '#dc2626',
+    fontWeight: 600,
     fontSize: 13,
-    fontWeight: 700,
+    cursor: 'pointer',
+    padding: 0,
   },
   tableWrap: {
-    overflow: 'auto',
     border: '1px solid #dbe3ee',
     borderRadius: 10,
     background: '#fff',
+    overflowX: 'auto',
+    boxShadow: '0 10px 26px rgba(15, 23, 42, 0.04)',
   },
-  table: { width: '100%', borderCollapse: 'collapse', minWidth: 720 },
-  th: {
-    position: 'sticky',
-    top: 0,
-    background: '#e2e8f0',
-    color: '#0f172a',
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
     textAlign: 'left',
-    padding: '12px 14px',
-    fontSize: 13,
-    borderBottom: '1px solid #cbd5e1',
+    fontSize: 14,
+  },
+  th: {
+    padding: '12px 16px',
+    background: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#475569',
+    fontWeight: 700,
     whiteSpace: 'nowrap',
   },
   thAction: {
-    position: 'sticky',
-    top: 0,
-    background: '#e2e8f0',
-    color: '#0f172a',
+    padding: '12px 16px',
+    background: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#475569',
+    fontWeight: 700,
     textAlign: 'right',
-    padding: '12px 14px',
-    fontSize: 13,
-    borderBottom: '1px solid #cbd5e1',
-    whiteSpace: 'nowrap',
   },
   td: {
-    padding: '12px 14px',
-    borderBottom: '1px solid #e2e8f0',
-    verticalAlign: 'middle',
+    padding: '12px 16px',
+    borderBottom: '1px solid #f1f5f9',
+    color: '#1e293b',
     whiteSpace: 'nowrap',
-    fontSize: 14,
   },
   tdAction: {
-    padding: '12px 14px',
-    borderBottom: '1px solid #e2e8f0',
-    verticalAlign: 'middle',
+    padding: '12px 16px',
+    borderBottom: '1px solid #f1f5f9',
     textAlign: 'right',
-    whiteSpace: 'nowrap',
-  },
-  emptyState: {
-    padding: 20,
-    borderRadius: 10,
-    border: '1px dashed #cbd5e1',
-    color: '#64748b',
-    background: '#fff',
-  },
-  inlineInput: {
-    width: '100%',
-    padding: '6px 8px',
-    borderRadius: 4,
-    border: '1px solid #cbd5e1',
-    fontSize: 14,
   },
   actionGroup: {
     display: 'inline-flex',
-    gap: 8,
-  },
-  addBtn: {
-    padding: '8px 16px',
-    border: 'none',
-    borderRadius: 6,
-    background: '#0f172a',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  editBtn: {
-    padding: '4px 10px',
-    border: '1px solid #cbd5e1',
-    borderRadius: 4,
-    background: '#f8fafc',
-    cursor: 'pointer',
-    fontSize: 13,
-  },
-  deleteBtn: {
-    padding: '4px 10px',
-    border: '1px solid #fecaca',
-    borderRadius: 4,
-    background: '#fff1f2',
-    color: '#be123c',
-    cursor: 'pointer',
-    fontSize: 13,
+    gap: 6,
+    justifyContent: 'flex-end',
   },
   detailsBtn: {
-    padding: '4px 10px',
-    border: '1px solid #bae6fd',
-    borderRadius: 4,
-    background: '#f0f9ff',
-    color: '#0369a1',
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: 600,
     cursor: 'pointer',
-    fontSize: 13,
+  },
+  confirmBtn: {
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#16a34a',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  rejectBtn: {
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#dc2626',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  editBtn: {
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: '1px solid #93c5fd',
+    background: '#eff6ff',
+    color: '#1d4ed8',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  deleteBtn: {
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: '1px solid #fca5a5',
+    background: '#fef2f2',
+    color: '#991b1b',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
   },
   saveBtn: {
-    padding: '4px 10px',
-    border: '1px solid #86efac',
-    borderRadius: 4,
-    background: '#f0fdf4',
-    color: '#166534',
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#2563eb',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 600,
     cursor: 'pointer',
-    fontSize: 13,
   },
   cancelBtn: {
-    padding: '4px 10px',
+    padding: '6px 12px',
+    borderRadius: 6,
     border: '1px solid #cbd5e1',
-    borderRadius: 4,
     background: '#fff',
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: 600,
     cursor: 'pointer',
+  },
+  inlineInput: {
+    padding: '6px 8px',
+    borderRadius: 4,
+    border: '1px solid #2563eb',
     fontSize: 13,
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   newRowHighlight: {
-    backgroundColor: '#f8fafc',
+    background: '#f0fdf4',
+  },
+  emptyState: {
+    padding: 24,
+    color: '#64748b',
+    textAlign: 'center',
   },
   mutedValue: {
     color: '#64748b',
-    fontSize: 13,
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   monoValue: {
     fontFamily: 'monospace',
-    fontSize: 13,
-    color: '#475569',
+    fontSize: 12,
   },
   modalBackdrop: {
     position: 'fixed',
     inset: 0,
-    zIndex: 50,
-    background: 'rgba(15, 23, 42, 0.55)',
+    background: 'rgba(15, 23, 42, 0.6)',
+    backdropFilter: 'blur(4px)',
     display: 'grid',
     placeItems: 'center',
-    padding: 24,
+    padding: 20,
+    zIndex: 50,
   },
   modalPanel: {
-    width: 'min(980px, 100%)',
-    maxHeight: '88vh',
-    overflow: 'auto',
+    width: '100%',
+    maxWidth: 680,
+    maxHeight: '85vh',
     background: '#fff',
-    borderRadius: 10,
-    boxShadow: '0 24px 70px rgba(15, 23, 42, 0.24)',
-    border: '1px solid #dbe3ee',
+    borderRadius: 12,
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
   modalHeader: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 1,
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 16,
-    padding: 18,
-    background: '#fff',
+    padding: '18px 24px',
     borderBottom: '1px solid #e2e8f0',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   modalTitle: {
     margin: 0,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 800,
-    letterSpacing: '-0.3px',
   },
   modalSubtitle: {
-    margin: '4px 0 0',
+    margin: '2px 0 0',
+    fontSize: 13,
     color: '#64748b',
-    fontSize: 14,
-    fontWeight: 500,
   },
   closeBtn: {
-    padding: '7px 12px',
-    border: '1px solid #cbd5e1',
+    padding: '6px 12px',
     borderRadius: 6,
+    border: '1px solid #cbd5e1',
     background: '#fff',
-    cursor: 'pointer',
+    color: '#475569',
     fontSize: 13,
-    fontWeight: 700,
+    fontWeight: 600,
+    cursor: 'pointer',
   },
   detailGrid: {
+    padding: 24,
+    overflowY: 'auto',
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: 12,
-    padding: 18,
+    gap: 16,
   },
   detailItem: {
-    border: '1px solid #e2e8f0',
-    borderRadius: 8,
-    padding: 12,
-    background: '#f8fafc',
-    minWidth: 0,
+    display: 'grid',
+    gap: 4,
+    paddingBottom: 12,
+    borderBottom: '1px solid #f1f5f9',
   },
   detailLabel: {
-    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: 700,
     color: '#64748b',
-    fontSize: 11,
-    fontWeight: 900,
     textTransform: 'uppercase',
-    letterSpacing: '0.8px',
+    letterSpacing: '0.5px',
   },
   detailValue: {
-    color: '#0f172a',
     fontSize: 14,
-    overflowWrap: 'anywhere',
+    color: '#0f172a',
+    wordBreak: 'break-word',
   },
   jsonBlock: {
-    maxHeight: 320,
-    overflow: 'auto',
     margin: 0,
-    padding: 10,
-    borderRadius: 6,
+    padding: 12,
     background: '#0f172a',
-    color: '#e2e8f0',
-    fontSize: 12,
-    lineHeight: 1.5,
-    whiteSpace: 'pre-wrap',
-  },
-  confirmBtn: {
-    padding: '4px 10px',
-    border: 'none',
+    color: '#f8fafc',
     borderRadius: 6,
-    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-    color: '#fff',
-    cursor: 'pointer',
     fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.2px',
-    boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
-    transition: 'opacity 0.2s',
-  },
-  rejectBtn: {
-    padding: '4px 10px',
-    border: 'none',
-    borderRadius: 6,
-    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.2px',
-    boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
-    transition: 'opacity 0.2s',
+    overflowX: 'auto',
   },
 };
