@@ -59,6 +59,9 @@ const SPONSOR_IMAGES = [
 ];
 
 export default function RegistrationSection() {
+  const REGISTRATION_CLOSED = true;
+  const REGISTRATION_CLOSED_TITLE = 'Registration Completed';
+
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -148,6 +151,8 @@ export default function RegistrationSection() {
   };
 
   const handleInputChange = (e) => {
+    if (REGISTRATION_CLOSED) return;
+
     const { name, value } = e.target;
 
     if (name === 'phone') {
@@ -268,6 +273,7 @@ export default function RegistrationSection() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (REGISTRATION_CLOSED) return;
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -490,8 +496,21 @@ export default function RegistrationSection() {
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
+              </div>
+
+              {REGISTRATION_CLOSED && (
+                <div
+                  className="alert alert-warning border-0 rounded-4 shadow-sm mb-4"
+                  role="alert"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.16), rgba(255, 193, 7, 0.08))',
+                    color: '#7a5600',
+                  }}
+                >
+                  <h4 className="alert-heading fw-bold mb-2">{REGISTRATION_CLOSED_TITLE}</h4>
+                </div>
+              )}
 
                 {formSubmitted ? (
                   <div className="alert alert-success text-center py-4 rounded-3 shadow-sm" role="alert">
@@ -500,28 +519,34 @@ export default function RegistrationSection() {
                   </div>
                 ) : (
                   <form onSubmit={handleFormSubmit} noValidate>
-                    <div className="text-center mb-5">
-                      <span
-                        className="badge px-3 py-2 mb-3"
-                        style={{
-                          background: 'rgba(255,204,0,.15)',
-                          color: '#b8860b',
-                          letterSpacing: '1px',
-                        }}
+                    <div hidden={REGISTRATION_CLOSED}>
+                      <fieldset
+                        disabled={REGISTRATION_CLOSED || isSubmitting}
+                        aria-disabled={REGISTRATION_CLOSED || isSubmitting}
+                        style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
                       >
-                        REGISTRATION FORM
-                      </span>
+                      <div className="text-center mb-5">
+                        <span
+                          className="badge px-3 py-2 mb-3"
+                          style={{
+                            background: REGISTRATION_CLOSED ? 'rgba(220,53,69,.14)' : 'rgba(255,204,0,.15)',
+                            color: REGISTRATION_CLOSED ? '#b02a37' : '#b8860b',
+                            letterSpacing: '1px',
+                          }}
+                        >
+                          {REGISTRATION_CLOSED ? 'REGISTRATION CLOSED' : 'REGISTRATION FORM'}
+                        </span>
 
-                      <h3 className="fw-bold mb-2">
-                        Participant Entry Form
-                      </h3>
+                        <h3 className="fw-bold mb-2">
+                          Participant Entry Form
+                        </h3>
 
-                      <p className="text-muted mb-0">
-                        Fill in your details to register for Boisar Varsha Marathon 2026.
-                      </p>
-                    </div>
+                        <p className="text-muted mb-0">
+                          Fill in your details to register for Boisar Varsha Marathon 2026.
+                        </p>
+                      </div>
 
-                    <div className="row g-4 row-form-fields">
+                      <div className="row g-4 row-form-fields">
                       {/* Full Name Field */}
                       <div className="col-md-6 field-container">
                         <label className="form-label fw-semibold small text-secondary">Full Name (As per Govt ID)</label>
@@ -919,7 +944,7 @@ export default function RegistrationSection() {
                         <button
                           type="submit"
                           className="btn btn-lg w-100 text-uppercase fw-bold shadow-sm"
-                          disabled={isSubmitting}
+                          disabled={REGISTRATION_CLOSED || isSubmitting}
                           style={{
                             background: 'var(--accent, #ffcc00)',
                             color: 'var(--dark, #111)',
@@ -928,9 +953,15 @@ export default function RegistrationSection() {
                             letterSpacing: '1px',
                           }}
                         >
-                          {isSubmitting ? 'Processing...' : 'Submit Registration & Lock Category'}
+                          {REGISTRATION_CLOSED
+                            ? 'Registration Completed'
+                            : isSubmitting
+                              ? 'Processing...'
+                              : 'Submit Registration & Lock Category'}
                         </button>
                       </div>
+                      </div>
+                      </fieldset>
                     </div>
                   </form>
                 )}
