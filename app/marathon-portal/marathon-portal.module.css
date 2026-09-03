@@ -1,0 +1,475 @@
+/* ─── Global Reset for This Page ─────────────────────────────────────────── */
+.page {
+  position: relative;
+  min-height: 100vh;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  background: #06102a;
+}
+
+/* ─── Background ─────────────────────────────────────────────────────────── */
+.bgOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(29, 78, 160, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(109, 40, 217, 0.18) 0%, transparent 60%),
+    linear-gradient(145deg, #060e2a 0%, #0a1840 40%, #060e2a 100%);
+  pointer-events: none;
+}
+
+/* ─── Container ──────────────────────────────────────────────────────────── */
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.medalIcon {
+  font-size: 3rem;
+  filter: drop-shadow(0 0 16px rgba(250, 210, 50, 0.7));
+  animation: float 3.5s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.title {
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fad232 0%, #fff7c0 50%, #e8a600 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0.2rem 0 0;
+}
+
+.tagline {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ─── Search Card ────────────────────────────────────────────────────────── */
+.searchCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  margin-bottom: 2rem;
+  transition: border-color 0.3s;
+}
+
+.searchCard:hover {
+  border-color: rgba(250, 210, 50, 0.2);
+}
+
+.searchTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.03em;
+}
+
+.inputWrapper {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.input {
+  flex: 1;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.input::-webkit-inner-spin-button,
+.input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 400;
+}
+
+.input:focus {
+  border-color: #fad232;
+  background: rgba(250, 210, 50, 0.06);
+  box-shadow: 0 0 0 3px rgba(250, 210, 50, 0.12);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.searchBtn {
+  padding: 0.85rem 2rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #fad232 0%, #e8a600 100%);
+  color: #0a1840;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 20px rgba(250, 210, 50, 0.3);
+}
+
+.searchBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(250, 210, 50, 0.45);
+}
+
+.searchBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.searchBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Spinner ────────────────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(10, 24, 64, 0.3);
+  border-top-color: #0a1840;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Error Box ──────────────────────────────────────────────────────────── */
+.errorBox {
+  margin-top: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Result Card ────────────────────────────────────────────────────────── */
+.resultCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(250, 210, 50, 0.25);
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(250, 210, 50, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  margin-bottom: 2rem;
+  animation: cardAppear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.categoryBadge {
+  padding: 0.6rem 1.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.participantInfo {
+  padding: 1.75rem 2.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.bibTag {
+  display: inline-block;
+  background: linear-gradient(135deg, #fad232, #e8a600);
+  color: #0a1840;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.85rem;
+  border-radius: 100px;
+  margin-bottom: 0.85rem;
+}
+
+.participantName {
+  font-size: clamp(1.5rem, 5vw, 2.4rem);
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detailLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.detailValue {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* ─── Certificate Area ───────────────────────────────────────────────────── */
+.certificateArea {
+  padding: 1.75rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  background: rgba(250, 210, 50, 0.04);
+}
+
+.certificatePreview {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.certIcon {
+  font-size: 2.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(250, 210, 50, 0.5));
+}
+
+.certTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.3rem;
+}
+
+.certDesc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.certDesc strong {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.75rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #fad232 0%, #e8a600 100%);
+  color: #0a1840;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  box-shadow: 0 4px 24px rgba(250, 210, 50, 0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.downloadBtn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(250, 210, 50, 0.55);
+}
+
+.downloadBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.downloadBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  padding-top: 1rem;
+}
+
+.footer strong {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .container {
+    padding: 2rem 1rem 3rem;
+  }
+
+  .searchCard {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .inputWrapper {
+    flex-direction: column;
+  }
+
+  .searchBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .participantInfo {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .certificateArea {
+    padding: 1.25rem 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .certificatePreview {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .downloadBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .logoArea {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

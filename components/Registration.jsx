@@ -60,7 +60,7 @@ const SPONSOR_IMAGES = [
 
 export default function RegistrationSection() {
   const REGISTRATION_CLOSED = true;
-  const REGISTRATION_CLOSED_TITLE = 'Registration Completed';
+  const REGISTRATION_CLOSED_TITLE = 'Registration Closed';
 
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');

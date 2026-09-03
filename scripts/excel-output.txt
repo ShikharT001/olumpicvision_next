@@ -1,0 +1,35 @@
+
+===== Sheet: All Runners =====
+Total rows: 1066
+Row0: ["BOISAR VARSHA MARATHON 2026 — COMBINED PARTICIPANT LIST"]
+Row1: ["Race Group","Category","Bib No","Full Name","School / College Name","Date of Birth","Age (as of 02-Sep-2026)"]
+Row2: ["OPEN MENS 11KM","OPEN MENS - 11KM",101,"Sreevalsakumar Palazhy","Virar","15-05-1964",62]
+Row3: ["OPEN MENS 11KM","OPEN MENS - 11KM",102,"Ajay Harishchandra Patil","Karamtara Engineering Ltd","12-11-1970",55]
+Row4: ["OPEN MENS 11KM","OPEN MENS - 11KM",103,"Vishal Chandrakant Mewada","SASMIRA","14-11-1970",55]
+Row5: ["OPEN MENS 11KM","OPEN MENS - 11KM",104,"Virendra Singh negi","Ddecor exports Pvt Ltd","20-11-1971",54]
+Row6: ["OPEN MENS 11KM","OPEN MENS - 11KM",105,"Ramdas Tatobaa Jadhav","Boisar flyers","05-10-1972",53]
+Row7: ["OPEN MENS 11KM","OPEN MENS - 11KM",106,"Vivek pagdhare","Virar","09-12-1972",53]
+Row8: ["OPEN MENS 11KM","OPEN MENS - 11KM",107,"Veeramani Arsan","TAPS","21-08-1973",53]
+Row9: ["OPEN MENS 11KM","OPEN MENS - 11KM",108,"Biju pillai","Ddecor exports Pvt ltd","10-05-1974",52]
+Row10: ["OPEN MENS 11KM","OPEN MENS - 11KM",109,"dhirendra kuril","NPCIL TARAPUR","03-07-1974",52]
+Row11: ["OPEN MENS 11KM","OPEN MENS - 11KM",110,"Brajendra Singh rawat","Ddecor exports Pvt Ltd","05-08-1974",52]
+Row12: ["OPEN MENS 11KM","OPEN MENS - 11KM",111,"Hemant Kone","Keep On Running","07-11-1974",51]
+Row13: ["OPEN MENS 11KM","OPEN MENS - 11KM",112,"Dalip Chandra Khantwal","T-29,004 New Haven Boisar-2 betegaon","08-05-1975",51]
+Row14: ["OPEN MENS 11KM","OPEN MENS - 11KM",113,"Itta Subramanyam","L&T, Bullet Train Project","28-08-1976",50]
+
+===== Sheet: Summary =====
+Total rows: 14
+Row0: ["Category-wise Count Summary"]
+Row1: ["Race Group","Category","Total Participants"]
+Row2: ["OPEN MENS 11KM","OPEN MENS - 11KM",300]
+Row3: ["OPEN WOMENS 8KM","OPEN WOMENS - 8KM",63]
+Row4: ["U19 BOYS 6KM","U19 BOYS - 6KM",179]
+Row5: ["U19 GIRLS 6KM","U19 GIRLS - 6KM",34]
+Row6: ["U17 BOYS 5KM","U17 BOYS - 5KM",248]
+Row7: ["U17 GIRLS 5KM","U17 GIRLS - 5KM",47]
+Row8: ["U14 BOYS 3KM","U14 BOYS - 3KM",122]
+Row9: ["U14 GIRLS 3KM","U14 GIRLS - 3KM",50]
+Row10: ["SENIOR CIT","55+ SENIOR CITIZEN - 1KM MENS",6]
+Row11: ["SENIOR CIT","55+ SENIOR CITIZEN - 1KM WOMENS",2]
+Row12: ["COUPLE RACE","COUPLES - 1KM",13]
+Row13: ["GRAND TOTAL",null,1064]
