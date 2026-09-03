@@ -7,6 +7,8 @@ import AboutSection from '@/components/AboutSection';
 import ServicesAndAcademy from '@/components/ServicesAndAcademy';
 import ContactSection from '@/components/ContactSection';
 import AdModal from '@/components/AdModal';
+import AnnouncementBar from '@/components/CertificateBanner';
+import CertificateBanner from '@/components/CertificateBanner';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -242,8 +244,11 @@ export default function Home() {
       />
 
       <div>
+        {/* ── Announcement Bar (fixed, above everything) ── */}
+        <AnnouncementBar />
+
         {/* Navbar */}
-        <nav className="navbar fixed-top">
+        <nav className="navbar fixed-top" style={{ top: '42px' }}>
           <div className="container">
             <a className="navbar-brand" href="#home">
               <img src="/images/new logo.png" height="55" alt="Olympic Vision Sports and Event Management" />
@@ -256,6 +261,15 @@ export default function Home() {
               <li className="nav-item"><a className="nav-link" href="#coaching">Coaching</a></li>
               <li className="nav-item"><a className="nav-link" href="#services">Services</a></li>
               <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>
+              <li className="nav-item">
+                <a
+                  href="/marathon-portal"
+                  className="nav-link"
+                  style={{ color: '#f5a623', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  🏅 e-Certificate
+                </a>
+              </li>
               <button
                 type="button"
                 className="btn-register-orange"
@@ -304,6 +318,7 @@ export default function Home() {
                 <li><a href="#coaching" onClick={() => setMenuOpen(false)}>Coaching</a></li>
                 <li><a href="#services" onClick={() => setMenuOpen(false)}>Services</a></li>
                 <li><a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a></li>
+                <li><a href="/marathon-portal" style={{ color: '#f5a623', fontWeight: 600 }}>🏅 e-Certificate</a></li>
               </ul>
             </div>
 
@@ -352,6 +367,9 @@ export default function Home() {
             <RegistrationSection />
           </div>
         )}
+        {/* Certificate Download Banner */}
+        <CertificateBanner />
+
         {/* About Section */}
         <AboutSection />
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './marathon-portal.module.css';
 
 export default function MarathonPortalPage() {
@@ -31,6 +31,29 @@ export default function MarathonPortalPage() {
             setLoading(false);
         }
     }
+
+    // Auto-lookup if ?bib= is present in the URL (e.g. from the landing page banner)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const urlBib = params.get('bib');
+        if (urlBib && !isNaN(Number(urlBib))) {
+            setBib(urlBib);
+            // Trigger lookup programmatically
+            setLoading(true);
+            setError('');
+            setParticipant(null);
+            fetch(`/api/marathon-lookup?bib=${encodeURIComponent(urlBib)}`)
+                .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok) setError(data.error || 'Participant not found.');
+                    else setParticipant(data.participant);
+                })
+                .catch(() => setError('Network error. Please try again.'))
+                .finally(() => setLoading(false));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // We will use a native anchor link for downloading to guarantee the browser respects the .pdf extension.
 
