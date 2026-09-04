@@ -417,14 +417,47 @@
 /* ─── Footer ─────────────────────────────────────────────────────────────── */
 .footer {
   text-align: center;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.82rem;
-  line-height: 1.7;
-  padding-top: 1rem;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  padding: 1.5rem 0 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.02em;
 }
 
 .footer strong {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footerOrganisation {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.footerEvent {
+  margin-top: 0.25rem !important;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.footerCredit {
+  margin-top: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 0.74rem;
+}
+
+.footerCredit a {
+  color: #fad232;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.footerCredit a:hover {
+  color: #fff;
+  opacity: 0.9;
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */

@@ -201,8 +201,18 @@ export default function MarathonPortalPage() {
 
                 {/* ── Footer ── */}
                 <footer className={styles.footer}>
-                    <p>Organised by <strong>Aadhar Pratishthan</strong> | Palghar District</p>
-                    <p>30 August 2026 • Boisar, Maharashtra</p>
+                    <p className={styles.footerOrganisation}>
+                        Organised by <strong>Aadhar Pratishthan</strong>
+                        <span aria-hidden="true"> | </span>
+                        Palghar District
+                    </p>
+                    <p className={styles.footerEvent}>30 August 2026 <span aria-hidden="true">•</span> Boisar, Maharashtra</p>
+                    <p className={styles.footerCredit}>
+                        Designed and maintained by{' '}
+                        <a href="https://thetechnocyte.com" target="_blank" rel="noreferrer">
+                            Technocyte
+                        </a>
+                    </p>
                 </footer>
             </div>
         </div>

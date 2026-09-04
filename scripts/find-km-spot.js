@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function main() {
-    const pdfPath = path.join(__dirname, '../Pdf_and_excel/White and Navy Elegant Minimalist Certificate of Achievement_20260903_195557_0000.pdf');
+    const pdfPath = path.join(__dirname, '../Pdf_and_excel/White and Navy Elegant Minimalist Certificate of Achievement_20260904_083441_0000.pdf');
     const pdfBytes = fs.readFileSync(pdfPath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);

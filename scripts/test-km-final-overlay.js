@@ -51,7 +51,7 @@ console.log(allPassed ? '\n✅ All tests passed!' : '\n❌ Some tests FAILED');
 
 // Generate a test certificate using the "OPEN MENS - 11KM" category
 async function generateCert() {
-    const pdfPath = path.join(__dirname, '../Pdf_and_excel/White and Navy Elegant Minimalist Certificate of Achievement_20260903_195557_0000.pdf');
+    const pdfPath = path.join(__dirname, '../Pdf_and_excel/White and Navy Elegant Minimalist Certificate of Achievement_20260904_083441_0000.pdf');
     const pdfBytes = fs.readFileSync(pdfPath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
     pdfDoc.registerFontkit(fontkit);

@@ -6,7 +6,6 @@ import RegistrationSection from '@/components/Registration';
 import AboutSection from '@/components/AboutSection';
 import ServicesAndAcademy from '@/components/ServicesAndAcademy';
 import ContactSection from '@/components/ContactSection';
-import AdModal from '@/components/AdModal';
 import AnnouncementBar from '@/components/CertificateBanner';
 import CertificateBanner from '@/components/CertificateBanner';
 export default function Home() {
@@ -237,12 +236,6 @@ export default function Home() {
 
   return (
     <>
-      {/* First-visit Advertisement Modal */}
-      <AdModal
-        onRegister={() => setShowMarathonModal(true)}
-        onClose={() => { }}
-      />
-
       <div>
         {/* ── Announcement Bar (fixed, above everything) ── */}
         <AnnouncementBar />
@@ -270,16 +263,6 @@ export default function Home() {
                   🏅 e-Certificate
                 </a>
               </li>
-              <button
-                type="button"
-                className="btn-register-orange"
-                onClick={() => setShowMarathonModal(true)}
-              >
-                <span className="pulse-ring"></span>
-                Register Now
-              </button>
-
-
             </ul>
 
             {/* Custom Mobile Toggler Button */}
@@ -302,14 +285,6 @@ export default function Home() {
                   <img src="/images/new logo.png" height="50" alt="Olympic Vision Sports and Event Management" />
                 </a>
               </div>
-              <button
-                type="button"
-                className="btn-register-orange"
-                onClick={() => setShowMarathonModal(true)}
-              >
-                <span className="pulse-ring"></span>
-                Register Now
-              </button>
               <ul className="mobile-nav-links">
                 <li><a href="#home" onClick={() => setMenuOpen(false)}>Home</a></li>
                 <li><a href="#about" onClick={() => setMenuOpen(false)}>About</a></li>

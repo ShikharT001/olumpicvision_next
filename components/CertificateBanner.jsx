@@ -4,17 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function AnnouncementBar() {
-    const [bib, setBib] = useState('');
     const [dismissed, setDismissed] = useState(false);
 
     if (dismissed) return null;
-
-    const handleGo = (e) => {
-        e.preventDefault();
-        const trimmed = bib.trim();
-        if (!trimmed || isNaN(Number(trimmed))) return;
-        window.location.href = `/marathon-portal?bib=${encodeURIComponent(trimmed)}`;
-    };
 
     return (
         <div
@@ -96,7 +88,7 @@ export default function AnnouncementBar() {
                     }}
                 >
                     {/* Desktop inline form */}
-                    <form
+                    {/* <form
                         onSubmit={handleGo}
                         className="d-none d-md-flex"
                         style={{ alignItems: 'center', gap: '6px' }}
@@ -143,9 +135,9 @@ export default function AnnouncementBar() {
                         >
                             ⬇ Get Certificate
                         </button>
-                    </form>
+                    </form> */}
 
-                    {/* Mobile: direct portal link */}
+                    {/* Mobile: direct certificate button */}
                     <Link
                         href="/marathon-portal"
                         className="d-flex d-md-none"
@@ -161,24 +153,35 @@ export default function AnnouncementBar() {
                             letterSpacing: '0.2px',
                         }}
                     >
-                        ⬇ Certificate
+                        ⬇ Download Certificate
                     </Link>
 
-                    {/* Portal link (desktop) */}
+                    {/* Desktop: direct certificate button */}
                     <Link
                         href="/marathon-portal"
-                        className="d-none d-md-block"
+                        className="d-none d-md-flex align-items-center"
                         style={{
-                            color: 'rgba(255,255,255,0.55)',
-                            fontSize: '0.7rem',
+                            background: '#f5a623',
+                            color: '#0d1f3c',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
                             textDecoration: 'none',
-                            borderBottom: '1px dashed rgba(255,255,255,0.28)',
+                            padding: '5px 12px',
+                            borderRadius: '5px',
                             whiteSpace: 'nowrap',
-                            lineHeight: 1.4,
-                            marginLeft: '4px',
+                            letterSpacing: '0.2px',
+                            transition: 'background-color 0.2s ease, transform 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffd166';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f5a623';
+                            e.currentTarget.style.transform = 'translateY(0)';
                         }}
                     >
-                        Portal →
+                        ⬇ Download Certificate
                     </Link>
 
                     {/* Dismiss button */}

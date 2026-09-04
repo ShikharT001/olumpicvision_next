@@ -2,10 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import RegistrationSection from '@/components/Registration';
 export default function EventsAndHighlights({ openModal }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showMarathonModal, setShowMarathonModal] = useState(false);
 // Replace the eventsData array inside EventsAndHighlights.jsx with this:
 
 const eventsData = [
@@ -59,17 +57,6 @@ const eventsData = [
   },
 ];
 
-useEffect(() => {
-  const openModalHandler = () => {
-    setShowMarathonModal(true);
-  };
-
-  window.addEventListener('openMarathonModal', openModalHandler);
-
-  return () => {
-    window.removeEventListener('openMarathonModal', openModalHandler);
-  };
-}, []);
   useEffect(() => {
     const autoSlideTimer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % eventsData.length);
@@ -176,49 +163,23 @@ useEffect(() => {
                 <h3 className="h4 fw-bold mb-0" style={{ color: '#0A3D7A' }}>Announcements</h3>
               </div>
 
-            <div className="announcements-body flex-grow-1 overflow-auto p-0">
-              <img
-                src="/images/banner.jpeg"
-                alt="Boisar Varsha Marathon 2025"
-                onClick={() => setShowMarathonModal(true)}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  display: 'block',
-                  cursor: 'pointer',
-                }}
-              />
+            <div className="announcements-body flex-grow-1 p-0 color-anim-list">
+              <ul className="list-unstyled mb-0">
+                <li className="announcement-item">
+                  <Link
+                    href="/marathon-portal"
+                    className="announcement-link d-flex align-items-start gap-3 p-4 text-decoration-none"
+                  >
+                    <span className="announcement-bullet" aria-hidden="true">•</span>
+                    <span className="announcement-text">Download your e-Certificate</span>
+                  </Link>
+                </li>
+              </ul>
             </div>
             </div>
           </div>
         </div>
       </div>
-    {showMarathonModal && (
-                  <div
-                    className="modal fade show d-block"
-                    style={{
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      position: 'fixed',
-                      inset: 0,
-                      zIndex: 1055,
-                    }}
-                  >
-                  <button
-                    className="btn-close bg-white rounded-circle p-3 position-fixed"
-                    style={{
-                      top: '20px',
-                      right: '20px',
-                      zIndex: 9999,
-                    }}
-                    onClick={() => setShowMarathonModal(false)}
-                  />
-
-                      <RegistrationSection />
-                    </div>
-                  )}
-
-     
     </section>
   );
 }

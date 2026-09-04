@@ -127,6 +127,10 @@
   transition: color 0.2s ease-in-out;
 }
 
+.color-anim-list .announcement-link {
+  min-height: 72px;
+}
+
 .color-anim-list .announcement-bullet {
   color: #0A3D7A; /* Default dark blue bullet */
   font-size: 1.25rem;
