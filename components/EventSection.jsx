@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 export default function EventsAndHighlights({ openModal }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 // Replace the eventsData array inside EventsAndHighlights.jsx with this:
@@ -166,12 +167,19 @@ const eventsData = [
             <div className="announcements-body flex-grow-1 p-0 color-anim-list">
               <ul className="list-unstyled mb-0">
                 <li className="announcement-item">
-                  <Link
+                 
+                 <Link
                     href="/marathon-portal"
-                    className="announcement-link d-flex align-items-start gap-3 p-4 text-decoration-none"
+                    className="announcement-link d-block text-decoration-none overflow-hidden rounded"
                   >
-                    <span className="announcement-bullet" aria-hidden="true">•</span>
-                    <span className="announcement-text">Download your e-Certificate</span>
+                    <Image
+                      src="/images/ecertificate.jpeg"
+                      alt="Download your e-Certificate"
+                      width={800}
+                      height={400}
+                      className="img-fluid w-100 h-auto d-block"
+                      priority
+                    />
                   </Link>
                 </li>
               </ul>
