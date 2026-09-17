@@ -42,11 +42,11 @@ const eventsData = [
   },
   {
     id: 5,
-    title: 'Volleyball Tournament',
+    title: 'PALGHAR DISTRICT VOLLEYBALL LEAGUE (PDVL) 2026',
     tag: 'CHAMPIONSHIP',
     bgImage: '/images/volleyball/image4.jpeg',
-    desc: 'A high-energy competitive championship showcasing incredible spiked rallies, teamwork, and tactical court mastery.',
-    href: '/events/volleyball-tournament',
+    desc: 'Player registrations are now open for PDVL 2026/27. Complete your undertaking online in three simple steps.',
+    href: '/pdvl-registration',
   },
   {
     id: 6,
@@ -130,7 +130,7 @@ const eventsData = [
                           href={event.href}
                           className="btn bg-white fw-semibold px-4 d-inline-flex align-items-center gap-2 highlight-explore-btn"
                         >
-                          Explore Event <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                          {event.id === 5 ? 'Register now' : 'Explore Event'} <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
                         </Link>
                       ) : (
                         <button
@@ -164,30 +164,57 @@ const eventsData = [
                 <h3 className="h4 fw-bold mb-0" style={{ color: '#0A3D7A' }}>Announcements</h3>
               </div>
 
-            <div className="announcements-body flex-grow-1 p-0 color-anim-list">
-              <ul className="list-unstyled mb-0">
-                <li className="announcement-item">
-                 
-                 <Link
-                    href="/marathon-portal"
-                    className="announcement-link d-block text-decoration-none overflow-hidden rounded"
-                  >
-                    <Image
-                      src="/images/ecertificate.jpeg"
-                      alt="Download your e-Certificate"
-                      width={800}
-                      height={400}
-                      className="img-fluid w-100 h-auto d-block"
-                      priority
-                    />
-                  </Link>
-                </li>
-              </ul>
-            </div>
+          <div className="announcements-body flex-grow-1 p-0 color-anim-list">
+  <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
+    <li className="announcement-item">
+      <Link
+        href="/marathon-portal"
+        className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
+      >
+        <div className="announcement-content p-3">
+          <h4 className="h5 fw-bold mb-1">Download your e-Certificate</h4>
+          <p className="mb-0 text-muted">
+            Get your official e-Certificate for completed events.
+          </p>
+        </div>
+      </Link>
+    </li>
+
+    <li className="announcement-item">
+      <Link
+        href="/pdvl-registration"
+        className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
+      >
+        <div className="announcement-content p-3">
+          <h4 className="h5 fw-bold mb-1">
+            Palghar District Volleyball League (PDVL) 2026
+          </h4>
+          <p className="mb-0 text-muted">
+            Access event results, registrations, and more.
+          </p>
+        </div>
+      </Link>
+    </li>
+  </ul>
+</div>
             </div>
           </div>
         </div>
       </div>
     </section>
+    
   );
+  
 }
+
+
+<style jsx>{`
+  .announcement-link {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+
+  .announcement-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+`}</style>

@@ -14,7 +14,10 @@ const COMPACT_COLUMNS = new Set([
 const TABLE_HIDDEN_COLUMNS = {
   payment_transactions: ['raw_response', 'provider_signature'],
   payment_transaction_details: ['raw_response'],
+  volleyball_registrations: ['address', 'emergency_contact_name', 'emergency_contact_phone'],
 };
+
+const PAGE_SIZE = 20;
 
 const CHECKBOX_COLUMN_PRIORITY = [
   'tshirt_size',
@@ -251,6 +254,7 @@ export default function Admin({ tables = [], logoutAction }) {
   const [detailsRow, setDetailsRow] = useState(null);
   const [query, setQuery] = useState('');
   const [checkboxFilters, setCheckboxFilters] = useState({});
+  const [page, setPage] = useState(1);
 
   const active = useMemo(
     () => tables.find((table) => table.name === activeTable) || tables[0] || null,
@@ -277,6 +281,12 @@ export default function Admin({ tables = [], logoutAction }) {
 
     return active.rows.filter((row) => rowMatchesFilters(row, query, checkboxFilters));
   }, [active, query, checkboxFilters]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = useMemo(
+    () => filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredRows, currentPage]
+  );
   const selectedFilterCount = Object.values(checkboxFilters).reduce(
     (sum, values) => sum + values.length,
     0
@@ -287,9 +297,11 @@ export default function Admin({ tables = [], logoutAction }) {
   const resetFilters = () => {
     setQuery('');
     setCheckboxFilters({});
+    setPage(1);
   };
 
   const handleFilterToggle = (column, value) => {
+    setPage(1);
     setCheckboxFilters((current) => {
       const selected = current[column] || [];
       const nextSelected = selected.includes(value)
@@ -517,7 +529,10 @@ export default function Admin({ tables = [], logoutAction }) {
                   <input
                     type="search"
                     value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setPage(1);
+                    }}
                     placeholder="Search by name, phone number, gender, status..."
                     aria-label="Search table rows"
                     style={styles.searchInput}
@@ -525,7 +540,10 @@ export default function Admin({ tables = [], logoutAction }) {
                   {query ? (
                     <button
                       type="button"
-                      onClick={() => setQuery('')}
+                      onClick={() => {
+                        setQuery('');
+                        setPage(1);
+                      }}
                       aria-label="Clear search"
                       title="Clear search"
                       style={styles.iconButton}
@@ -638,12 +656,13 @@ export default function Admin({ tables = [], logoutAction }) {
                         </td>
                       </tr>
                     ) : (
-                      filteredRows.map((row, rowIndex) => {
+                      paginatedRows.map((row, rowIndex) => {
+                        const absoluteRowIndex = (currentPage - 1) * PAGE_SIZE + rowIndex;
                         const rowKey = idColumn ? serializeFilterValue(row[idColumn]) : null;
                         const isEditing = !isAdding && (
                           rowKey
                             ? editingRow.rowKey === rowKey
-                            : editingRow.rowIndex === rowIndex
+                            : editingRow.rowIndex === absoluteRowIndex
                         );
 
                         return (
@@ -723,7 +742,7 @@ export default function Admin({ tables = [], logoutAction }) {
                                         )}
                                         <button
                                           style={styles.editBtn}
-                                          onClick={() => handleEditClick(rowIndex, row)}
+                                          onClick={() => handleEditClick(absoluteRowIndex, row)}
                                           disabled={isAdding || editingRow.rowIndex !== null}
                                         >
                                           Edit
@@ -748,6 +767,13 @@ export default function Admin({ tables = [], logoutAction }) {
                   </tbody>
                 </table>
               </div>
+              {active.rows.length > 0 ? (
+                <nav aria-label="Table pagination" style={styles.pagination}>
+                  <button type="button" style={styles.paginationButton} onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1}>Previous</button>
+                  <span style={styles.paginationText}>Page {currentPage} of {totalPages} · 20 records per page</span>
+                  <button type="button" style={styles.paginationButton} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage === totalPages}>Next</button>
+                </nav>
+              ) : null}
             </>
           ) : (
             <div style={styles.emptyState}>Connect a table to see data here.</div>
@@ -769,7 +795,9 @@ export default function Admin({ tables = [], logoutAction }) {
             </div>
 
             <div style={styles.detailGrid}>
-              {Object.entries(detailsRow).map(([key, value]) => (
+              {Object.entries(detailsRow)
+                .filter(([key]) => !new Set(TABLE_HIDDEN_COLUMNS[active?.name] || []).has(key))
+                .map(([key, value]) => (
                 <div key={key} style={styles.detailItem}>
                   <div style={styles.detailLabel}>{labelize(key)}</div>
                   <div style={styles.detailValue}>{formatDetailValue(value, key)}</div>
@@ -1282,5 +1310,25 @@ const styles = {
     borderRadius: 6,
     fontSize: 12,
     overflowX: 'auto',
+  },
+  pagination: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+    padding: '16px 0 0',
+  },
+  paginationButton: {
+    padding: '7px 12px',
+    border: '1px solid #cbd5e1',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#334155',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  paginationText: {
+    color: '#64748b',
+    fontSize: 13,
   },
 };

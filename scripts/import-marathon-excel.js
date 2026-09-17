@@ -43,7 +43,7 @@ async function main() {
         console.log('✅ Table marathon_participants ready');
 
         // ── 2. Read Excel ─────────────────────────────────────────────────────────
-        const filePath = path.join(__dirname, '../Pdf_and_excel/MARATHON_REPORT_COMBINED.xlsx');
+        const filePath = process.argv[2] || path.join(__dirname, '../Pdf_and_excel/MARATHON_REPORT_COMBINED.xlsx');
         const wb = XLSX.readFile(filePath);
         const ws = wb.Sheets['All Runners'];
         if (!ws) {
