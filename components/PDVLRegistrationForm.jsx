@@ -79,7 +79,7 @@ export default function PDVLRegistrationForm() {
 
   return <form onSubmit={submit} noValidate>
     <div className="d-flex gap-2 mb-4" aria-label={`Step ${step} of 3`}>
-      {[['1', 'Player'], ['2', 'Team & safety'], ['3', 'Undertaking']].map(([number, label]) => <div key={number} className="flex-fill"><div className={`rounded-pill text-center py-2 small fw-bold ${step >= Number(number) ? 'bg-primary text-white' : 'bg-light text-secondary'}`}>{number}. {label}</div></div>)}
+      {[['1', 'Player'], ['2', 'Team & safety'], ['3', 'Undertaking']].map(([number, label]) => <div key={number} className="flex-fill"><div className={`rounded-3 text-center py-2 px-1 small fw-bold d-flex align-items-center justify-content-center h-100 ${step >= Number(number) ? 'bg-primary text-white' : 'bg-light text-secondary'}`}><span>{number}. {label}</span></div></div>)}
     </div>
     {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
     {step === 1 && <div className="row g-3">
