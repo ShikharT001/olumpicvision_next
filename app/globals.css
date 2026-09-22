@@ -1878,3 +1878,277 @@ footer {
     0 0 0 1px rgba(234, 88, 12, 0.5),
     0 2px 8px rgba(234, 88, 12, 0.45);
 }
+
+/* =========================================
+   PDVL PLAYER REGISTRATION FORM & UI STYLES
+   ========================================= */
+.pdvl-page-bg {
+  background-color: #f0f4f9;
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(11, 114, 188, 0.12) 0px, transparent 50%),
+    radial-gradient(at 90% 20%, rgba(6, 59, 120, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(251, 177, 60, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 90%, rgba(16, 185, 129, 0.06) 0px, transparent 50%),
+    linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+  position: relative;
+}
+
+.pdvl-page-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(11, 114, 188, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.pdvl-card {
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 
+    0 24px 48px -12px rgba(6, 59, 120, 0.12),
+    0 8px 20px -4px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  backdrop-filter: blur(16px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pdvl-hero-banner {
+  background: linear-gradient(135deg, #042854 0%, #063b78 50%, #0b72bc 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.pdvl-hero-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(251, 177, 60, 0.25) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.pdvl-hero-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -40%;
+  left: -10%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+/* Stepper Bar */
+.pdvl-stepper-container {
+  position: relative;
+}
+
+.pdvl-step-track {
+  position: absolute;
+  top: 18px;
+  left: 10%;
+  right: 10%;
+  height: 4px;
+  background: #e2e8f0;
+  z-index: 0;
+  border-radius: 4px;
+}
+
+.pdvl-step-track-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #063b78, #0b72bc, #10b981);
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pdvl-step-item {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.pdvl-step-item:disabled {
+  cursor: not-allowed;
+}
+
+.pdvl-step-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+.pdvl-step-item.active .pdvl-step-badge {
+  background: linear-gradient(135deg, #063b78, #0b72bc);
+  color: #ffffff;
+  box-shadow: 0 0 0 5px rgba(11, 114, 188, 0.2), 0 6px 16px rgba(11, 114, 188, 0.35);
+  transform: scale(1.1);
+}
+
+.pdvl-step-item.completed .pdvl-step-badge {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.pdvl-step-item.upcoming .pdvl-step-badge {
+  background: #ffffff;
+  color: #64748b;
+  border: 2px solid #cbd5e1;
+}
+
+.pdvl-step-label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 6px;
+  transition: color 0.3s ease;
+}
+
+.pdvl-step-item.active .pdvl-step-label {
+  color: #063b78;
+  font-weight: 700;
+}
+
+.pdvl-step-item.completed .pdvl-step-label {
+  color: #047857;
+}
+
+/* Form Inputs */
+.pdvl-input,
+.pdvl-select,
+.pdvl-textarea {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background-color: #f8fafc;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pdvl-input:hover,
+.pdvl-select:hover,
+.pdvl-textarea:hover {
+  border-color: #94a3b8;
+  background-color: #ffffff;
+}
+
+.pdvl-input:focus,
+.pdvl-select:focus,
+.pdvl-textarea:focus {
+  border-color: #0b72bc;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(11, 114, 188, 0.12);
+  outline: none;
+}
+
+.pdvl-input.is-invalid,
+.pdvl-select.is-invalid,
+.pdvl-textarea.is-invalid {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.pdvl-input.is-invalid:focus,
+.pdvl-select.is-invalid:focus,
+.pdvl-textarea.is-invalid:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+/* Photo Dropzone Uploader */
+.pdvl-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 14px;
+  padding: 1.5rem;
+  background: #f8fafc;
+  text-align: center;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.pdvl-dropzone:hover,
+.pdvl-dropzone.drag-active {
+  border-color: #0b72bc;
+  background: #f0f7ff;
+}
+
+.pdvl-dropzone.has-photo {
+  border-style: solid;
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+/* Jersey Selector Pills */
+.pdvl-jersey-pill {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0.6rem 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #334155;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pdvl-jersey-pill:hover {
+  border-color: #0b72bc;
+  color: #0b72bc;
+  background: #f0f7ff;
+}
+
+.pdvl-jersey-pill.selected {
+  border-color: #0b72bc;
+  background: #0b72bc;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(11, 114, 188, 0.25);
+}
+
+/* Signature Box */
+.pdvl-signature-preview {
+  font-family: 'Brush Script MT', 'Comic Sans MS', cursive, sans-serif;
+  font-size: 1.6rem;
+  color: #063b78;
+  border-bottom: 2px solid #063b78;
+  padding: 0.4rem 1rem;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* Responsive adjust */
+@media (max-width: 576px) {
+  .pdvl-step-badge {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
+  }
+  .pdvl-step-label {
+    font-size: 0.75rem;
+  }
+  .pdvl-step-track {
+    top: 15px;
+    left: 8%;
+    right: 8%;
+  }
+  .pdvl-dropzone {
+    padding: 1rem;
+  }
+}
+

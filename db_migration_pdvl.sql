@@ -35,8 +35,22 @@ ALTER TABLE volleyball_registrations
   DROP COLUMN IF EXISTS medical_notes;
 
 ALTER TABLE volleyball_registrations
-  ADD COLUMN IF NOT EXISTS photo_url TEXT;
+  ADD COLUMN IF NOT EXISTS photo_url TEXT,
+  ADD COLUMN IF NOT EXISTS guardian_name TEXT,
+  ADD COLUMN IF NOT EXISTS player_category TEXT,
+  ADD COLUMN IF NOT EXISTS alternate_mobile TEXT,
+  ADD COLUMN IF NOT EXISTS pin_code TEXT,
+  ADD COLUMN IF NOT EXISTS preferred_hand TEXT,
+  ADD COLUMN IF NOT EXISTS height_cm NUMERIC,
+  ADD COLUMN IF NOT EXISTS weight_kg NUMERIC,
+  ADD COLUMN IF NOT EXISTS playing_experience NUMERIC,
+  ADD COLUMN IF NOT EXISTS previous_club TEXT,
+  ADD COLUMN IF NOT EXISTS highest_level TEXT,
+  ADD COLUMN IF NOT EXISTS medical_limitations TEXT,
+  ADD COLUMN IF NOT EXISTS emergency_contact_name TEXT,
+  ADD COLUMN IF NOT EXISTS emergency_relationship TEXT;
 
 ALTER TABLE volleyball_registrations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public volleyball registration insert" ON volleyball_registrations;
 CREATE POLICY "Public volleyball registration insert" ON volleyball_registrations FOR INSERT WITH CHECK (true);
+

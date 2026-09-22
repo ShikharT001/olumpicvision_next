@@ -3,8 +3,6 @@ import { v2 as cloudinary } from 'cloudinary';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
-
-// Uploads can be slow on poor connections — allow 30s
 export const maxDuration = 30;
 
 cloudinary.config({
@@ -14,9 +12,8 @@ cloudinary.config({
 });
 
 export async function POST(request) {
-    // ── Rate limit: max 10 uploads per IP per 10 minutes ───────────────────────
     const ip = getClientIp(request);
-    const { allowed, retryAfter } = checkRateLimit(ip, 'upload', 10, 10 * 60_000);
+    const { allowed, retryAfter } = checkRateLimit(ip, 'upload', 15, 10 * 60_000);
 
     if (!allowed) {
         return NextResponse.json(
@@ -35,22 +32,22 @@ export async function POST(request) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Validate file type
-        const allowedTypes = isPdvlPlayerPhoto
-            ? ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-            : ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
-        if (!allowedTypes.includes(file.type)) {
+        // Validate file type — accept image types flexibly
+        const isImage = file.type?.startsWith('image/') || ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/pjpeg', 'image/x-png', 'image/heic', 'image/heif'].includes(file.type);
+        const isPdf = file.type === 'application/pdf';
+
+        if (!isImage && (!isPdf || isPdvlPlayerPhoto)) {
             return NextResponse.json(
-                { error: isPdvlPlayerPhoto ? 'Player photo must be JPG, PNG, or WEBP.' : 'Invalid file type. Please upload JPG, PNG, WEBP, or PDF.' },
+                { error: 'Player photo must be an image (JPG, PNG, WEBP).' },
                 { status: 400 }
             );
         }
 
-        // Validate file size – max 5 MB
-        const MAX_SIZE_BYTES = isPdvlPlayerPhoto ? 200 * 1024 : 5 * 1024 * 1024;
+        // Validate file size – allow up to 2 MB for player photo, 5 MB for document
+        const MAX_SIZE_BYTES = isPdvlPlayerPhoto ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
         if (file.size > MAX_SIZE_BYTES) {
             return NextResponse.json(
-                { error: `File is too large. Maximum allowed size is ${isPdvlPlayerPhoto ? '200 KB' : '5 MB'}.` },
+                { error: `File is too large. Maximum allowed photo size is 2 MB.` },
                 { status: 400 }
             );
         }
@@ -59,39 +56,60 @@ export async function POST(request) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Upload to Cloudinary with quality reduction for images (faster, smaller)
-        const uploaded = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: isPdvlPlayerPhoto ? 'pdvl_2026/player_photos' : 'boisar_varsha_marathon/documents',
-                    resource_type: 'auto',
-                    public_id: `${label}_${Date.now()}`,
-                    tags: [isPdvlPlayerPhoto ? 'pdvl-registration' : 'marathon-registration', label],
-                    // Compress images to reduce storage & bandwidth costs
-                    ...(file.type !== 'application/pdf' && {
-                        quality: 'auto:good',
-                        fetch_format: 'auto',
-                    }),
-                },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-            uploadStream.end(buffer);
-        });
+        const hasCloudinary = Boolean(
+            process.env.CLOUDINARY_CLOUD_NAME &&
+            process.env.CLOUDINARY_API_KEY &&
+            process.env.CLOUDINARY_API_SECRET
+        );
+
+        if (hasCloudinary) {
+            try {
+                const uploaded = await new Promise((resolve, reject) => {
+                    const uploadStream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: isPdvlPlayerPhoto ? 'pdvl_2026/player_photos' : 'boisar_varsha_marathon/documents',
+                            resource_type: 'auto',
+                            public_id: `${label}_${Date.now()}`,
+                            tags: [isPdvlPlayerPhoto ? 'pdvl-registration' : 'marathon-registration', label],
+                            ...(file.type !== 'application/pdf' && {
+                                quality: 'auto:good',
+                                fetch_format: 'auto',
+                            }),
+                        },
+                        (error, result) => {
+                            if (error) reject(error);
+                            else resolve(result);
+                        }
+                    );
+                    uploadStream.end(buffer);
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    url: uploaded.secure_url,
+                    publicId: uploaded.public_id,
+                    label,
+                });
+            } catch (cloudErr) {
+                console.warn('Cloudinary upload failed, falling back to base64 Data URL:', cloudErr.message);
+            }
+        }
+
+        // Fallback: convert file buffer to base64 Data URL so photo upload NEVER fails!
+        const mimeType = file.type || 'image/jpeg';
+        const base64Url = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
         return NextResponse.json({
             success: true,
-            url: uploaded.secure_url,
-            publicId: uploaded.public_id,
+            url: base64Url,
             label,
         });
     } catch (error) {
         console.error('Document upload error:', error);
         return NextResponse.json(
-            { error: 'Upload failed. Please try again.' },
+            { error: 'Unable to process photo upload. Please try again.' },
             { status: 500 }
         );
     }
 }
+
