@@ -21,6 +21,7 @@ export async function POST(request) {
       'photoUrl',
       'teamName',
       'playingPosition',
+      'highestLevel',
       'jerseySize',
       'emergencyPhone',
       'typedSignature',

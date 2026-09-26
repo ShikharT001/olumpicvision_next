@@ -5,7 +5,43 @@ import EventGallery from '@/components/EventGallery';
 
 // ─── Central event registry ───────────────────────────────────────────────────
 // Add / edit events here. Drop real image paths in when you have them.
+const marathon2026PhotoNames = [
+  'WhatsApp Image 2026-09-22 at 11.27.09 PM.jpeg',
+  ...Array.from({ length: 15 }, (_, index) => `WhatsApp Image 2026-09-22 at 11.27.09 PM (${index + 1}).jpeg`),
+  'WhatsApp Image 2026-09-22 at 11.27.10 PM.jpeg',
+  ...Array.from({ length: 19 }, (_, index) => `WhatsApp Image 2026-09-22 at 11.27.10 PM (${index + 1}).jpeg`),
+  'WhatsApp Image 2026-09-22 at 11.27.11 PM.jpeg',
+  'WhatsApp Image 2026-09-22 at 11.27.11 PM (1).jpeg',
+];
+const marathon2026Photo = (name) => `/images/marathon_2026/${name}`;
+const marathon2026Hero = marathon2026Photo('WhatsApp Image 2026-09-22 at 11.27.09 PM (11).jpeg');
+
 const eventsRegistry = {
+  'boisar-varsha-marathon-2026': {
+    title: 'Boisar Varsha Marathon 2026',
+    tag: 'Marathon',
+    location: 'Boisar, Maharashtra',
+    theme: 'A community celebration of running and achievement',
+    heroImage: marathon2026Hero,
+    overview: {
+      heading: 'A finish line made memorable by every runner.',
+      body: `Boisar Varsha Marathon 2026 brought runners and the local community
+      together for a day of determination, encouragement, and celebration. From
+      the excitement of the finish line to the pride of the awards ceremony, the
+      event showcased the spirit and effort of its participants.`,
+    },
+    highlights: [
+      'A lively race day bringing runners and supporters together in Boisar.',
+      'Memorable finish-line moments celebrating the effort of every participant.',
+      'Awards and recognition for outstanding race-day achievements.',
+      'Organized by Aadhar Pratishthan and Shiv Sena, supported by Olympic Vision India.',
+    ],
+    gallery: marathon2026PhotoNames.map((name, index) => ({
+      src: marathon2026Photo(name),
+      alt: `Boisar Varsha Marathon 2026 event photo ${index + 1}`,
+    })),
+  },
+
 //   'boisar-varsha-marathon-2025': {
 //     title: 'Boisar Varsha Marathon 2025',
 //     tag: 'Marathon',

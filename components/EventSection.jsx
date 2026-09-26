@@ -9,6 +9,14 @@ export default function EventsAndHighlights({ openModal }) {
 
 const eventsData = [
   {
+    id: 7,
+    title: 'Boisar Varsha Marathon 2026',
+    tag: 'MARATHON',
+    bgImage: '/images/marathon_2026/WhatsApp Image 2026-09-22 at 11.27.09 PM (11).jpeg',
+    desc: 'Relive the finish-line excitement and celebrate the runners and award winners of Boisar Varsha Marathon 2026.',
+    href: '/events/boisar-varsha-marathon-2026',
+  },
+  {
     id: 1,
     title: 'Boisar Varsha Marathon 2025',
     tag: 'MARATHON',

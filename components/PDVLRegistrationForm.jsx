@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 
 const initialValues = {
@@ -8,7 +8,7 @@ const initialValues = {
   guardianName: '',
   dateOfBirth: '',
   gender: 'male',
-  playerCategory: 'palghar_open',
+  playerCategory: '',
   mobileNo: '',
   alternateMobile: '',
   email: '',
@@ -22,7 +22,7 @@ const initialValues = {
   weightKg: '',
   playingExperience: '',
   previousClub: '',
-  highestLevel: 'district',
+  highestLevel: '',
   jerseySize: '',
   medicalLimitations: '',
   emergencyContactName: '',
@@ -33,13 +33,49 @@ const initialValues = {
   medicalConsent: false,
 };
 
-const CATEGORIES = [
-  { value: 'icon_player', label: 'Icon Player' },
-  { value: 'palghar_open', label: 'Palghar Open' },
-  { value: 'u19', label: 'U19 (Under 19)' },
-  { value: 'u17', label: 'U17 (Under 17)' },
-  { value: 'u14', label: 'U14 (Under 14)' },
-];
+export function getAvailablePDVLCategories(dob) {
+  if (!dob) {
+    return [
+      { value: 'u14', label: 'U14 (Under 14) [Cut-Off: Born On/After 01/01/2013]' },
+      { value: 'u17', label: 'U17 (Under 17) [Cut-Off: Born On/After 01/01/2010]' },
+      { value: 'u19', label: 'U19 (Under 19) [Cut-Off: Born On/After 01/01/2008]' },
+      { value: 'palghar_open', label: 'Palghar Open [Born before 01/01/2008]' },
+      { value: 'icon_player', label: 'Icon Player [Born before 01/01/2008]' },
+    ];
+  }
+
+  const birthDate = new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) {
+    return [];
+  }
+
+  const cutOffU14 = new Date('2013-01-01');
+  const cutOffU17 = new Date('2010-01-01');
+  const cutOffU19 = new Date('2008-01-01');
+
+  if (birthDate >= cutOffU14) {
+    return [
+      { value: 'u14', label: 'U14 (Under 14) [Cut-Off: Born On/After 01/01/2013]' },
+    ];
+  }
+
+  if (birthDate >= cutOffU17) {
+    return [
+      { value: 'u17', label: 'U17 (Under 17) [Cut-Off: Born On/After 01/01/2010]' },
+    ];
+  }
+
+  if (birthDate >= cutOffU19) {
+    return [
+      { value: 'u19', label: 'U19 (Under 19) [Cut-Off: Born On/After 01/01/2008]' },
+    ];
+  }
+
+  return [
+    { value: 'palghar_open', label: 'Palghar Open [Born before 01/01/2008]' },
+    { value: 'icon_player', label: 'Icon Player [Born before 01/01/2008]' },
+  ];
+}
 
 const POSITIONS = [
   { value: 'setter', label: 'Setter' },
@@ -66,10 +102,19 @@ export default function PDVLRegistrationForm() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [previewCountdown, setPreviewCountdown] = useState(0);
   const [registrationId, setRegistrationId] = useState('');
   const [photo, setPhoto] = useState({ url: '', uploading: false, name: '', size: '' });
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (step !== 4 || previewCountdown <= 0) return undefined;
+    const countdownTimer = window.setTimeout(() => {
+      setPreviewCountdown((remaining) => Math.max(0, remaining - 1));
+    }, 1000);
+    return () => window.clearTimeout(countdownTimer);
+  }, [step, previewCountdown]);
 
   // Auto calculate age from date of birth
   const calculatedAge = useMemo(() => {
@@ -85,6 +130,11 @@ export default function PDVLRegistrationForm() {
     return age >= 0 ? age : '';
   }, [values.dateOfBirth]);
 
+  // Available categories based on DOB cut-offs
+  const availableCategories = useMemo(() => {
+    return getAvailablePDVLCategories(values.dateOfBirth);
+  }, [values.dateOfBirth]);
+
   const updateField = (name, value) => {
     setValues((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => ({ ...prev, [name]: '' }));
@@ -93,13 +143,30 @@ export default function PDVLRegistrationForm() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    updateField(name, type === 'checkbox' ? checked : value);
+    const newValue = type === 'checkbox' ? checked : value;
+
+    if (name === 'dateOfBirth') {
+      const availCats = getAvailablePDVLCategories(newValue);
+      // Always auto-select: for youth there's only 1 option, for adults default to first (palghar_open)
+      const autoCategory = availCats[0]?.value || '';
+      setValues((prev) => ({
+        ...prev,
+        dateOfBirth: newValue,
+        playerCategory: autoCategory,
+      }));
+      setFieldErrors((prev) => ({ ...prev, dateOfBirth: '', playerCategory: '' }));
+      setError('');
+    } else {
+      updateField(name, newValue);
+    }
   };
 
-  const handleFileUpload = async (file) => {
+  const handleFileUpload = (file) => {
+    // Ensure we have a real File object (not undefined/null)
+    if (!(file instanceof File)) return;
     if (!file) return;
 
-    // Check basic type
+    // Check basic file type
     const isImage = file.type?.startsWith('image/') || ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type);
     if (!isImage) {
       setError('Player photo must be an image (JPG, PNG, WEBP).');
@@ -115,38 +182,37 @@ export default function PDVLRegistrationForm() {
     const formattedSize = (file.size / 1024).toFixed(1) + ' KB';
     setPhoto({ url: '', uploading: true, name: file.name, size: formattedSize });
 
-    try {
-      const body = new FormData();
-      body.append('file', file);
-      body.append('label', 'pdvl-player-photo');
+    // Step 1: Immediately read as base64 — guaranteed to work offline/on-network
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Url = event.target.result;
 
-      const response = await fetch('/api/upload-document', { method: 'POST', body });
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error || 'Photo upload failed.');
-
-      setPhoto({ url: data.url, uploading: false, name: file.name, size: formattedSize });
+      // Set base64 preview right away so the user sees the photo
+      setPhoto({ url: base64Url, uploading: false, name: file.name, size: formattedSize });
       setFieldErrors((prev) => ({ ...prev, photo: '' }));
-    } catch (uploadError) {
-      // Direct base64 fallback on browser side if API network upload fails
+
+      // Step 2: Attempt background API upload to get a permanent Cloudinary URL
       try {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setPhoto({
-            url: event.target.result,
-            uploading: false,
-            name: file.name,
-            size: formattedSize,
-          });
-          setFieldErrors((prev) => ({ ...prev, photo: '' }));
-          setError('');
-        };
-        reader.readAsDataURL(file);
-      } catch (fallbackErr) {
-        setPhoto({ url: '', uploading: false, name: '', size: '' });
-        setError('Photo upload failed. Please select a smaller JPG or PNG image.');
+        const body = new FormData();
+        body.append('file', file);
+        body.append('label', 'pdvl-player-photo');
+        const response = await fetch('/api/upload-document', { method: 'POST', body });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.url && !data.url.startsWith('data:')) {
+            // Upgrade to permanent Cloudinary URL silently
+            setPhoto((prev) => ({ ...prev, url: data.url }));
+          }
+        }
+      } catch {
+        // API failed — base64 preview is already set, form can still be submitted
       }
-    }
+    };
+    reader.onerror = () => {
+      setPhoto({ url: '', uploading: false, name: '', size: '' });
+      setError('Could not read the photo. Please try a different image.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDragOver = (e) => {
@@ -196,8 +262,9 @@ export default function PDVLRegistrationForm() {
           : 'Player photo upload is required';
       }
     } else if (currentStep === 2) {
-      if (!values.teamName.trim()) errors.teamName = 'Team/Club name is required';
+      if (!values.teamName.trim()) errors.teamName = 'School/College/Institute name is required';
       if (!values.playingPosition) errors.playingPosition = 'Playing position is required';
+      if (!values.highestLevel) errors.highestLevel = 'Highest level represented is required';
       if (!values.jerseySize) errors.jerseySize = 'Jersey size is required';
       if (!values.emergencyContactName.trim()) errors.emergencyContactName = 'Emergency contact person name is required';
       if (!values.emergencyPhone.trim()) {
@@ -226,6 +293,7 @@ export default function PDVLRegistrationForm() {
 
   const goToNextStep = () => {
     if (validateStep(step)) {
+      if (step === 3) setPreviewCountdown(5);
       setStep((prev) => Math.min(4, prev + 1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -244,6 +312,7 @@ export default function PDVLRegistrationForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (step !== 4 || previewCountdown > 0 || submitting) return;
     if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
       setError('Please resolve all validation errors before submitting.');
       return;
@@ -281,7 +350,7 @@ export default function PDVLRegistrationForm() {
       if (!response.ok) {
         throw new Error(data.error || 'Unable to submit your registration.');
       }
-      setRegistrationId(data.id);
+      setRegistrationId(data.id || 'PDVL-' + Math.floor(100000 + Math.random() * 900000));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (submissionError) {
       setError(submissionError.message);
@@ -300,7 +369,7 @@ export default function PDVLRegistrationForm() {
           style={{ width: '72px', height: '72px' }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
           </svg>
         </div>
 
@@ -327,7 +396,7 @@ export default function PDVLRegistrationForm() {
               <strong className="text-dark fs-6">{values.fullName}</strong>
             </div>
             <div className="col-12 col-sm-6">
-              <span className="text-muted d-block">Team / Club</span>
+              <span className="text-muted d-block">School/College/Institute</span>
               <strong className="text-dark fs-6">{values.teamName}</strong>
             </div>
             <div className="col-6 col-sm-4">
@@ -364,8 +433,8 @@ export default function PDVLRegistrationForm() {
             onClick={() => window.print()}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
-              <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+              <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z" />
+              <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z" />
             </svg>
             Print / Save Receipt
           </button>
@@ -386,7 +455,7 @@ export default function PDVLRegistrationForm() {
   ];
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form onSubmit={(e) => e.preventDefault()} noValidate>
       {/* Visual Stepper */}
       <div className="pdvl-stepper-container mb-4 pb-2">
         <div className="pdvl-step-track">
@@ -415,7 +484,7 @@ export default function PDVLRegistrationForm() {
                 <div className="pdvl-step-badge mx-auto">
                   {isCompleted ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
                     </svg>
                   ) : (
                     s.num
@@ -432,8 +501,8 @@ export default function PDVLRegistrationForm() {
       {error && (
         <div className="alert alert-danger rounded-3 py-2 px-3 small d-flex align-items-center gap-2 mb-4" role="alert">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
-            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-            <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+            <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z" />
           </svg>
           <div>{error}</div>
         </div>
@@ -524,24 +593,65 @@ export default function PDVLRegistrationForm() {
             </select>
           </div>
 
-          {/* Player Category */}
+          {/* Player Category — auto-selected from DOB */}
           <div className="col-12 col-md-3">
             <label className="form-label fw-semibold text-secondary small mb-1">
               Player Category <span className="text-danger">*</span>
             </label>
-            <select
-              className={`form-select pdvl-select ${fieldErrors.playerCategory ? 'is-invalid' : ''}`}
-              name="playerCategory"
-              value={values.playerCategory}
-              onChange={handleInputChange}
-              required
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
+            {!values.dateOfBirth ? (
+              <div className="form-control pdvl-input bg-light text-muted small d-flex align-items-center gap-1" style={{ minHeight: 38 }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16" className="opacity-50">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                  <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                </svg>
+                Enter DOB to auto-fill
+              </div>
+            ) : availableCategories.length === 1 ? (
+              // Youth categories — single option, show as locked badge
+              <div>
+                <div className={`form-control pdvl-input bg-success-subtle border-success-subtle d-flex align-items-center gap-2 ${fieldErrors.playerCategory ? 'border-danger' : ''}`} style={{ minHeight: 38 }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="#198754" viewBox="0 0 16 16">
+                    <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                  </svg>
+                  <span className="small fw-bold text-success text-truncate">{availableCategories[0].label.split(' [')[0]}</span>
+                </div>
+                <div className="text-muted text-xs mt-1">Auto-assigned from date of birth</div>
+              </div>
+            ) : (
+              // Adults — let them choose between Palghar Open and Icon Player
+              <div>
+                <select
+                  className={`form-select pdvl-select ${fieldErrors.playerCategory ? 'is-invalid' : ''}`}
+                  name="playerCategory"
+                  value={values.playerCategory}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="">Select category</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label.split(' [')[0]}
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.playerCategory && <div className="invalid-feedback">{fieldErrors.playerCategory}</div>}
+              </div>
+            )}
+          </div>
+
+          {/* DOB Cut-off Info Banner */}
+          <div className="col-12">
+            <div className="px-3 py-2 bg-light rounded-3 border text-secondary small d-flex align-items-center flex-wrap gap-2">
+              <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 font-monospace fw-bold">
+                DOB CUT-OFF DATES
+              </span>
+              <span>
+                <strong>U14:</strong> Born on/after 01/01/2013 &nbsp;•&nbsp;
+                <strong>U17:</strong> Born on/after 01/01/2010 &nbsp;•&nbsp;
+                <strong>U19:</strong> Born on/after 01/01/2008 &nbsp;•&nbsp;
+                <strong>Open / Icon:</strong> Born before 01/01/2008
+              </span>
+            </div>
           </div>
 
           {/* Mobile Number */}
@@ -650,27 +760,51 @@ export default function PDVLRegistrationForm() {
               Players Photo (Passport Size) <span className="text-danger">*</span>
             </label>
 
+            {/* Hidden file input — triggered by button clicks only, not label clicks */}
             <input
+              id="pdvl-photo-input"
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/*"
               className="d-none"
-              onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
+              onChange={(e) => {
+                const picked = e.target.files?.[0];
+                if (picked) {
+                  const fileCopy = picked;
+                  // Reset AFTER saving reference so FileReader can read the file
+                  setTimeout(() => { e.target.value = ''; }, 300);
+                  handleFileUpload(fileCopy);
+                }
+              }}
             />
 
             <div
-              className={`pdvl-dropzone ${dragActive ? 'drag-active' : ''} ${photo.url ? 'has-photo' : ''} ${
-                fieldErrors.photo ? 'border-danger' : ''
-              }`}
+              className={`pdvl-dropzone ${dragActive ? 'drag-active' : ''} ${photo.url ? 'has-photo' : ''} ${fieldErrors.photo ? 'border-danger' : ''}`}
+              role="button"
+              tabIndex={0}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+                const dropped = e.dataTransfer.files?.[0];
+                if (dropped) handleFileUpload(dropped);
+              }}
+              onClick={() => {
+                if (!photo.uploading) fileInputRef.current?.click();
+              }}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !photo.uploading) {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
             >
               {photo.uploading ? (
-                <div className="py-2">
+                <div className="py-2 text-center">
                   <div className="spinner-border spinner-border-sm text-primary mb-2" role="status" />
-                  <div className="fw-semibold text-primary small">Uploading photo...</div>
+                  <div className="fw-semibold text-primary small">Reading photo...</div>
                 </div>
               ) : photo.url ? (
                 <div className="d-flex align-items-center justify-content-between text-start p-1">
@@ -680,12 +814,12 @@ export default function PDVLRegistrationForm() {
                     </div>
                     <div>
                       <div className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 mb-1 small fw-bold">
-                        ✓ Photo Uploaded Successfully
+                        ✓ Photo Ready
                       </div>
                       <div className="fw-bold text-dark small text-truncate" style={{ maxWidth: 220 }}>
                         {photo.name}
                       </div>
-                      <div className="text-muted text-xs">{photo.size}</div>
+                      <div className="text-muted text-xs">{photo.size} · Click to change</div>
                     </div>
                   </div>
                   <button
@@ -696,17 +830,17 @@ export default function PDVLRegistrationForm() {
                       fileInputRef.current?.click();
                     }}
                   >
-                    Change Photo
+                    Change
                   </button>
                 </div>
               ) : (
-                <div className="py-2">
+                <div className="py-2 text-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="#0b72bc" className="mb-2 opacity-75" viewBox="0 0 16 16">
-                    <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
-                    <path d="M8 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 1a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
+                    <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z" />
+                    <path d="M8 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 1a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" />
                   </svg>
-                  <div className="fw-bold text-dark small mb-1">Click to upload or drag player photo here</div>
-                  <div className="text-muted text-xs">JPG, PNG, WEBP supported · Max size 2 MB</div>
+                  <div className="fw-bold text-dark small mb-1">Click or tap to select player photo</div>
+                  <div className="text-muted text-xs">JPG, PNG, WEBP · Max 2 MB · Or drag &amp; drop</div>
                 </div>
               )}
             </div>
@@ -726,7 +860,7 @@ export default function PDVLRegistrationForm() {
           {/* Team / Club Name */}
           <div className="col-12 col-md-6">
             <label className="form-label fw-semibold text-secondary small mb-1">
-              Team / Club Name <span className="text-danger">*</span>
+              School/College/Institute Name <span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -825,14 +959,24 @@ export default function PDVLRegistrationForm() {
 
           {/* Highest Level Represented */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold text-secondary small mb-1">Highest Level Represented</label>
-            <select className="form-select pdvl-select" name="highestLevel" value={values.highestLevel} onChange={handleInputChange}>
+            <label className="form-label fw-semibold text-secondary small mb-1">
+              Highest Level Represented <span className="text-danger">*</span>
+            </label>
+            <select
+              className={`form-select pdvl-select ${fieldErrors.highestLevel ? 'is-invalid' : ''}`}
+              name="highestLevel"
+              value={values.highestLevel}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Select highest level represented</option>
               {HIGHEST_LEVELS.map((lvl) => (
                 <option key={lvl.value} value={lvl.value}>
                   {lvl.label}
                 </option>
               ))}
             </select>
+            {fieldErrors.highestLevel && <div className="invalid-feedback">{fieldErrors.highestLevel}</div>}
           </div>
 
           {/* Jersey Size Selector */}
@@ -1016,7 +1160,7 @@ export default function PDVLRegistrationForm() {
           <div className="border-bottom pb-2">
             <div className="badge bg-warning text-dark font-monospace mb-1">PRE-SUBMISSION REVIEW</div>
             <h5 className="fw-bold text-dark mb-1">Preview & Verify Registration Details</h5>
-            <p className="text-muted small mb-0">Please carefully review all details below. Click "Edit" on any section to make changes before submitting.</p>
+            <p className="text-muted small mb-0">Please carefully review all details below. Click &quot;Edit&quot; on any section to make changes before submitting.</p>
           </div>
 
           {/* Section 1 Preview */}
@@ -1123,7 +1267,9 @@ export default function PDVLRegistrationForm() {
               </div>
               <div className="col-6 col-md-6">
                 <span className="text-muted d-block text-xs">Highest Level</span>
-                <strong className="text-dark text-capitalize">{values.highestLevel}</strong>
+                <strong className="text-dark">
+                  {HIGHEST_LEVELS.find((level) => level.value === values.highestLevel)?.label || '—'}
+                </strong>
               </div>
               <div className="col-6 col-md-6">
                 <span className="text-muted d-block text-xs">Emergency Contact</span>
@@ -1181,14 +1327,15 @@ export default function PDVLRegistrationForm() {
           >
             <span>{step === 3 ? 'Preview Form' : 'Continue'}</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+              <path fillRule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
             </svg>
           </button>
         ) : (
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             className="btn btn-success rounded-3 px-5 py-2 fw-bold fs-6 d-inline-flex align-items-center gap-2 shadow-sm"
-            disabled={submitting}
+            disabled={submitting || previewCountdown > 0}
           >
             {submitting ? (
               <>
@@ -1197,9 +1344,9 @@ export default function PDVLRegistrationForm() {
               </>
             ) : (
               <>
-                <span>Confirm & Submit Registration</span>
+                <span>{previewCountdown > 0 ? `Review details (${previewCountdown}s)` : 'Confirm & Submit Registration'}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M15.854 1.146a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L8.5 8.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                  <path d="M15.854 1.146a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L8.5 8.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
                 </svg>
               </>
             )}
@@ -1209,5 +1356,3 @@ export default function PDVLRegistrationForm() {
     </form>
   );
 }
-
-
