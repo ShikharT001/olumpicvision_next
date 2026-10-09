@@ -8,6 +8,7 @@ import ServicesAndAcademy from '@/components/ServicesAndAcademy';
 import ContactSection from '@/components/ContactSection';
 import AnnouncementBar from '@/components/CertificateBanner';
 import CertificateBanner from '@/components/CertificateBanner';
+import AdModal from '@/components/AdModal';
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -236,6 +237,9 @@ export default function Home() {
 
   return (
     <>
+      {/* First-visit Advertisement Modal */}
+      <AdModal />
+
       <div>
         {/* ── Announcement Bar (fixed, above everything) ── */}
         <AnnouncementBar />
