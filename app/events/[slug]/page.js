@@ -466,6 +466,32 @@ export default async function EventDetailPage({ params }) {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-dark text-light py-4 mt-5">
+        <div className="container">
+          <div className="row align-items-center">
+            <div className="col-md-6 text-md-start text-center mb-2 mb-md-0">
+              <p className="mb-0 text-secondary small">
+                © {new Date().getFullYear()} Olympic Vision. All rights reserved.
+              </p>
+            </div>
+            <div className="col-md-6 text-md-end text-center">
+              <p className="mb-0 text-secondary small">
+                Designed &amp; Developed by{' '}
+                <a
+                  href="https://thetechnocyte.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-info text-decoration-none fw-semibold"
+                >
+                  Technocyte
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

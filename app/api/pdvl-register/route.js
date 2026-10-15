@@ -21,6 +21,7 @@ export async function POST(request) {
       'photoUrl',
       'teamName',
       'playingPosition',
+      'heightCm',
       'highestLevel',
       'jerseySize',
       'emergencyPhone',
@@ -29,6 +30,10 @@ export async function POST(request) {
 
     if (required.some((key) => !String(data[key] || '').trim()) || !data.undertakingAccepted || !data.medicalConsent) {
       return NextResponse.json({ error: 'Please complete all required fields and accept the declarations.' }, { status: 400 });
+    }
+
+    if (isNaN(Number(data.heightCm)) || Number(data.heightCm) <= 0) {
+      return NextResponse.json({ error: 'Please enter a valid height in cm.' }, { status: 400 });
     }
 
     if (!/^[6-9]\d{9}$/.test(data.mobileNo) || !/^[6-9]\d{9}$/.test(data.emergencyPhone)) {

@@ -264,6 +264,11 @@ export default function PDVLRegistrationForm() {
     } else if (currentStep === 2) {
       if (!values.teamName.trim()) errors.teamName = 'School/College/Institute name is required';
       if (!values.playingPosition) errors.playingPosition = 'Playing position is required';
+      if (!String(values.heightCm || '').trim()) {
+        errors.heightCm = 'Height is required';
+      } else if (isNaN(Number(values.heightCm)) || Number(values.heightCm) <= 0) {
+        errors.heightCm = 'Enter a valid height in cm';
+      }
       if (!values.highestLevel) errors.highestLevel = 'Highest level represented is required';
       if (!values.jerseySize) errors.jerseySize = 'Jersey size is required';
       if (!values.emergencyContactName.trim()) errors.emergencyContactName = 'Emergency contact person name is required';
@@ -390,6 +395,13 @@ export default function PDVLRegistrationForm() {
             </span>
           </div>
 
+          <div className="alert alert-warning border-0 small mb-3 py-2 px-3 rounded-3 d-flex align-items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
+              <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+            <span><strong>Payment Note:</strong> Offline registration payment is required while the event takes place.</span>
+          </div>
+
           <div className="row g-3 small">
             <div className="col-12 col-sm-6">
               <span className="text-muted d-block">Player Name</span>
@@ -406,6 +418,10 @@ export default function PDVLRegistrationForm() {
             <div className="col-6 col-sm-4">
               <span className="text-muted d-block">Playing Position</span>
               <strong className="text-dark text-capitalize">{values.playingPosition.replace('_', ' ')}</strong>
+            </div>
+            <div className="col-6 col-sm-4">
+              <span className="text-muted d-block">Height</span>
+              <strong className="text-dark">{values.heightCm} cm</strong>
             </div>
             <div className="col-6 col-sm-4">
               <span className="text-muted d-block">Jersey Size</span>
@@ -441,6 +457,24 @@ export default function PDVLRegistrationForm() {
           <Link href="/" className="btn btn-primary rounded-3 px-4 py-2 fw-semibold">
             Return to Homepage
           </Link>
+        </div>
+
+        {/* Agency Credit Footer */}
+        <div className="mt-5 pt-4 border-top d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 text-muted small">
+          <p className="mb-0 text-center text-sm-start opacity-75">
+            © 2026 Palghar District Volleyball League. All rights reserved.
+          </p>
+          <p className="mb-0 text-center text-sm-end">
+            Designed &amp; Developed by{' '}
+            <a
+              href="https://thetechnocyte.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fw-semibold text-primary text-decoration-none"
+            >
+              Technocyte
+            </a>
+          </p>
         </div>
       </div>
     );
@@ -907,15 +941,19 @@ export default function PDVLRegistrationForm() {
 
           {/* Height */}
           <div className="col-6 col-md-3">
-            <label className="form-label fw-semibold text-secondary small mb-1">Height (cm)</label>
+            <label className="form-label fw-semibold text-secondary small mb-1">
+              Height (cm) <span className="text-danger">*</span>
+            </label>
             <input
               type="number"
-              className="form-control pdvl-input"
+              className={`form-control pdvl-input ${fieldErrors.heightCm ? 'is-invalid' : ''}`}
               placeholder="178"
               name="heightCm"
               value={values.heightCm}
               onChange={handleInputChange}
+              required
             />
+            {fieldErrors.heightCm && <div className="invalid-feedback">{fieldErrors.heightCm}</div>}
           </div>
 
           {/* Weight */}
@@ -1089,8 +1127,12 @@ export default function PDVLRegistrationForm() {
               I hereby declare and undertake that the information provided by me in this Player Registration Form is true, correct and complete to the best of my knowledge. I agree to participate in accordance with official league rules, respect match officials, opponents and spectators, wear official team jerseys, and accept management decisions.
             </p>
             <strong className="text-dark d-block mb-1">Medical Treatment Undertaking:</strong>
-            <p className="mb-0 leading-relaxed" style={{ fontSize: '0.85rem' }}>
+            <p className="mb-2 leading-relaxed" style={{ fontSize: '0.85rem' }}>
               PDVL Committee will provide basic first aid during matches. Further medical treatment and related expenses are my or my parent/guardian&apos;s responsibility unless agreed otherwise in writing.
+            </p>
+            <strong className="text-dark d-block mb-1">Registration Payment Undertaking:</strong>
+            <p className="mb-0 leading-relaxed" style={{ fontSize: '0.85rem' }}>
+              Offline registration payment is required while the event takes place.
             </p>
           </div>
 
@@ -1297,6 +1339,10 @@ export default function PDVLRegistrationForm() {
               <div className="col-12">
                 <span className="text-success fw-bold">✓ Undertaking Accepted & Medical Consent Confirmed</span>
               </div>
+              <div className="col-12">
+                <span className="text-muted d-block text-xs">Payment Requirement:</span>
+                <span className="text-dark fw-semibold">Offline registration payment is required while the event takes place.</span>
+              </div>
               <div className="col-12 mt-2">
                 <span className="text-muted d-block text-xs">Typed Signature:</span>
                 <div className="pdvl-signature-preview mt-1" style={{ fontSize: '1.4rem' }}>
@@ -1352,6 +1398,24 @@ export default function PDVLRegistrationForm() {
             )}
           </button>
         )}
+      </div>
+
+      {/* Agency Credit Footer */}
+      <div className="mt-5 pt-4 border-top d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 text-muted small">
+        <p className="mb-0 text-center text-sm-start opacity-75">
+          © 2026 Palghar District Volleyball League. All rights reserved.
+        </p>
+        <p className="mb-0 text-center text-sm-end">
+          Designed &amp; Developed by{' '}
+          <a
+            href="https://thetechnocyte.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fw-semibold text-primary text-decoration-none"
+          >
+            Technocyte
+          </a>
+        </p>
       </div>
     </form>
   );
