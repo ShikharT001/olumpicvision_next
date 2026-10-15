@@ -23,6 +23,12 @@ export default function PDVLRegistrationPage() {
               <span>Back to Olympic Vision</span>
             </Link>
             <div className="d-flex align-items-center gap-2">
+              <Link
+                href="/auction"
+                className="btn btn-sm btn-warning rounded-pill px-3 py-1.5 fw-bold text-dark d-inline-flex align-items-center gap-1.5 shadow-sm transition-all hover-lift"
+              >
+                <span>🔨 Live Auction Hub</span>
+              </Link>
               <span className="badge bg-white text-dark border shadow-sm px-3 py-2 rounded-pill small fw-bold d-inline-flex align-items-center gap-1.5">
                 <span className="bg-success rounded-circle d-inline-block" style={{ width: 8, height: 8 }}></span>
                 Season 2026/27
