@@ -17,7 +17,7 @@ export default function AuctionLoginGate({ errorMessage, returnTo = '/auction' }
             PDVL Live Auction Access
           </h2>
           <p className="text-secondary small mb-0">
-            Confidential module for tournament committee, auctioneer, and verified team managers.
+            Enter passcode to enter. Main Admin passcode unlocks Auctioneer Console; Team passcode unlocks Live Stage &amp; Squad Boards (view-only).
           </p>
         </div>
 

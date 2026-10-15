@@ -3,7 +3,7 @@ import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getLiveAuctionState } from '@/lib/auction-db';
-import { isAuctionAuthenticated } from './actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from './actions';
 
 export const metadata = {
   title: 'PDVL 2026/27 Live Auction Hub | Confidential Portal',
@@ -20,6 +20,9 @@ export default async function AuctionHubPage({ searchParams }) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction" />;
   }
 
+  const role = await getAuctionRole();
+  const isAdmin = await isAuctionAdmin();
+
   const data = await getLiveAuctionState();
   const teams = data.teams || [];
   const totalPurse = teams.reduce((acc, t) => acc + Number(t.initial_purse || 0), 0);
@@ -29,20 +32,24 @@ export default async function AuctionHubPage({ searchParams }) {
 
   return (
     <div className="auction-shell d-flex flex-column min-vh-100">
-      <AuctionNavbar />
+      <AuctionNavbar role={role} />
 
       <main className="container py-4 py-md-5 my-auto">
         {/* Hero Banner */}
         <div className="text-center mx-auto mb-5" style={{ maxWidth: 780 }}>
           <div className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-warning-subtle text-warning border border-warning-subtle mb-3">
             <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-            <span className="small fw-bold text-uppercase" style={{ letterSpacing: '0.08em' }}>Confidential Tournament Stage</span>
+            <span className="small fw-bold text-uppercase" style={{ letterSpacing: '0.08em' }}>
+              {isAdmin ? 'Main Admin Command Stage' : 'Team Live Updates Hub'}
+            </span>
           </div>
           <h1 className="display-5 fw-extrabold text-white mb-3 tracking-tight">
             Palghar District Volleyball League 2026/27
           </h1>
           <p className="text-secondary fs-5 mb-3 leading-relaxed">
-            Welcome to the PDVL Live Auction Command Center. Manage bidding podiums, stream live big-screen stage graphics, and track team purses in real time.
+            {isAdmin
+              ? 'Welcome to the PDVL Live Auction Command Center. Manage bidding podiums, stream live big-screen stage graphics, and track team purses in real time.'
+              : 'Welcome Team Managers and Franchise Representatives. Track real-time player bids, live sold announcements, and remaining team purses.'}
           </p>
 
           {data.lastNotification && (
@@ -56,22 +63,24 @@ export default async function AuctionHubPage({ searchParams }) {
 
           {/* Quick Nav Cards */}
           <div className="row g-3 justify-content-center">
-            <div className="col-12 col-sm-6 col-md-4">
-              <Link
-                href="/auction/admin"
-                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-                style={{ borderColor: 'rgba(6, 182, 212, 0.4)' }}
-              >
-                <div className="fs-1 mb-2">🔨</div>
-                <h4 className="fw-bold text-white mb-1">Auctioneer Console</h4>
-                <p className="text-secondary small mb-3">
-                  Admin podium to control active bids, physical paddle attribution, and hammer gavel.
-                </p>
-                <span className="text-cyan small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                  Launch Console →
-                </span>
-              </Link>
-            </div>
+            {isAdmin && (
+              <div className="col-12 col-sm-6 col-md-4">
+                <Link
+                  href="/auction/admin"
+                  className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(6, 182, 212, 0.4)' }}
+                >
+                  <div className="fs-1 mb-2">🔨</div>
+                  <h4 className="fw-bold text-white mb-1">Auctioneer Console</h4>
+                  <p className="text-secondary small mb-3">
+                    Admin podium to control active bids, physical paddle attribution, and hammer gavel.
+                  </p>
+                  <span className="text-cyan small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    Launch Console →
+                  </span>
+                </Link>
+              </div>
+            )}
 
             <div className="col-12 col-sm-6 col-md-4">
               <Link
@@ -106,6 +115,25 @@ export default async function AuctionHubPage({ searchParams }) {
                 </span>
               </Link>
             </div>
+
+            {!isAdmin && (
+              <div className="col-12 col-sm-6 col-md-4">
+                <Link
+                  href="/auction/players"
+                  className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
+                >
+                  <div className="fs-1 mb-2">📋</div>
+                  <h4 className="fw-bold text-white mb-1">Player Pool</h4>
+                  <p className="text-secondary small mb-3">
+                    Browse all registered tournament players, playing positions, base prices, and lot order.
+                  </p>
+                  <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    Browse Players →
+                  </span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 

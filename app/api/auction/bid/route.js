@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { placeBid } from '@/lib/auction-db';
+import { isAuctionAdmin } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
   try {
+    const isAdmin = await isAuctionAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized. Only the main admin can place bids.' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { teamId, bidAmount } = body;
 

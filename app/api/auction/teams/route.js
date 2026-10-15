@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuctionTeams, createAuctionTeam, updateAuctionTeam } from '@/lib/auction-db';
+import { isAuctionAdmin } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,11 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    const isAdmin = await isAuctionAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized. Only the main admin can create or modify teams.' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action, teamId, ...teamData } = body;
 

@@ -3,7 +3,7 @@ import TeamSquadsDashboard from '@/components/auction/TeamSquadsDashboard';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getAuctionTeams } from '@/lib/auction-db';
-import { isAuctionAuthenticated } from '../actions';
+import { isAuctionAuthenticated, getAuctionRole } from '../actions';
 
 export const metadata = {
   title: 'Team Squads & Remaining Purse | PDVL 2026 Auction',
@@ -20,11 +20,12 @@ export default async function AuctionTeamsPage({ searchParams }) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction/teams" />;
   }
 
+  const role = await getAuctionRole();
   const initialTeams = await getAuctionTeams();
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column">
-      <AuctionNavbar />
+      <AuctionNavbar role={role} />
       <main className="flex-grow-1">
         <TeamSquadsDashboard initialTeams={initialTeams} />
       </main>

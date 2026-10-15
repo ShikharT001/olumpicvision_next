@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-export default function PlayerPoolManager({ initialPlayers }) {
+export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
   const [players, setPlayers] = useState(initialPlayers || []);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -149,17 +149,25 @@ export default function PlayerPoolManager({ initialPlayers }) {
         </div>
 
         <div className="d-flex align-items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
-            onClick={handleImport}
-            disabled={loading}
-          >
-            <span>📥 Import Verified PDVL Players</span>
-          </button>
-          <Link href="/auction/admin" className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs">
-            Open Podium ↗
-          </Link>
+          {isAdmin ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
+                onClick={handleImport}
+                disabled={loading}
+              >
+                <span>📥 Import Verified PDVL Players</span>
+              </button>
+              <Link href="/auction/admin" className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs">
+                Open Podium ↗
+              </Link>
+            </>
+          ) : (
+            <span className="badge bg-secondary bg-opacity-35 text-white px-3 py-1.5 rounded-pill text-xs fw-semibold">
+              👁️ View-Only Registered Player Roster
+            </span>
+          )}
         </div>
       </div>
 
@@ -267,13 +275,13 @@ export default function PlayerPoolManager({ initialPlayers }) {
                 <th scope="col">Lot</th>
                 <th scope="col">Base Price</th>
                 <th scope="col">Status</th>
-                <th scope="col" className="text-end">Actions</th>
+                {isAdmin && <th scope="col" className="text-end">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-4 text-white-50">
+                  <td colSpan={isAdmin ? 8 : 7} className="text-center py-4 text-white-50">
                     No players found matching your criteria.
                   </td>
                 </tr>
@@ -344,26 +352,28 @@ export default function PlayerPoolManager({ initialPlayers }) {
                         </span>
                       )}
                     </td>
-                    <td className="text-end">
-                      <div className="d-inline-flex align-items-center gap-1.5">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0.5 text-xs"
-                          onClick={() => startEdit(player)}
-                        >
-                          ✏️ Edit
-                        </button>
-                        {player.auction_status !== 'sold' && (
+                    {isAdmin && (
+                      <td className="text-end">
+                        <div className="d-inline-flex align-items-center gap-1.5">
                           <button
                             type="button"
-                            className="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                            onClick={() => handleSendToHammer(player)}
+                            className="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0.5 text-xs"
+                            onClick={() => startEdit(player)}
                           >
-                            To Podium →
+                            ✏️ Edit
                           </button>
-                        )}
-                      </div>
-                    </td>
+                          {player.auction_status !== 'sold' && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 text-xs fw-bold"
+                              onClick={() => handleSendToHammer(player)}
+                            >
+                              To Podium →
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -373,7 +383,7 @@ export default function PlayerPoolManager({ initialPlayers }) {
       </div>
 
       {/* EDIT MODAL */}
-      {editingPlayer && (
+      {isAdmin && editingPlayer && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} tabIndex="-1">
           <div className="modal-dialog">
             <div className="modal-content auction-card border-secondary text-white">

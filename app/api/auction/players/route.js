@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuctionPlayers, importFromRegistrations, updateAuctionPlayer, setActivePlayer } from '@/lib/auction-db';
+import { isAuctionAdmin } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const isAdmin = await isAuctionAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized. Only the main admin can modify players.' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action } = body;
 

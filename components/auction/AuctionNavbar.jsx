@@ -4,31 +4,44 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAuction } from '@/app/auction/actions';
 
-export default function AuctionNavbar() {
+export default function AuctionNavbar({ role = 'team' }) {
   const pathname = usePathname();
+  const isAdmin = role === 'admin';
 
-  const links = [
-    { href: '/auction/admin', label: '🔨 Auctioneer Console' },
-    { href: '/auction/live', label: '📺 Big-Screen Live' },
-    { href: '/auction/teams', label: '🛡️ Team Squads & Purse' },
-    { href: '/auction/players', label: '📋 Player Pool' },
-    { href: '/auction/manage-teams', label: '⚙️ Teams Setup' },
+  const allLinks = [
+    { href: '/auction/admin', label: '🔨 Auctioneer Console', adminOnly: true },
+    { href: '/auction/live', label: '📺 Big-Screen Live', adminOnly: false },
+    { href: '/auction/teams', label: '🛡️ Team Squads & Purse', adminOnly: false },
+    { href: '/auction/players', label: isAdmin ? '📋 Player Pool & Lots' : '📋 Player Pool (View)', adminOnly: false },
+    { href: '/auction/manage-teams', label: '⚙️ Teams Setup', adminOnly: true },
   ];
 
+  const visibleLinks = allLinks.filter((link) => !link.adminOnly || isAdmin);
+
   return (
-    <header className="border-bottom" style={{ borderColor: 'var(--auction-border)', background: 'rgba(10, 18, 36, 0.85)', backdropFilter: 'blur(8px)' }}>
+    <header className="border-bottom" style={{ borderColor: 'var(--auction-border)', background: 'rgba(10, 18, 36, 0.9)', backdropFilter: 'blur(10px)' }}>
       <div className="container-fluid px-3 px-md-4 py-2.5 d-flex flex-wrap align-items-center justify-content-between gap-3">
-        {/* Brand */}
+        {/* Brand & Role Badge */}
         <div className="d-flex align-items-center gap-2.5">
           <Link href="/auction" className="text-decoration-none d-flex align-items-center gap-2">
-            <span className="badge badge-gold px-2 py-1 rounded-pill text-xs">PDVL 2026/27</span>
-            <span className="fw-bold fs-6 text-white tracking-tight">CONFIDENTIAL AUCTION PORTAL</span>
+            <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs">PDVL 2026/27</span>
+            <span className="fw-bold fs-6 text-white tracking-tight">AUCTION PORTAL</span>
           </Link>
+
+          {isAdmin ? (
+            <span className="badge bg-warning text-dark px-2.5 py-1 rounded-pill text-xs fw-extrabold shadow-sm">
+              👑 MAIN ADMIN
+            </span>
+          ) : (
+            <span className="badge bg-info text-dark px-2.5 py-1 rounded-pill text-xs fw-bold shadow-sm">
+              🛡️ TEAM (VIEW ONLY)
+            </span>
+          )}
         </div>
 
         {/* Navigation Tabs & Lock Button */}
         <nav className="d-flex flex-wrap align-items-center gap-1.5 ms-auto">
-          {links.map((link) => {
+          {visibleLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
               <Link
