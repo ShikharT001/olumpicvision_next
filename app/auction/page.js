@@ -1,16 +1,25 @@
 import Link from 'next/link';
 import AuctionNavbar from '@/components/auction/AuctionNavbar';
+import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getLiveAuctionState } from '@/lib/auction-db';
+import { isAuctionAuthenticated } from './actions';
 
 export const metadata = {
-  title: 'PDVL 2026/27 Live Auction Hub | Olympic Vision',
-  description: 'Official Live Player Auction Console, Stage Display, and Team Squad Portals for Palghar District Volleyball League.',
+  title: 'PDVL 2026/27 Live Auction Hub | Confidential Portal',
+  description: 'Confidential Player Auction Console, Stage Display, and Team Squad Portals for Palghar District Volleyball League.',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function AuctionHubPage() {
+export default async function AuctionHubPage({ searchParams }) {
+  const isAuthed = await isAuctionAuthenticated();
+  if (!isAuthed) {
+    const resolvedParams = await searchParams;
+    const errorMessage = resolvedParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
+    return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction" />;
+  }
+
   const data = await getLiveAuctionState();
   const teams = data.teams || [];
   const totalPurse = teams.reduce((acc, t) => acc + Number(t.initial_purse || 0), 0);
@@ -27,7 +36,7 @@ export default async function AuctionHubPage() {
         <div className="text-center mx-auto mb-5" style={{ maxWidth: 780 }}>
           <div className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-warning-subtle text-warning border border-warning-subtle mb-3">
             <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-            <span className="small fw-bold text-uppercase" style={{ letterSpacing: '0.08em' }}>Official Tournament Stage</span>
+            <span className="small fw-bold text-uppercase" style={{ letterSpacing: '0.08em' }}>Confidential Tournament Stage</span>
           </div>
           <h1 className="display-5 fw-extrabold text-white mb-3 tracking-tight">
             Palghar District Volleyball League 2026/27

@@ -1,7 +1,9 @@
 import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import AuctioneerConsole from '@/components/auction/AuctioneerConsole';
+import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getLiveAuctionState } from '@/lib/auction-db';
+import { isAuctionAuthenticated } from '../actions';
 
 export const metadata = {
   title: 'Auctioneer Control Console | PDVL 2026 Live Auction',
@@ -10,7 +12,14 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function AuctionAdminPage() {
+export default async function AuctionAdminPage({ searchParams }) {
+  const isAuthed = await isAuctionAuthenticated();
+  if (!isAuthed) {
+    const resolvedParams = await searchParams;
+    const errorMessage = resolvedParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
+    return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction/admin" />;
+  }
+
   const initialData = await getLiveAuctionState();
 
   return (

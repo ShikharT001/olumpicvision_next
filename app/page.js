@@ -260,15 +260,6 @@ export default function Home() {
               <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>
               <li className="nav-item">
                 <a
-                  href="/auction"
-                  className="nav-link"
-                  style={{ color: '#00d2ff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  🏐 PDVL Auction
-                </a>
-              </li>
-              <li className="nav-item">
-                <a
                   href="/marathon-portal"
                   className="nav-link"
                   style={{ color: '#f5a623', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -306,7 +297,6 @@ export default function Home() {
                 <li><a href="#coaching" onClick={() => setMenuOpen(false)}>Coaching</a></li>
                 <li><a href="#services" onClick={() => setMenuOpen(false)}>Services</a></li>
                 <li><a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a></li>
-                <li><a href="/auction" style={{ color: '#00d2ff', fontWeight: 600 }}>🏐 PDVL Auction</a></li>
                 <li><a href="/marathon-portal" style={{ color: '#f5a623', fontWeight: 600 }}>🏅 e-Certificate</a></li>
               </ul>
             </div>
