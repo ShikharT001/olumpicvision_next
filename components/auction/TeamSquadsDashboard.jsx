@@ -1,18 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
 export default function TeamSquadsDashboard({ initialTeams }) {
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [liveNotification, setLiveNotification] = useState(null);
+  const lastNotifIdRef = useRef(null);
 
-  const fetchTeams = useCallback(async () => {
+  const fetchLiveStateAndTeams = useCallback(async () => {
     try {
-      const res = await fetch('/api/auction/teams');
+      const res = await fetch('/api/auction/state');
       if (res.ok) {
         const json = await res.json();
-        setTeams(json.teams || []);
+        if (json.teams) {
+          setTeams(json.teams);
+        }
+        if (json.lastNotification && json.lastNotification.id !== lastNotifIdRef.current) {
+          lastNotifIdRef.current = json.lastNotification.id;
+          setLiveNotification(json.lastNotification);
+        }
       }
     } catch {
       // Ignore poll error
@@ -20,21 +28,67 @@ export default function TeamSquadsDashboard({ initialTeams }) {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(fetchTeams, 2000);
+    fetchLiveStateAndTeams();
+    const timer = setInterval(fetchLiveStateAndTeams, 1500);
     return () => clearInterval(timer);
-  }, [fetchTeams]);
+  }, [fetchLiveStateAndTeams]);
 
   const activeTeamList = selectedTeam
     ? teams.filter((t) => t.id === selectedTeam)
     : teams;
 
+  // Aggregate league stats
+  const totalPurse = teams.reduce((acc, t) => acc + Number(t.initial_purse || 0), 0);
+  const remainingPurse = teams.reduce((acc, t) => acc + Number(t.remaining_purse || 0), 0);
+  const totalSpent = Math.max(0, totalPurse - remainingPurse);
+  const allSoldPlayers = teams.flatMap((t) => t.squad || []);
+  const highestBuy = allSoldPlayers.reduce((max, p) => (Number(p.sold_price || 0) > Number(max?.sold_price || 0) ? p : max), null);
+
   return (
     <div className="container-fluid px-3 px-md-4 py-4">
+      {/* Real-time SOLD / UNSOLD Live Notification Banner */}
+      {liveNotification && (
+        <div
+          className={`auction-notify-banner mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-lg ${
+            liveNotification.type === 'unsold' ? 'is-unsold' : ''
+          }`}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <span
+              className={`badge rounded-pill px-3 py-1.5 text-xs fw-extrabold text-uppercase ${
+                liveNotification.type === 'sold'
+                  ? 'badge-gold'
+                  : liveNotification.type === 'unsold'
+                  ? 'bg-warning text-dark'
+                  : 'badge-cyan'
+              }`}
+            >
+              {liveNotification.type === 'sold' ? '📢 LATEST SALE' : '⚠️ LATEST OUTCOME'}
+            </span>
+            <div>
+              <h4 className="fw-extrabold text-white mb-0 fs-6">
+                {liveNotification.message}
+              </h4>
+              <span className="text-white-50 text-xs">
+                Live Broadcast Feed • {new Date(liveNotification.timestamp || Date.now()).toLocaleTimeString()}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-xs"
+            onClick={() => setLiveNotification(null)}
+          >
+            Dismiss ✕
+          </button>
+        </div>
+      )}
+
       {/* Page Title & Filter Bar */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom border-secondary border-opacity-25 pb-3 mb-4">
         <div>
           <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase mb-1">
-            League Roster Hub
+            PDVL 2026/27 League Roster Hub
           </span>
           <h2 className="h3 fw-extrabold text-white mb-0 tracking-tight">
             Team Squads & Remaining Purse
@@ -42,7 +96,7 @@ export default function TeamSquadsDashboard({ initialTeams }) {
         </div>
 
         {/* Filter by Team */}
-        <div className="d-flex align-items-center gap-2">
+        <div className="d-flex flex-wrap align-items-center gap-2">
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold ${!selectedTeam ? 'btn-primary' : 'btn-outline-secondary text-light'}`}
@@ -60,6 +114,36 @@ export default function TeamSquadsDashboard({ initialTeams }) {
               {t.team_code}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* League Financial Summary Cards */}
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-3">
+          <div className="auction-card p-3 text-center">
+            <span className="text-white-50 text-xs d-block mb-1">Total League Purse</span>
+            <strong className="fs-4 fw-extrabold text-warning">₹{totalPurse.toLocaleString()}</strong>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="auction-card p-3 text-center">
+            <span className="text-white-50 text-xs d-block mb-1">Spent in Bids</span>
+            <strong className="fs-4 fw-extrabold text-info">₹{totalSpent.toLocaleString()}</strong>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="auction-card p-3 text-center">
+            <span className="text-white-50 text-xs d-block mb-1">Players Acquired</span>
+            <strong className="fs-4 fw-extrabold text-success">{allSoldPlayers.length}</strong>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="auction-card p-3 text-center">
+            <span className="text-white-50 text-xs d-block mb-1">Season Record Buy</span>
+            <strong className="fs-5 fw-extrabold text-white text-truncate d-block">
+              {highestBuy ? `${highestBuy.full_name} (₹${Number(highestBuy.sold_price).toLocaleString()})` : '—'}
+            </strong>
+          </div>
         </div>
       </div>
 
@@ -83,10 +167,10 @@ export default function TeamSquadsDashboard({ initialTeams }) {
                     <span
                       className="rounded-circle d-flex align-items-center justify-content-center text-white fw-extrabold shadow-sm"
                       style={{
-                        width: 50,
-                        height: 50,
+                        width: 52,
+                        height: 52,
                         backgroundColor: team.primary_color || '#0d6efd',
-                        fontSize: '1.1rem',
+                        fontSize: '1.15rem',
                       }}
                     >
                       {team.team_code}
@@ -99,7 +183,7 @@ export default function TeamSquadsDashboard({ initialTeams }) {
                     </div>
                   </div>
 
-                  <span className="badge bg-secondary bg-opacity-25 text-light px-2.5 py-1 rounded-pill text-xs">
+                  <span className="badge bg-secondary bg-opacity-30 text-light px-2.5 py-1 rounded-pill text-xs">
                     Squad: <strong className="text-white">{squadCount}</strong> / {maxSquad}
                   </span>
                 </div>
@@ -132,7 +216,7 @@ export default function TeamSquadsDashboard({ initialTeams }) {
                     </div>
                     <div className="text-end">
                       <span className="text-white-50 text-xs d-block">Remaining Purse</span>
-                      <strong className={`fs-6 ${remainingPurse < 10000 ? 'text-danger' : 'text-success'}`}>
+                      <strong className={`fs-6 fw-extrabold ${remainingPurse < 10000 ? 'text-danger' : 'text-success'}`}>
                         ₹{remainingPurse.toLocaleString()}
                       </strong>
                     </div>
@@ -157,7 +241,7 @@ export default function TeamSquadsDashboard({ initialTeams }) {
                           className="list-group-item bg-transparent text-white border-secondary border-opacity-15 p-2 d-flex align-items-center justify-content-between"
                         >
                           <div className="d-flex align-items-center gap-2.5">
-                            <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                            <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center" style={{ width: 34, height: 34 }}>
                               {player.photo_url ? (
                                 <img src={player.photo_url} alt={player.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               ) : (
@@ -174,7 +258,7 @@ export default function TeamSquadsDashboard({ initialTeams }) {
                           </div>
 
                           <div className="text-end">
-                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 text-xs fw-bold">
+                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 text-xs fw-bold">
                               ₹{Number(player.sold_price || 0).toLocaleString()}
                             </span>
                           </div>

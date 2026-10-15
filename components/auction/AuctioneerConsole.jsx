@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
 import Link from 'next/link';
 
 export default function AuctioneerConsole({ initialData }) {
   const [data, setData] = useState(initialData || {});
+  const [liveNotification, setLiveNotification] = useState(initialData?.lastNotification || null);
   const [selectedIncrement, setSelectedIncrement] = useState(500);
   const [customBidInput, setCustomBidInput] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -14,6 +15,7 @@ export default function AuctioneerConsole({ initialData }) {
   const [allPlayers, setAllPlayers] = useState([]);
   const [playerFilter, setPlayerFilter] = useState({ lot: '', status: 'queued', search: '' });
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const lastNotifIdRef = useRef(initialData?.lastNotification?.id || null);
   const [, startTransition] = useTransition();
 
   const fetchState = useCallback(async () => {
@@ -21,6 +23,10 @@ export default function AuctioneerConsole({ initialData }) {
       const res = await fetch('/api/auction/state');
       if (res.ok) {
         const json = await res.json();
+        if (json.lastNotification && json.lastNotification.id !== lastNotifIdRef.current) {
+          lastNotifIdRef.current = json.lastNotification.id;
+          setLiveNotification(json.lastNotification);
+        }
         setData(json);
       }
     } catch {
@@ -114,7 +120,20 @@ export default function AuctioneerConsole({ initialData }) {
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Sale finalization failed');
 
-      setActionMessage(`🎉 SOLD! ${activePlayer.full_name} to ${highestTeam.team_name} for ₹${currentBid.toLocaleString()}`);
+      const soldMsg = resData.message || `${activePlayer.full_name} sold to ${highestTeam.team_name} at ₹${currentBid.toLocaleString()}`;
+      if (resData.notification) {
+        setLiveNotification(resData.notification);
+      } else {
+        setLiveNotification({
+          type: 'sold',
+          message: soldMsg,
+          playerName: activePlayer.full_name,
+          teamName: highestTeam.team_name,
+          price: currentBid,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      setActionMessage(soldMsg);
       fetchState();
     } catch (err) {
       setError(err.message);
@@ -142,7 +161,18 @@ export default function AuctioneerConsole({ initialData }) {
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Failed to mark unsold');
 
-      setActionMessage(`Marked ${activePlayer.full_name} as Unsold.`);
+      const unsoldMsg = resData.message || `${activePlayer.full_name} remained UNSOLD and moved to the unsold pool.`;
+      if (resData.notification) {
+        setLiveNotification(resData.notification);
+      } else {
+        setLiveNotification({
+          type: 'unsold',
+          message: unsoldMsg,
+          playerName: activePlayer.full_name,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      setActionMessage(unsoldMsg);
       fetchState();
     } catch (err) {
       setError(err.message);
@@ -230,6 +260,48 @@ export default function AuctioneerConsole({ initialData }) {
 
   return (
     <div className="container-fluid px-3 px-md-4 py-3">
+      {/* Broadcast SOLD / UNSOLD Live Notification Banner */}
+      {liveNotification && (
+        <div
+          className={`auction-notify-banner mb-3 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-lg ${
+            liveNotification.type === 'unsold' ? 'is-unsold' : ''
+          }`}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <span
+              className={`badge rounded-pill px-3 py-1.5 text-xs fw-extrabold text-uppercase ${
+                liveNotification.type === 'sold'
+                  ? 'badge-gold'
+                  : liveNotification.type === 'unsold'
+                  ? 'bg-warning text-dark'
+                  : 'badge-cyan'
+              }`}
+            >
+              {liveNotification.type === 'sold'
+                ? '🎉 PLAYER SOLD'
+                : liveNotification.type === 'unsold'
+                ? '⚠️ PLAYER UNSOLD'
+                : 'ℹ️ NOTICE'}
+            </span>
+            <div>
+              <h4 className="fw-extrabold text-white mb-0 fs-6">
+                {liveNotification.message}
+              </h4>
+              <span className="text-white-50 text-xs">
+                Live Broadcast Notification • {new Date(liveNotification.timestamp || Date.now()).toLocaleTimeString()}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-xs"
+            onClick={() => setLiveNotification(null)}
+          >
+            Dismiss ✕
+          </button>
+        </div>
+      )}
+
       {/* Top Banner Alert / Action notification */}
       {actionMessage && (
         <div className="alert alert-success alert-dismissible fade show border-0 shadow-sm py-2 px-3 small d-flex align-items-center justify-content-between mb-3" role="alert">
@@ -487,17 +559,18 @@ export default function AuctioneerConsole({ initialData }) {
                       <button
                         type="button"
                         className={`team-paddle-btn w-100 ${isHigh ? 'is-highest-bidder' : ''}`}
+                        style={{ '--team-color': team.primary_color || '#0d6efd' }}
                         onClick={() => handleTeamPaddleClick(team)}
                         disabled={!canBid}
                       >
-                        <div className="d-flex align-items-center justify-content-between mb-1">
+                        <div className="d-flex align-items-center justify-content-between mb-1.5">
                           <span
-                            className="badge px-2 py-0.5 rounded-pill text-xs fw-extrabold"
+                            className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold shadow-sm"
                             style={{ backgroundColor: team.primary_color || '#0d6efd', color: '#fff' }}
                           >
                             {team.team_code}
                           </span>
-                          <span className="text-white-50 text-xs font-monospace">
+                          <span className="badge bg-secondary bg-opacity-30 text-light text-xs font-monospace">
                             Squad: {team.squad_count || 0}/{team.max_squad_size || 12}
                           </span>
                         </div>
@@ -508,24 +581,31 @@ export default function AuctioneerConsole({ initialData }) {
 
                         <div className="d-flex align-items-center justify-content-between text-xs pt-1 border-top border-secondary border-opacity-20">
                           <span className="text-white-50">Remaining Purse:</span>
-                          <span className={`fw-bold ${Number(team.remaining_purse) < 10000 ? 'text-danger' : 'text-success'}`}>
+                          <span className={`fw-extrabold ${Number(team.remaining_purse) < 10000 ? 'text-danger' : 'text-success'}`}>
                             ₹{Number(team.remaining_purse || 0).toLocaleString()}
                           </span>
                         </div>
 
+                        <div className="mt-2 pt-1 border-top border-secondary border-opacity-15 d-flex align-items-center justify-content-between">
+                          <span className="text-white-50 text-xs">Raise Paddle:</span>
+                          <span className="badge bg-primary text-white px-2 py-0.5 rounded-pill text-xs fw-bold">
+                            +₹{bidAmountToPlace.toLocaleString()} ↗
+                          </span>
+                        </div>
+
                         {isHigh && (
-                          <div className="text-center mt-1 pt-1 text-warning fw-extrabold text-xs">
+                          <div className="text-center mt-2 py-0.5 rounded-pill bg-warning-subtle text-warning fw-extrabold text-xs border border-warning-subtle">
                             ★ CURRENT HIGHEST BIDDER ★
                           </div>
                         )}
 
                         {!hasPurse && (
-                          <div className="text-danger small mt-1" style={{ fontSize: '0.72rem' }}>
+                          <div className="text-danger small mt-1.5 fw-semibold" style={{ fontSize: '0.74rem' }}>
                             ⚠️ Insufficient Purse for ₹{bidAmountToPlace.toLocaleString()}
                           </div>
                         )}
                         {isFull && (
-                          <div className="text-danger small mt-1" style={{ fontSize: '0.72rem' }}>
+                          <div className="text-danger small mt-1.5 fw-semibold" style={{ fontSize: '0.74rem' }}>
                             ⚠️ Squad Limit Reached ({team.max_squad_size})
                           </div>
                         )}

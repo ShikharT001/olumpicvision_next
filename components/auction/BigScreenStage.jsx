@@ -1,31 +1,74 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+
+// Play synthesized fanfare using standard Web Audio API (no external files)
+function playFanfareSound() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 fanfare
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.11);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.11);
+      gain.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + idx * 0.11 + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.11 + 0.42);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.11);
+      osc.stop(ctx.currentTime + idx * 0.11 + 0.45);
+    });
+  } catch {
+    // Ignore audio permission restrictions
+  }
+}
 
 export default function BigScreenStage({ initialData }) {
   const [data, setData] = useState(initialData || {});
   const [soldOverlay, setSoldOverlay] = useState(null);
+  const [unsoldNotification, setUnsoldNotification] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const lastNotifIdRef = useRef(initialData?.lastNotification?.id || null);
+
+  const handleNewNotification = useCallback((notif) => {
+    if (!notif || notif.id === lastNotifIdRef.current) return;
+    lastNotifIdRef.current = notif.id;
+
+    if (notif.type === 'sold') {
+      setSoldOverlay(notif);
+      playFanfareSound();
+      const timer = setTimeout(() => {
+        setSoldOverlay(null);
+      }, 7500);
+      return () => clearTimeout(timer);
+    } else if (notif.type === 'unsold') {
+      setUnsoldNotification(notif);
+      const timer = setTimeout(() => {
+        setUnsoldNotification(null);
+      }, 5500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const fetchState = useCallback(async () => {
     try {
       const res = await fetch('/api/auction/state');
       if (res.ok) {
         const json = await res.json();
-
-        // Check if a player just sold
-        if (json.state?.last_action?.startsWith('SOLD!') && json.state?.last_action !== data.state?.last_action) {
-          setSoldOverlay(json.state.last_action);
-          setTimeout(() => setSoldOverlay(null), 5000);
+        if (json.lastNotification) {
+          handleNewNotification(json.lastNotification);
         }
-
         setData(json);
       }
     } catch {
-      // Ignore poll error
+      // Ignore background poll error
     }
-  }, [data.state?.last_action]);
+  }, [handleNewNotification]);
 
   useEffect(() => {
     const timer = setInterval(fetchState, 1000);
@@ -51,15 +94,16 @@ export default function BigScreenStage({ initialData }) {
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column justify-content-between p-3 p-md-4 position-relative overflow-hidden">
-      {/* Top Header Bar */}
+      {/* Top Stage Header Bar */}
       <header className="d-flex align-items-center justify-content-between pb-3 border-bottom border-secondary border-opacity-25" style={{ zIndex: 10 }}>
         <div className="d-flex align-items-center gap-3">
           <Link href="/auction" className="text-decoration-none d-flex align-items-center gap-2">
             <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs">PDVL 2026/27</span>
             <span className="fw-extrabold fs-5 text-white tracking-tight">PALGHAR DISTRICT VOLLEYBALL LEAGUE</span>
           </Link>
-          <span className="badge bg-danger text-white rounded-pill px-2.5 py-1 text-xs fw-bold animate-pulse d-none d-sm-inline-block">
-            ● LIVE ON STAGE
+          <span className="badge bg-danger text-white rounded-pill px-2.5 py-1 text-xs fw-bold d-none d-sm-inline-flex align-items-center gap-1.5 shadow-sm">
+            <span className="spinner-grow spinner-grow-sm" style={{ width: 8, height: 8 }} role="status"></span>
+            LIVE ON STAGE
           </span>
         </div>
 
@@ -167,7 +211,7 @@ export default function BigScreenStage({ initialData }) {
               {/* Leading Team Card */}
               <div className="mt-4 pt-3 border-top border-secondary border-opacity-25">
                 {highestTeam ? (
-                  <div className="p-3 rounded-4 bg-black bg-opacity-30 border border-secondary border-opacity-30 d-inline-flex flex-column align-items-center gap-2 px-5 shadow-sm">
+                  <div className="p-3.5 rounded-4 bg-black bg-opacity-35 border border-secondary border-opacity-30 d-inline-flex flex-column align-items-center gap-2 px-5 shadow-sm">
                     <div className="d-flex align-items-center gap-2.5">
                       <span
                         className="badge px-3 py-1.5 rounded-pill fs-6 fw-extrabold shadow-sm"
@@ -181,7 +225,7 @@ export default function BigScreenStage({ initialData }) {
                       <span className="text-white-50 small">Owner: {highestTeam.owner_name}</span>
                     )}
                     <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill text-xs fw-bold">
-                      HIGHEST BIDDER
+                      HIGHEST LEAD BIDDER
                     </span>
                   </div>
                 ) : (
@@ -213,17 +257,91 @@ export default function BigScreenStage({ initialData }) {
 
       {/* SOLD CELEBRATION MODAL OVERLAY */}
       {soldOverlay && (
-        <div className="sold-celebration-overlay text-center px-3">
-          <div className="fs-1 mb-2">🎉 🔨 🎉</div>
-          <h1 className="display-4 fw-extrabold text-warning mb-2 tracking-tight">
-            SOLD!
-          </h1>
-          <p className="fs-4 text-white max-w-xl mx-auto leading-relaxed mb-4">
-            {soldOverlay}
-          </p>
-          <div className="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill bg-success text-white fw-bold shadow-lg">
-            <span>✓ Transfer Finalized to Team Squad</span>
+        <div className="sold-celebration-overlay">
+          {/* Confetti Particles */}
+          <div className="confetti-container">
+            {Array.from({ length: 32 }).map((_, i) => (
+              <span
+                key={i}
+                className="confetti-dot"
+                style={{
+                  left: `${(i * 3.1) % 100}%`,
+                  animationDelay: `${(i * 0.15) % 2.5}s`,
+                  backgroundColor: ['#f59e0b', '#06b6d4', '#10b981', '#ec4899', '#f97316', '#a855f7'][i % 6],
+                  transform: `scale(${0.7 + (i % 5) * 0.15})`,
+                }}
+              />
+            ))}
           </div>
+
+          <div className="celebration-box">
+            <div className="fs-1 mb-1">🎉 🔨 🎉</div>
+            <h1 className="sold-headline-glow">
+              SOLD!
+            </h1>
+
+            {/* Exact requested format: "[Player Name] sold to [Team Name] at ₹[Price]" */}
+            <div className="p-3 my-3 rounded-4 bg-black bg-opacity-40 border border-warning border-opacity-40">
+              <h3 className="fs-3 fw-extrabold text-white mb-0 text-break leading-snug">
+                <span className="text-warning">{soldOverlay.playerName}</span> sold to{' '}
+                <span className="text-info">{soldOverlay.teamName}</span> at{' '}
+                <span className="text-warning">₹{Number(soldOverlay.price || 0).toLocaleString()}</span>
+              </h3>
+            </div>
+
+            {/* Visual breakdown badge row */}
+            <div className="d-flex flex-wrap align-items-center justify-content-center gap-3 mt-3 mb-4">
+              <div className="d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-dark border border-secondary border-opacity-40 text-xs">
+                <span className="text-white-50">Lot:</span>
+                <strong className="text-white">#{soldOverlay.lotNumber || 1}</strong>
+                {soldOverlay.playerGrade && (
+                  <span className="badge badge-gold px-2 py-0.5 rounded-pill">{soldOverlay.playerGrade}</span>
+                )}
+              </div>
+
+              <div className="d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-dark border border-secondary border-opacity-40 text-xs">
+                <span
+                  className="rounded-circle d-inline-block"
+                  style={{ width: 12, height: 12, backgroundColor: soldOverlay.teamColor || '#0d6efd' }}
+                ></span>
+                <span className="text-white-50">Acquired By:</span>
+                <strong className="text-white">{soldOverlay.teamName}</strong>
+              </div>
+            </div>
+
+            <div className="d-flex align-items-center justify-content-center gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-warning rounded-pill px-4 py-2 text-xs fw-bold"
+                onClick={() => setSoldOverlay(null)}
+              >
+                Continue Stage Display ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UNSOLD NOTIFICATION BANNER / MODAL */}
+      {unsoldNotification && (
+        <div className="unsold-overlay-card text-center">
+          <div className="d-flex align-items-center justify-content-between mb-2">
+            <span className="badge bg-warning text-dark px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+              ⚠️ UNSOLD NOTIFICATION
+            </span>
+            <button
+              type="button"
+              className="btn-close btn-close-white small"
+              onClick={() => setUnsoldNotification(null)}
+              aria-label="Close"
+            ></button>
+          </div>
+          <h4 className="fw-bold text-white mb-2 fs-5">
+            {unsoldNotification.message}
+          </h4>
+          <span className="text-white-50 small">
+            Player lot will remain eligible for re-introduction in the unsold round.
+          </span>
         </div>
       )}
     </div>

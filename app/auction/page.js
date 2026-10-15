@@ -41,9 +41,18 @@ export default async function AuctionHubPage({ searchParams }) {
           <h1 className="display-5 fw-extrabold text-white mb-3 tracking-tight">
             Palghar District Volleyball League 2026/27
           </h1>
-          <p className="text-secondary fs-5 mb-4 leading-relaxed">
+          <p className="text-secondary fs-5 mb-3 leading-relaxed">
             Welcome to the PDVL Live Auction Command Center. Manage bidding podiums, stream live big-screen stage graphics, and track team purses in real time.
           </p>
+
+          {data.lastNotification && (
+            <div className="d-inline-flex flex-wrap align-items-center justify-content-center gap-2.5 px-4 py-2 rounded-pill bg-black bg-opacity-40 border border-warning border-opacity-30 mb-4 shadow-sm">
+              <span className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${data.lastNotification.type === 'sold' ? 'badge-gold' : 'bg-warning text-dark'}`}>
+                {data.lastNotification.type === 'sold' ? '🎉 LATEST SALE' : '⚠️ LATEST OUTCOME'}
+              </span>
+              <strong className="text-white small mb-0">{data.lastNotification.message}</strong>
+            </div>
+          )}
 
           {/* Quick Nav Cards */}
           <div className="row g-3 justify-content-center">
