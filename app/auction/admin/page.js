@@ -57,7 +57,7 @@ export default async function AuctionAdminPage({ searchParams }) {
   const initialData = await getLiveAuctionState();
 
   return (
-    <div className="auction-shell min-vh-100 d-flex flex-column">
+    <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
       <AuctionNavbar role="admin" />
       <main className="flex-grow-1">
         <AuctioneerConsole initialData={initialData} />

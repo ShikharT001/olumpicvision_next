@@ -3,6 +3,24 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 
+const PRESET_COLORS = [
+  { name: 'Royal Blue', hex: '#2563eb' },
+  { name: 'Crimson Red', hex: '#dc2626' },
+  { name: 'Emerald', hex: '#059669' },
+  { name: 'Blaze Orange', hex: '#ea580c' },
+  { name: 'Cyber Purple', hex: '#7c3aed' },
+  { name: 'Amber Gold', hex: '#d97706' },
+  { name: 'Neon Cyan', hex: '#0891b2' },
+  { name: 'Hot Pink', hex: '#db2777' },
+];
+
+const QUICK_PURSES = [
+  { label: '₹50,000', value: 50000 },
+  { label: '₹1.0 Lakh', value: 100000 },
+  { label: '₹1.5 Lakh', value: 150000 },
+  { label: '₹2.0 Lakh', value: 200000 },
+];
+
 export default function TeamsManager({ initialTeams }) {
   const [teams, setTeams] = useState(initialTeams || []);
   const [loading, setLoading] = useState(false);
@@ -244,117 +262,312 @@ export default function TeamsManager({ initialTeams }) {
 
       {/* ADD TEAM MODAL */}
       {showAddModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content auction-card border-secondary text-white">
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
               <form onSubmit={handleCreateTeam}>
-                <div className="modal-header border-secondary border-opacity-25">
-                  <h5 className="modal-title fw-bold text-white">Add New Tournament Team</h5>
-                  <button type="button" className="btn-close btn-close-white" onClick={() => setShowAddModal(false)}></button>
+                <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2.5">
+                    <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                      Setup Franchise
+                    </span>
+                    <h5 className="modal-title fw-extrabold text-white mb-0 fs-5">
+                      Add New Tournament Team
+                    </h5>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setShowAddModal(false)}
+                    aria-label="Close"
+                  ></button>
                 </div>
-                <div className="modal-body vstack gap-3">
-                  <div className="row g-2">
-                    <div className="col-8">
-                      <label className="form-label text-white-50 small mb-1">Team Name <span className="text-danger">*</span></label>
-                      <input
-                        type="text"
-                        className="form-control bg-dark text-white border-secondary"
-                        placeholder="e.g. Palghar Spikers"
-                        required
-                        value={formData.team_name}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, team_name: e.target.value }))}
-                      />
-                    </div>
-                    <div className="col-4">
-                      <label className="form-label text-white-50 small mb-1">Code (3-4 Letters) <span className="text-danger">*</span></label>
-                      <input
-                        type="text"
-                        maxLength={5}
-                        className="form-control bg-dark text-white border-secondary text-uppercase"
-                        placeholder="PSP"
-                        required
-                        value={formData.team_code}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, team_code: e.target.value.toUpperCase() }))}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <label className="form-label text-white-50 small mb-1">Owner Name</label>
-                      <input
-                        type="text"
-                        className="form-control bg-dark text-white border-secondary"
-                        placeholder="e.g. Mahesh Patil"
-                        value={formData.owner_name}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, owner_name: e.target.value }))}
-                      />
-                    </div>
-                    <div className="col-6">
-                      <label className="form-label text-white-50 small mb-1">Coach Name</label>
-                      <input
-                        type="text"
-                        className="form-control bg-dark text-white border-secondary"
-                        placeholder="e.g. Vikram Joshi"
-                        value={formData.coach_name}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, coach_name: e.target.value }))}
-                      />
-                    </div>
-                  </div>
+                <div className="modal-body p-4 auction-scroll-area">
+                  <div className="row g-4">
+                    {/* Left Column: Form Fields */}
+                    <div className="col-12 col-md-7 border-end-md border-secondary border-opacity-20 pe-md-4">
+                      {/* Team Name & Short Code */}
+                      <div className="row g-2 mb-3">
+                        <div className="col-8">
+                          <label className="form-label text-light small fw-bold mb-1">
+                            Team / Franchise Name <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="e.g. Palghar Spikers"
+                            required
+                            value={formData.team_name}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, team_name: e.target.value }))}
+                          />
+                        </div>
+                        <div className="col-4">
+                          <label className="form-label text-light small fw-bold mb-1">
+                            Code <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={5}
+                            className="form-control text-uppercase font-monospace fw-bold"
+                            placeholder="PSP"
+                            required
+                            value={formData.team_code}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, team_code: e.target.value.toUpperCase() }))}
+                          />
+                          <span className="text-white-50 text-xs d-block mt-0.5" style={{ fontSize: '0.72rem' }}>3-4 letters</span>
+                        </div>
+                      </div>
 
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <label className="form-label text-white-50 small mb-1">Starting Purse (₹) <span className="text-danger">*</span></label>
-                      <input
-                        type="number"
-                        className="form-control bg-dark text-white border-secondary"
-                        placeholder="100000"
-                        required
-                        value={formData.initial_purse}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, initial_purse: e.target.value }))}
-                      />
+                      {/* Primary Franchise Color Swatches */}
+                      <div className="mb-3">
+                        <label className="form-label text-light small fw-bold mb-1.5 d-flex align-items-center justify-content-between">
+                          <span>Franchise Color Palette</span>
+                          <span className="badge bg-secondary bg-opacity-30 text-white-50 font-monospace text-xs">
+                            {formData.primary_color}
+                          </span>
+                        </label>
+                        <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+                          {PRESET_COLORS.map((c) => {
+                            const isSelected = formData.primary_color.toLowerCase() === c.hex.toLowerCase();
+                            return (
+                              <button
+                                key={c.hex}
+                                type="button"
+                                title={c.name}
+                                className={`swatch-pill ${isSelected ? 'is-selected' : ''}`}
+                                style={{ backgroundColor: c.hex }}
+                                onClick={() => setFormData((prev) => ({ ...prev, primary_color: c.hex }))}
+                              >
+                                {isSelected && <span style={{ fontSize: '11px', color: '#fff' }}>✓</span>}
+                              </button>
+                            );
+                          })}
+                          {/* Custom Color Input */}
+                          <div className="d-flex align-items-center gap-1.5 ms-1">
+                            <input
+                              type="color"
+                              className="form-control form-control-color p-0.5 border-0 rounded-circle"
+                              style={{ width: 32, height: 32, cursor: 'pointer' }}
+                              value={formData.primary_color}
+                              onChange={(e) => setFormData((prev) => ({ ...prev, primary_color: e.target.value }))}
+                              title="Custom Color"
+                            />
+                            <span className="text-white-50 small" style={{ fontSize: '0.75rem' }}>Custom</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Starting Purse */}
+                      <div className="mb-3">
+                        <label className="form-label text-light small fw-bold mb-1.5 d-flex align-items-center justify-content-between">
+                          <span>Starting Auction Purse (₹) <span className="text-danger">*</span></span>
+                          <span className="text-warning fw-bold font-monospace small">
+                            ₹{Number(formData.initial_purse || 0).toLocaleString()}
+                          </span>
+                        </label>
+                        {/* Quick Purse Chips */}
+                        <div className="d-flex flex-wrap gap-1.5 mb-2">
+                          {QUICK_PURSES.map((qp) => (
+                            <button
+                              key={qp.value}
+                              type="button"
+                              className={`purse-chip ${Number(formData.initial_purse) === qp.value ? 'is-active' : ''}`}
+                              onClick={() => setFormData((prev) => ({ ...prev, initial_purse: qp.value }))}
+                            >
+                              {qp.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="input-group">
+                          <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
+                          <input
+                            type="number"
+                            step="1000"
+                            min="1000"
+                            className="form-control font-monospace fw-bold"
+                            placeholder="100000"
+                            required
+                            value={formData.initial_purse}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, initial_purse: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Owner & Coach */}
+                      <div className="row g-2 mb-3">
+                        <div className="col-6">
+                          <label className="form-label text-light small fw-bold mb-1">Owner Name</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="e.g. Mahesh Patil"
+                            value={formData.owner_name}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, owner_name: e.target.value }))}
+                          />
+                        </div>
+                        <div className="col-6">
+                          <label className="form-label text-light small fw-bold mb-1">Coach Name</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="e.g. Vikram Joshi"
+                            value={formData.coach_name}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, coach_name: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Squad Size Limits */}
+                      <div className="row g-2">
+                        <div className="col-6">
+                          <label className="form-label text-light small fw-bold mb-1">Min Squad Size</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            className="form-control font-monospace"
+                            value={formData.min_squad_size}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, min_squad_size: Number(e.target.value) }))}
+                          />
+                        </div>
+                        <div className="col-6">
+                          <label className="form-label text-light small fw-bold mb-1">Max Squad Size</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="25"
+                            className="form-control font-monospace"
+                            value={formData.max_squad_size}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, max_squad_size: Number(e.target.value) }))}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="col-6">
-                      <label className="form-label text-white-50 small mb-1">Theme Color</label>
-                      <div className="d-flex align-items-center gap-2">
-                        <input
-                          type="color"
-                          className="form-control form-control-color bg-dark border-secondary p-1"
-                          value={formData.primary_color}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, primary_color: e.target.value }))}
-                        />
-                        <span className="small text-white-50">{formData.primary_color}</span>
+
+                    {/* Right Column: Live Interactive Franchise Preview */}
+                    <div className="col-12 col-md-5 d-flex flex-column justify-content-between">
+                      <div>
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="text-white-50 text-xs fw-bold text-uppercase tracking-wider">
+                            Live Console Preview
+                          </span>
+                          <span className="badge badge-cyan px-2 py-0.5 text-xs">Real-Time</span>
+                        </div>
+
+                        {/* Preview Box */}
+                        <div className="team-preview-box text-center" style={{ borderTop: `4px solid ${formData.primary_color || '#0d6efd'}` }}>
+                          {/* Circular Logo Emblem */}
+                          <div
+                            className="rounded-circle mx-auto d-flex align-items-center justify-content-center shadow-lg mb-2.5"
+                            style={{
+                              width: 64,
+                              height: 64,
+                              background: `linear-gradient(135deg, ${formData.primary_color || '#0d6efd'}, #081124)`,
+                              border: '2px solid rgba(255,255,255,0.4)',
+                            }}
+                          >
+                            <span className="fw-black fs-4 text-white font-monospace">
+                              {formData.team_code || 'PSP'}
+                            </span>
+                          </div>
+
+                          <h4 className="fw-extrabold text-white mb-0.5 fs-5">
+                            {formData.team_name || 'Franchise Name'}
+                          </h4>
+
+                          <p className="text-white-50 text-xs mb-3">
+                            Owner: <strong className="text-light">{formData.owner_name || 'Management'}</strong>
+                            {formData.coach_name && <> • Coach: <strong className="text-light">{formData.coach_name}</strong></>}
+                          </p>
+
+                          {/* Budget & Squad Tag */}
+                          <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
+                            <div className="bg-dark bg-opacity-75 border border-secondary border-opacity-30 rounded-3 px-2.5 py-1 text-center">
+                              <span className="text-white-50 text-xs d-block" style={{ fontSize: '0.7rem' }}>PURSE</span>
+                              <strong className="text-warning font-monospace text-xs">
+                                ₹{Number(formData.initial_purse || 0).toLocaleString()}
+                              </strong>
+                            </div>
+                            <div className="bg-dark bg-opacity-75 border border-secondary border-opacity-30 rounded-3 px-2.5 py-1 text-center">
+                              <span className="text-white-50 text-xs d-block" style={{ fontSize: '0.7rem' }}>SQUAD</span>
+                              <strong className="text-info font-monospace text-xs">
+                                0 / {formData.max_squad_size || 12}
+                              </strong>
+                            </div>
+                          </div>
+
+                          {/* Auction Paddle Button Preview */}
+                          <div className="text-start">
+                            <span className="text-white-50 text-xs d-block mb-1" style={{ fontSize: '0.72rem' }}>
+                              AUCTIONEER PADDLE APPEARANCE:
+                            </span>
+                            <div
+                              className="team-paddle-btn py-2 px-2.5"
+                              style={{ '--team-color': formData.primary_color || '#0d6efd', pointerEvents: 'none' }}
+                            >
+                              <div className="d-flex align-items-center justify-content-between mb-1">
+                                <span
+                                  className="badge px-2 py-0.5 rounded-pill text-xs fw-extrabold"
+                                  style={{ backgroundColor: formData.primary_color || '#0d6efd', color: '#fff' }}
+                                >
+                                  {formData.team_code || 'CODE'}
+                                </span>
+                                <span className="text-warning font-monospace text-xs fw-bold">
+                                  ₹{Number(formData.initial_purse || 0).toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="fw-bold text-white small text-truncate">
+                                {formData.team_name || 'Team Name'}
+                              </div>
+                              <div className="text-white-50 text-xs mt-0.5" style={{ fontSize: '0.72rem' }}>
+                                Click to attribute bid on live podium
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-secondary bg-opacity-10 rounded-3 p-2.5 mt-3 border border-secondary border-opacity-15">
+                        <span className="text-info text-xs fw-bold d-block mb-0.5">ℹ️ Tournament Tip</span>
+                        <span className="text-white-50 text-xs" style={{ fontSize: '0.75rem' }}>
+                          Teams can immediately bid once created. The initial purse is automatically set as the remaining purse.
+                        </span>
                       </div>
                     </div>
                   </div>
-
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <label className="form-label text-white-50 small mb-1">Min Squad Size</label>
-                      <input
-                        type="number"
-                        className="form-control bg-dark text-white border-secondary"
-                        value={formData.min_squad_size}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, min_squad_size: e.target.value }))}
-                      />
-                    </div>
-                    <div className="col-6">
-                      <label className="form-label text-white-50 small mb-1">Max Squad Size</label>
-                      <input
-                        type="number"
-                        className="form-control bg-dark text-white border-secondary"
-                        value={formData.max_squad_size}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, max_squad_size: e.target.value }))}
-                      />
-                    </div>
-                  </div>
                 </div>
-                <div className="modal-footer border-secondary border-opacity-25">
-                  <button type="button" className="btn btn-sm btn-secondary rounded-pill px-3" onClick={() => setShowAddModal(false)}>
+
+                <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                    onClick={() => setShowAddModal(false)}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-sm btn-primary rounded-pill px-4 fw-bold" disabled={loading}>
-                    Create Team
+                  <button
+                    type="submit"
+                    className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 shadow"
+                    disabled={loading || !formData.team_name || !formData.team_code}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                        <span>Saving Franchise...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>✓ Create Team Franchise</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -365,69 +578,140 @@ export default function TeamsManager({ initialTeams }) {
 
       {/* EDIT TEAM MODAL */}
       {editingTeam && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content auction-card border-secondary text-white">
-              <div className="modal-header border-secondary border-opacity-25">
-                <h5 className="modal-title fw-bold text-white">Edit Team: {editingTeam.team_name}</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setEditingTeam(null)}></button>
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-2">
+                  <span
+                    className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold"
+                    style={{ backgroundColor: editingTeam.primary_color || '#0d6efd', color: '#fff' }}
+                  >
+                    {editingTeam.team_code}
+                  </span>
+                  <h5 className="modal-title fw-bold text-white mb-0 fs-6">
+                    Edit: {editingTeam.team_name}
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setEditingTeam(null)}
+                  aria-label="Close"
+                ></button>
               </div>
-              <div className="modal-body vstack gap-3">
+
+              <div className="modal-body p-4 vstack gap-3 auction-scroll-area">
                 <div>
-                  <label className="form-label text-white-50 small mb-1">Team Name</label>
+                  <label className="form-label text-light small fw-bold mb-1">Team Name</label>
                   <input
                     type="text"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={editingTeam.team_name}
                     onChange={(e) => setEditingTeam((prev) => ({ ...prev, team_name: e.target.value }))}
                   />
                 </div>
+
                 <div className="row g-2">
                   <div className="col-6">
-                    <label className="form-label text-white-50 small mb-1">Owner Name</label>
+                    <label className="form-label text-light small fw-bold mb-1">Owner Name</label>
                     <input
                       type="text"
-                      className="form-control bg-dark text-white border-secondary"
+                      className="form-control"
                       value={editingTeam.owner_name || ''}
                       onChange={(e) => setEditingTeam((prev) => ({ ...prev, owner_name: e.target.value }))}
                     />
                   </div>
                   <div className="col-6">
-                    <label className="form-label text-white-50 small mb-1">Coach Name</label>
+                    <label className="form-label text-light small fw-bold mb-1">Coach Name</label>
                     <input
                       type="text"
-                      className="form-control bg-dark text-white border-secondary"
+                      className="form-control"
                       value={editingTeam.coach_name || ''}
                       onChange={(e) => setEditingTeam((prev) => ({ ...prev, coach_name: e.target.value }))}
                     />
                   </div>
                 </div>
+
                 <div className="row g-2">
                   <div className="col-6">
-                    <label className="form-label text-white-50 small mb-1">Initial Purse (₹)</label>
+                    <label className="form-label text-light small fw-bold mb-1">
+                      Initial Purse (₹)
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
+                      <input
+                        type="number"
+                        className="form-control font-monospace"
+                        value={editingTeam.initial_purse}
+                        onChange={(e) => setEditingTeam((prev) => ({ ...prev, initial_purse: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">
+                      Remaining Purse (₹)
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-dark text-success border-secondary border-opacity-30 fw-bold">₹</span>
+                      <input
+                        type="number"
+                        className="form-control font-monospace"
+                        value={editingTeam.remaining_purse}
+                        onChange={(e) => setEditingTeam((prev) => ({ ...prev, remaining_purse: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Color and Squad Limit Edit */}
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Max Squad Size</label>
                     <input
                       type="number"
-                      className="form-control bg-dark text-white border-secondary"
-                      value={editingTeam.initial_purse}
-                      onChange={(e) => setEditingTeam((prev) => ({ ...prev, initial_purse: e.target.value }))}
+                      min="1"
+                      className="form-control font-monospace"
+                      value={editingTeam.max_squad_size || 12}
+                      onChange={(e) => setEditingTeam((prev) => ({ ...prev, max_squad_size: Number(e.target.value) }))}
                     />
                   </div>
                   <div className="col-6">
-                    <label className="form-label text-white-50 small mb-1">Remaining Purse (₹)</label>
-                    <input
-                      type="number"
-                      className="form-control bg-dark text-white border-secondary"
-                      value={editingTeam.remaining_purse}
-                      onChange={(e) => setEditingTeam((prev) => ({ ...prev, remaining_purse: e.target.value }))}
-                    />
+                    <label className="form-label text-light small fw-bold mb-1">Franchise Color</label>
+                    <div className="d-flex align-items-center gap-2">
+                      <input
+                        type="color"
+                        className="form-control form-control-color p-0.5 border-0 rounded-circle"
+                        style={{ width: 34, height: 34, cursor: 'pointer' }}
+                        value={editingTeam.primary_color || '#0d6efd'}
+                        onChange={(e) => setEditingTeam((prev) => ({ ...prev, primary_color: e.target.value }))}
+                      />
+                      <span className="text-white-50 font-monospace text-xs">{editingTeam.primary_color || '#0d6efd'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="modal-footer border-secondary border-opacity-25">
-                <button type="button" className="btn btn-sm btn-secondary rounded-pill px-3" onClick={() => setEditingTeam(null)}>
+
+              <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                  onClick={() => setEditingTeam(null)}
+                >
                   Cancel
                 </button>
-                <button type="button" className="btn btn-sm btn-primary rounded-pill px-4 fw-bold" onClick={handleUpdateTeam}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
+                  onClick={handleUpdateTeam}
+                >
                   Save Changes
                 </button>
               </div>

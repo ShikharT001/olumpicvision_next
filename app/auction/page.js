@@ -31,7 +31,7 @@ export default async function AuctionHubPage({ searchParams }) {
   const totalSquadCount = teams.reduce((acc, t) => acc + (t.squad_count || 0), 0);
 
   return (
-    <div className="auction-shell d-flex flex-column min-vh-100">
+    <div className="auction-shell d-flex flex-column min-vh-100" data-bs-theme="dark">
       <AuctionNavbar role={role} />
 
       <main className="container py-4 py-md-5 my-auto">

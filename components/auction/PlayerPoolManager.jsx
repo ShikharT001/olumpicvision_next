@@ -384,36 +384,65 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
 
       {/* EDIT MODAL */}
       {isAdmin && editingPlayer && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content auction-card border-secondary text-white">
-              <div className="modal-header border-secondary border-opacity-25">
-                <h5 className="modal-title fw-bold text-white">Edit Auction Player: {editingPlayer.full_name}</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setEditingPlayer(null)}></button>
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge badge-gold px-2 py-0.5 rounded-pill text-xs">
+                    EDIT
+                  </span>
+                  <h5 className="modal-title fw-bold text-white mb-0 fs-6">
+                    Edit Player: {editingPlayer.full_name}
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setEditingPlayer(null)}
+                  aria-label="Close"
+                ></button>
               </div>
-              <div className="modal-body vstack gap-3">
+
+              <div className="modal-body p-4 vstack gap-3 auction-scroll-area">
                 <div>
-                  <label className="form-label text-white-50 small mb-1">Base Price (₹)</label>
-                  <input
-                    type="number"
-                    className="form-control bg-dark text-white border-secondary"
-                    value={editForm.base_price}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, base_price: e.target.value }))}
-                  />
+                  <label className="form-label text-light small fw-bold mb-1">Base Price (₹)</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
+                    <input
+                      type="number"
+                      step="500"
+                      className="form-control font-monospace fw-bold"
+                      value={editForm.base_price}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, base_price: Number(e.target.value) }))}
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="form-label text-white-50 small mb-1">Lot Number</label>
-                  <input
-                    type="number"
-                    className="form-control bg-dark text-white border-secondary"
-                    value={editForm.lot_number}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, lot_number: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="form-label text-white-50 small mb-1">Player Grade</label>
+                  <label className="form-label text-light small fw-bold mb-1">Auction Lot Assignment</label>
                   <select
-                    className="form-select bg-dark text-white border-secondary"
+                    className="form-select"
+                    value={editForm.lot_number}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, lot_number: Number(e.target.value) }))}
+                  >
+                    <option value="1">Lot 1: Icon Players</option>
+                    <option value="2">Lot 2: Open Category</option>
+                    <option value="3">Lot 3: Youth Categories</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label text-light small fw-bold mb-1">Player Grade Tier</label>
+                  <select
+                    className="form-select"
                     value={editForm.player_grade}
                     onChange={(e) => setEditForm((prev) => ({ ...prev, player_grade: e.target.value }))}
                   >
@@ -424,11 +453,20 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                   </select>
                 </div>
               </div>
-              <div className="modal-footer border-secondary border-opacity-25">
-                <button type="button" className="btn btn-sm btn-secondary rounded-pill px-3" onClick={() => setEditingPlayer(null)}>
+
+              <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                  onClick={() => setEditingPlayer(null)}
+                >
                   Cancel
                 </button>
-                <button type="button" className="btn btn-sm btn-primary rounded-pill px-4 fw-bold" onClick={saveEdit}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
+                  onClick={saveEdit}
+                >
                   Save Changes
                 </button>
               </div>

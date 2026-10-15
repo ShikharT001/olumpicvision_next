@@ -13,7 +13,7 @@ export default function AuctioneerConsole({ initialData }) {
   const [error, setError] = useState('');
   const [playerDrawerOpen, setPlayerDrawerOpen] = useState(false);
   const [allPlayers, setAllPlayers] = useState([]);
-  const [playerFilter, setPlayerFilter] = useState({ lot: '', status: 'queued', search: '' });
+  const [playerFilter, setPlayerFilter] = useState({ lot: '', status: '', search: '', position: '' });
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const lastNotifIdRef = useRef(initialData?.lastNotification?.id || null);
   const [, startTransition] = useTransition();
@@ -243,16 +243,23 @@ export default function AuctioneerConsole({ initialData }) {
     }
   };
 
-  // Filter players in drawer
+  // Filter players in drawer & compute tab counts
+  const queuedCount = allPlayers.filter((p) => p.auction_status === 'queued').length;
+  const unsoldCount = allPlayers.filter((p) => p.auction_status === 'unsold').length;
+  const soldCount = allPlayers.filter((p) => p.auction_status === 'sold').length;
+  const totalCount = allPlayers.length;
+
   const filteredPlayers = allPlayers.filter((p) => {
     if (playerFilter.status && p.auction_status !== playerFilter.status) return false;
     if (playerFilter.lot && p.lot_number !== Number(playerFilter.lot)) return false;
+    if (playerFilter.position && p.playing_position !== playerFilter.position) return false;
     if (playerFilter.search) {
       const term = playerFilter.search.toLowerCase();
       return (
         p.full_name?.toLowerCase().includes(term) ||
         p.playing_position?.toLowerCase().includes(term) ||
-        p.player_category?.toLowerCase().includes(term)
+        p.player_category?.toLowerCase().includes(term) ||
+        p.team_name?.toLowerCase().includes(term)
       );
     }
     return true;
@@ -636,119 +643,321 @@ export default function AuctioneerConsole({ initialData }) {
 
       {/* PLAYER QUEUE DRAWER MODAL */}
       {playerDrawerOpen && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(6px)' }} tabIndex="-1">
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
-            <div className="modal-content auction-card border-secondary text-white">
-              <div className="modal-header border-secondary border-opacity-25">
-                <h5 className="modal-title fw-bold text-white d-flex align-items-center gap-2">
-                  <span>Player Queue & Lot Selector</span>
-                </h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setPlayerDrawerOpen(false)} aria-label="Close"></button>
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              {/* Header */}
+              <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-3">
+                  <div className="bg-info bg-opacity-20 text-info rounded-3 p-2 border border-info border-opacity-30 fs-5">
+                    🏐
+                  </div>
+                  <div>
+                    <h5 className="modal-title fw-extrabold text-white mb-0 fs-5">
+                      Player Queue & Lot Selector
+                    </h5>
+                    <span className="text-white-50 text-xs">
+                      Choose any registered, queued, or unsold player to bring to the live hammer stage
+                    </span>
+                  </div>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <Link
+                    href="/auction/players"
+                    className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold"
+                  >
+                    Manage Pool ↗
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setPlayerDrawerOpen(false)}
+                    aria-label="Close"
+                  ></button>
+                </div>
               </div>
 
-              <div className="modal-body">
-                {/* Search & Filters */}
-                <div className="row g-2 mb-3">
-                  <div className="col-12 col-sm-6">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm bg-dark text-white border-secondary"
-                      placeholder="Search player name, position..."
-                      value={playerFilter.search}
-                      onChange={(e) => setPlayerFilter((prev) => ({ ...prev, search: e.target.value }))}
-                    />
-                  </div>
-                  <div className="col-6 col-sm-3">
-                    <select
-                      className="form-select form-select-sm bg-dark text-white border-secondary"
-                      value={playerFilter.status}
-                      onChange={(e) => setPlayerFilter((prev) => ({ ...prev, status: e.target.value }))}
+              <div className="modal-body p-4 auction-scroll-area">
+                {/* Status Navigation Tabs with Live Counts */}
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-3 border-bottom border-secondary border-opacity-20">
+                  <div className="d-flex flex-wrap align-items-center gap-2">
+                    <button
+                      type="button"
+                      className={`queue-filter-tab ${playerFilter.status === '' ? 'is-active' : ''}`}
+                      onClick={() => setPlayerFilter((prev) => ({ ...prev, status: '' }))}
                     >
-                      <option value="">All Statuses</option>
-                      <option value="queued">Queued / Ready</option>
-                      <option value="unsold">Unsold (Round 2)</option>
-                      <option value="sold">Sold</option>
-                    </select>
+                      <span>All Players</span>
+                      <span className="badge bg-secondary bg-opacity-40 rounded-pill text-xs">{totalCount}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`queue-filter-tab ${playerFilter.status === 'queued' ? 'is-active' : ''}`}
+                      onClick={() => setPlayerFilter((prev) => ({ ...prev, status: 'queued' }))}
+                    >
+                      <span>⭐ Queued / Ready</span>
+                      <span className="badge bg-cyan text-dark rounded-pill text-xs">{queuedCount}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`queue-filter-tab ${playerFilter.status === 'unsold' ? 'is-active' : ''}`}
+                      onClick={() => setPlayerFilter((prev) => ({ ...prev, status: 'unsold' }))}
+                    >
+                      <span>⚠️ Unsold Pool (Round 2)</span>
+                      <span className="badge bg-warning text-dark rounded-pill text-xs">{unsoldCount}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`queue-filter-tab ${playerFilter.status === 'sold' ? 'is-active' : ''}`}
+                      onClick={() => setPlayerFilter((prev) => ({ ...prev, status: 'sold' }))}
+                    >
+                      <span>✓ Sold</span>
+                      <span className="badge bg-success rounded-pill text-xs">{soldCount}</span>
+                    </button>
                   </div>
-                  <div className="col-6 col-sm-3">
+
+                  {activePlayer && (
+                    <div className="d-none d-md-flex align-items-center gap-2 px-3 py-1 bg-dark bg-opacity-60 border border-warning border-opacity-30 rounded-pill">
+                      <span className="spinner-grow spinner-grow-sm text-warning" role="status"></span>
+                      <span className="text-white-50 text-xs">Currently on Podium:</span>
+                      <strong className="text-warning text-xs font-monospace">{activePlayer.full_name}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Filter Toolbar: Search, Lot Selector, Position Selector */}
+                <div className="row g-2 mb-3">
+                  <div className="col-12 col-md-5">
+                    <div className="input-group">
+                      <span className="input-group-text bg-dark text-white-50 border-secondary border-opacity-30">🔍</span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search player name, position, club..."
+                        value={playerFilter.search}
+                        onChange={(e) => setPlayerFilter((prev) => ({ ...prev, search: e.target.value }))}
+                      />
+                      {playerFilter.search && (
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => setPlayerFilter((prev) => ({ ...prev, search: '' }))}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="col-6 col-md-3">
                     <select
-                      className="form-select form-select-sm bg-dark text-white border-secondary"
+                      className="form-select"
                       value={playerFilter.lot}
                       onChange={(e) => setPlayerFilter((prev) => ({ ...prev, lot: e.target.value }))}
                     >
-                      <option value="">All Lots</option>
+                      <option value="">All Lots (Icon / Open / Youth)</option>
                       <option value="1">Lot 1: Icon Players</option>
                       <option value="2">Lot 2: Open Category</option>
                       <option value="3">Lot 3: Youth Categories</option>
                     </select>
                   </div>
+
+                  <div className="col-6 col-md-4">
+                    <select
+                      className="form-select"
+                      value={playerFilter.position}
+                      onChange={(e) => setPlayerFilter((prev) => ({ ...prev, position: e.target.value }))}
+                    >
+                      <option value="">All Playing Positions</option>
+                      <option value="setter">Setter</option>
+                      <option value="outside_hitter">Outside Hitter</option>
+                      <option value="opposite_hitter">Opposite Hitter</option>
+                      <option value="middle_blocker">Middle Blocker</option>
+                      <option value="libero">Libero</option>
+                    </select>
+                  </div>
                 </div>
 
+                {/* Loading State */}
                 {loadingPlayers ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border spinner-border-sm text-info" role="status"></div>
-                    <span className="ms-2 text-white-50 text-sm">Loading player pool...</span>
+                  <div className="text-center py-5">
+                    <div className="spinner-border text-info mb-2" role="status"></div>
+                    <p className="text-white-50 small mb-0">Fetching tournament player registry...</p>
                   </div>
                 ) : filteredPlayers.length === 0 ? (
-                  <div className="text-center py-4 text-white-50 small">
-                    No players matching filter. Check player pool or import from PDVL registrations.
+                  <div className="auction-card p-5 text-center my-3 border-dashed">
+                    <div className="fs-1 mb-2">🔍</div>
+                    <h5 className="fw-bold text-white mb-1">No Players Found</h5>
+                    <p className="text-white-50 small mb-3">
+                      {playerFilter.search || playerFilter.status || playerFilter.lot || playerFilter.position
+                        ? 'No players matched the active search filters.'
+                        : 'No players have been imported into the auction database yet.'}
+                    </p>
+                    <div className="d-flex justify-content-center gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs"
+                        onClick={() => setPlayerFilter({ lot: '', status: '', search: '', position: '' })}
+                      >
+                        Reset All Filters
+                      </button>
+                      <Link
+                        href="/auction/players"
+                        className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 text-xs fw-bold"
+                      >
+                        Import Players from PDVL ↗
+                      </Link>
+                    </div>
                   </div>
                 ) : (
-                  <div className="list-group list-group-flush">
-                    {filteredPlayers.map((p) => (
-                      <div
-                        key={p.id}
-                        className="list-group-item bg-transparent text-white border-secondary border-opacity-20 d-flex align-items-center justify-content-between p-2.5 hover-bg-light"
-                      >
-                        <div className="d-flex align-items-center gap-3">
-                          <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
-                            {p.photo_url ? (
-                              <img src={p.photo_url} alt={p.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span className="text-secondary small">🏐</span>
-                            )}
-                          </div>
-                          <div>
-                            <div className="d-flex align-items-center gap-2">
-                              <strong className="text-white small">{p.full_name}</strong>
-                              <span className="badge badge-gold px-1.5 py-0.5 text-xs">{p.player_grade || 'Grade A'}</span>
-                              <span className="badge bg-secondary bg-opacity-25 text-white-50 text-xs text-capitalize">
-                                {p.playing_position?.replace('_', ' ')}
-                              </span>
-                            </div>
-                            <span className="text-white-50 text-xs">
-                              Base: <strong className="text-warning">₹{Number(p.base_price || 1000).toLocaleString()}</strong> • {p.height_cm ? `${p.height_cm}cm` : 'Height unlisted'} • {p.team_name || 'Individual'}
-                            </span>
-                          </div>
-                        </div>
+                  /* Cards Grid */
+                  <div className="row g-2.5">
+                    {filteredPlayers.map((p) => {
+                      const isOnHammer = activePlayer?.id === p.id;
+                      const isSold = p.auction_status === 'sold';
+                      const isUnsold = p.auction_status === 'unsold';
 
-                        <div>
-                          {p.auction_status === 'sold' ? (
-                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 text-xs">
-                              SOLD for ₹{Number(p.sold_price || 0).toLocaleString()}
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-primary rounded-pill px-3 py-1 text-xs fw-bold"
-                              onClick={() => handleSelectPlayerToHammer(p)}
-                            >
-                              Put on Hammer →
-                            </button>
-                          )}
+                      return (
+                        <div key={p.id} className="col-12 col-md-6 col-xl-4">
+                          <div
+                            className={`queue-item-card h-100 d-flex flex-column justify-content-between ${
+                              isOnHammer ? 'is-on-hammer' : isSold ? 'is-sold' : ''
+                            }`}
+                          >
+                            <div>
+                              {/* Top row: Avatar + Name + Badges */}
+                              <div className="d-flex align-items-start gap-2.5 mb-2">
+                                <div
+                                  className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center flex-shrink-0 border"
+                                  style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderColor:
+                                      p.player_grade === 'Icon'
+                                        ? '#f59e0b'
+                                        : p.player_grade === 'Grade A'
+                                        ? '#06b6d4'
+                                        : 'rgba(255,255,255,0.2)',
+                                  }}
+                                >
+                                  {p.photo_url ? (
+                                    <img
+                                      src={p.photo_url}
+                                      alt={p.full_name}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                  ) : (
+                                    <span style={{ fontSize: '1.25rem' }}>🏐</span>
+                                  )}
+                                </div>
+
+                                <div className="flex-grow-1 min-w-0">
+                                  <div className="d-flex align-items-center justify-content-between gap-1 mb-1">
+                                    <strong className="text-white text-truncate fs-6" title={p.full_name}>
+                                      {p.full_name}
+                                    </strong>
+                                    {isOnHammer && (
+                                      <span className="badge bg-warning text-dark px-2 py-0.5 rounded-pill text-xs fw-bold">
+                                        PODIUM
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="d-flex flex-wrap align-items-center gap-1.5">
+                                    <span
+                                      className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${
+                                        p.player_grade === 'Icon' ? 'badge-gold' : 'badge-cyan'
+                                      }`}
+                                    >
+                                      {p.player_grade || 'Grade A'}
+                                    </span>
+                                    <span className="badge bg-secondary bg-opacity-30 text-light px-2 py-0.5 rounded-pill text-xs text-capitalize">
+                                      {p.playing_position?.replace('_', ' ')}
+                                    </span>
+                                    <span className="badge bg-dark text-white-50 px-1.5 py-0.5 rounded-pill text-xs">
+                                      Lot {p.lot_number || 1}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Details Strip */}
+                              <div className="bg-dark bg-opacity-50 rounded-2 p-2 mb-2.5 small">
+                                <div className="d-flex justify-content-between text-xs mb-1">
+                                  <span className="text-white-50">Base Price:</span>
+                                  <strong className="text-warning font-monospace">
+                                    ₹{Number(p.base_price || 1000).toLocaleString()}
+                                  </strong>
+                                </div>
+                                <div className="d-flex justify-content-between text-xs">
+                                  <span className="text-white-50">Height / Club:</span>
+                                  <span className="text-light text-truncate" style={{ maxWidth: '60%' }}>
+                                    {p.height_cm ? `${p.height_cm} cm` : 'Unlisted'} • {p.team_name || 'Individual'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Button Strip */}
+                            <div>
+                              {isOnHammer ? (
+                                <div className="btn btn-sm btn-outline-warning w-100 rounded-pill py-1.5 text-xs fw-bold disabled">
+                                  🔴 Currently on Podium
+                                </div>
+                              ) : isSold ? (
+                                <div className="d-flex align-items-center justify-content-between bg-success bg-opacity-15 border border-success border-opacity-30 rounded-pill px-3 py-1">
+                                  <span className="text-success small fw-bold" style={{ fontSize: '0.78rem' }}>
+                                    ✓ SOLD for ₹{Number(p.sold_price || 0).toLocaleString()}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-link text-white-50 p-0 text-xs text-decoration-none"
+                                    onClick={() => handleSelectPlayerToHammer(p)}
+                                    title="Reload to hammer if needed"
+                                  >
+                                    Re-hammer ↻
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm w-100 rounded-pill py-1.5 text-xs fw-extrabold d-flex align-items-center justify-content-center gap-1.5 shadow ${
+                                    isUnsold
+                                      ? 'btn-outline-warning'
+                                      : 'btn-primary'
+                                  }`}
+                                  onClick={() => handleSelectPlayerToHammer(p)}
+                                  disabled={actionLoading}
+                                >
+                                  <span>{isUnsold ? '⚡ Bring Back to Hammer (Round 2) →' : '⚡ Put on Hammer Now →'}</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              <div className="modal-footer border-secondary border-opacity-25">
-                <Link href="/auction/players" className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold me-auto">
-                  Manage Full Player Pool & Import ↗
-                </Link>
-                <button type="button" className="btn btn-sm btn-secondary rounded-pill px-3 py-1.5 text-xs" onClick={() => setPlayerDrawerOpen(false)}>
-                  Close
+              {/* Modal Footer */}
+              <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-2.5 d-flex align-items-center justify-content-between">
+                <span className="text-white-50 text-xs">
+                  Showing <strong>{filteredPlayers.length}</strong> of <strong>{totalCount}</strong> players
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary rounded-pill px-4 py-1.5 text-xs"
+                  onClick={() => setPlayerDrawerOpen(false)}
+                >
+                  Close Drawer
                 </button>
               </div>
             </div>

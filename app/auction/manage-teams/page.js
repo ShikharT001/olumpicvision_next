@@ -54,7 +54,7 @@ export default async function AuctionManageTeamsPage({ searchParams }) {
   const initialTeams = await getAuctionTeams();
 
   return (
-    <div className="auction-shell min-vh-100 d-flex flex-column">
+    <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
       <AuctionNavbar role="admin" />
       <main className="flex-grow-1">
         <TeamsManager initialTeams={initialTeams} />

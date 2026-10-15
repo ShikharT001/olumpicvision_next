@@ -25,7 +25,7 @@ export default async function AuctionPlayersPage({ searchParams }) {
   const initialPlayers = await getAuctionPlayers();
 
   return (
-    <div className="auction-shell min-vh-100 d-flex flex-column">
+    <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
       <AuctionNavbar role={role} />
       <main className="flex-grow-1">
         <PlayerPoolManager initialPlayers={initialPlayers} isAdmin={isAdmin} />

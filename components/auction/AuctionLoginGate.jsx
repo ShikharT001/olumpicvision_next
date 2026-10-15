@@ -2,7 +2,7 @@ import { authenticateAuction } from '@/app/auction/actions';
 
 export default function AuctionLoginGate({ errorMessage, returnTo = '/auction' }) {
   return (
-    <div className="auction-shell min-vh-100 d-flex flex-column align-items-center justify-content-center p-3">
+    <div className="auction-shell min-vh-100 d-flex flex-column align-items-center justify-content-center p-3" data-bs-theme="dark">
       <div className="auction-card p-4 p-sm-5 text-center shadow-lg" style={{ maxWidth: 440, width: '100%', borderColor: 'rgba(6, 182, 212, 0.4)' }}>
         {/* Icon & Badge */}
         <div className="d-inline-flex align-items-center justify-content-center bg-dark rounded-circle mb-3 border border-secondary border-opacity-50" style={{ width: 68, height: 68 }}>
