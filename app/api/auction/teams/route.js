@@ -1,0 +1,44 @@
+import { NextResponse } from 'next/server';
+import { getAuctionTeams, createAuctionTeam, updateAuctionTeam } from '@/lib/auction-db';
+import { isAuctionAdmin } from '@/app/auction/actions';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  try {
+    const teams = await getAuctionTeams();
+    return NextResponse.json({ teams });
+  } catch (err) {
+    return NextResponse.json({ error: err.message || 'Failed to fetch teams' }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const isAdmin = await isAuctionAdmin();
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only the main admin can create or modify teams.' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { action, teamId, ...teamData } = body;
+
+    // Update existing team details / purse
+    if (action === 'update' && teamId) {
+      const updated = await updateAuctionTeam(teamId, teamData);
+      return NextResponse.json({ team: updated });
+    }
+
+    // Create a new franchise team
+    if (!teamData.team_name || !teamData.team_code) {
+      return NextResponse.json({ error: 'Team name and code are required' }, { status: 400 });
+    }
+    const created = await createAuctionTeam(teamData);
+    return NextResponse.json({ team: created });
+  } catch (err) {
+    return NextResponse.json({ error: err.message || 'Failed to process team' }, { status: 400 });
+  }
+}

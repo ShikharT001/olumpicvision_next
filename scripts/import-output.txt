@@ -1,0 +1,17 @@
+﻿Γùç injected env (13) from .env.local // tip: Γîÿ override existing { override: true }
+≡ƒöù Connected to database
+Γ£à Table marathon_participants ready
+≡ƒôè Found 1064 data rows in Excel
+
+≡ƒÄë Import complete!
+   Γ£à Inserted/Updated : 1051
+   ΓÅ¡∩╕Å  Skipped (empty)  : 13
+
+≡ƒôï Total participants in DB: 1051
+
+Sample rows:
+  BIB 1 ΓÇö Balabhima Anant Kulkarni (55+ SENIOR CITIZEN - 1KM MENS)
+  BIB 2 ΓÇö Janardan Mahadeo Temkar (55+ SENIOR CITIZEN - 1KM MENS)
+  BIB 3 ΓÇö DHARMENDRA ARJUN KANSE (55+ SENIOR CITIZEN - 1KM MENS)
+  BIB 4 ΓÇö Pravot Kumar (55+ SENIOR CITIZEN - 1KM MENS)
+  BIB 5 ΓÇö Ravindra s patil (55+ SENIOR CITIZEN - 1KM MENS)

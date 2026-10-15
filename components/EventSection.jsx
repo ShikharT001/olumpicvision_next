@@ -1,0 +1,228 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+export default function EventsAndHighlights({ openModal }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+// Replace the eventsData array inside EventsAndHighlights.jsx with this:
+
+const eventsData = [
+  {
+    id: 7,
+    title: 'Boisar Varsha Marathon 2026',
+    tag: 'MARATHON',
+    bgImage: '/images/marathon_2026/WhatsApp Image 2026-09-22 at 11.27.09 PM (11).jpeg',
+    desc: 'Relive the finish-line excitement and celebrate the runners and award winners of Boisar Varsha Marathon 2026.',
+    href: '/events/boisar-varsha-marathon-2026',
+  },
+  {
+    id: 1,
+    title: 'Boisar Varsha Marathon 2025',
+    tag: 'MARATHON',
+    bgImage: '/images/boisar_marathon/event1.jpeg',
+    desc: 'An exhilarating monsoon run uniting thousands of passionate athletes to promote fitness and community spirit.',
+    href: '/events/boisar-varsha-marathon-2025',
+  },
+  {
+    id: 2,
+    title: 'Saphale Lions Hill Marathon 2024',
+    tag: 'MARATHON',
+    bgImage: '/images/saphale_marathon/image1.jpeg',
+    desc: 'A challenging scenic run testing endurance and grit against beautiful rolling hill landscapes.',
+    href: '/events/saphale-lions-hill-marathon-2024',
+  },
+  {
+    id: 3,
+    title: 'Adhivasi Jawar Marathon 2024 & 2025',
+    tag: 'MARATHON',
+    bgImage: '/images/jawar_marathon/image6.jpeg',
+    desc: 'An impactful cultural run celebrating local heritage and empowering tribal communities through running.',
+    href: '/events/adhivasi-jawar-marathon-2024-2025',
+  },
+  {
+    id: 4,
+    title: 'Atheletes Camp Dahanu',
+    tag: 'TRAINING CAMP',
+    bgImage: '/images/camp/image5.jpeg',
+    desc: 'An intensive high-performance residential camp providing elite coaching and structured training regimens for young prospects.',
+    href: '/events/athletes-camp-dahanu',
+  },
+  {
+    id: 5,
+    title: 'PALGHAR DISTRICT VOLLEYBALL LEAGUE (PDVL) 2026',
+    tag: 'CHAMPIONSHIP',
+    bgImage: '/images/volleyball/image4.jpeg',
+    desc: 'Player registrations are now open for PDVL 2026/27. Complete your undertaking online in three simple steps.',
+    href: '/pdvl-registration',
+  },
+  {
+    id: 6,
+    title: 'Cricket Tournament',
+    tag: 'CHAMPIONSHIP',
+    bgImage: '/images/cricket/image3.jpeg',
+    desc: 'A thrilling regional tournament capturing intense rivalries, strategic play, and premium local talent under the pressure of the chase.',
+    href: '/events/cricket-tournament',
+  },
+];
+
+  useEffect(() => {
+    const autoSlideTimer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % eventsData.length);
+    }, 3000);
+
+    return () => clearInterval(autoSlideTimer);
+  }, [currentIndex, eventsData.length]);
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % eventsData.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + eventsData.length) % eventsData.length);
+  };
+
+  return (
+    <section id="events" className="py-5 bg-white">
+      <div className="container-fluid px-4 px-md-5">
+        <div className="row g-4 align-items-stretch">
+          <div className="col-12 col-lg-9 d-flex flex-column justify-content-between">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div className="position-relative">
+                <h2 className="section-title fw-bold mb-0 text-dark" style={{ fontSize: '2.25rem', color: '#0A3D7A' }}>
+                  Events Highlights
+                </h2>
+              </div>
+
+              <div className="d-flex gap-2">
+                <button
+                  onClick={handlePrev}
+                  className="btn btn-light rounded-circle d-flex align-items-center justify-content-center custom-nav-arrow"
+                  aria-label="Previous slide"
+                >
+                  &lsaquo;
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="btn btn-light rounded-circle d-flex align-items-center justify-content-center custom-nav-arrow"
+                  aria-label="Next slide"
+                >
+                  &rsaquo;
+                </button>
+              </div>
+            </div>
+
+            <div className="classic-carousel-window overflow-hidden rounded-4 shadow-sm position-relative flex-grow-1">
+              <div
+                className="classic-carousel-track d-flex"
+                style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+              >
+                {eventsData.map((event) => (
+                  <article key={event.id} className="classic-carousel-slide position-relative">
+                    <img className="carousel-slide-bg" src={event.bgImage} alt={event.title} />
+                    <div className="carousel-slide-overlay"></div>
+
+                    <div className="carousel-slide-content text-white">
+                      <span className="badge text-uppercase fw-bold mb-3 px-3 py-2 text-dark highlight-topic-tag">
+                        {event.tag}
+                      </span>
+                      <h3 className="fw-bold display-5 mb-2 highlight-slide-title">
+                        {event.title}
+                      </h3>
+                      <p className="text-light opacity-75 mb-4 highlight-slide-desc">
+                        {event.desc}
+                      </p>
+
+                      {event.href ? (
+                        <Link
+                          href={event.href}
+                          className="btn bg-white fw-semibold px-4 d-inline-flex align-items-center gap-2 highlight-explore-btn"
+                        >
+                          {event.id === 5 ? 'Register now' : 'Explore Event'} <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn bg-white fw-semibold px-4 d-inline-flex align-items-center gap-2 highlight-explore-btn"
+                          aria-disabled="true"
+                        >
+                          Explore Event <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className="d-flex gap-2 justify-content-start mt-4 px-2 align-items-center">
+              {eventsData.map((_, index) => (
+                <span
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`carousel-progress-pill ${currentIndex === index ? 'progress-pill-active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="col-12 col-lg-3 d-flex mt-5 mt-lg-0">
+            <div className="announcements-card border rounded-4 shadow-sm d-flex flex-column w-100 bg-white overflow-hidden">
+              <div className="announcements-header p-4 border-bottom" style={{ height:'60px' }}>
+                <h3 className="h4 fw-bold mb-0" style={{ color: '#0A3D7A' }}>Announcements</h3>
+              </div>
+
+          <div className="announcements-body flex-grow-1 p-0 color-anim-list">
+  <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
+    <li className="announcement-item">
+      <Link
+        href="/marathon-portal"
+        className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
+      >
+        <div className="announcement-content p-3">
+          <h4 className="h5 fw-bold mb-1">Download your e-Certificate</h4>
+          <p className="mb-0 text-muted">
+            Get your official e-Certificate for completed events.
+          </p>
+        </div>
+      </Link>
+    </li>
+
+    <li className="announcement-item">
+      <Link
+        href="/pdvl-registration"
+        className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
+      >
+        <div className="announcement-content p-3">
+          <h4 className="h5 fw-bold mb-1">
+            Palghar District Volleyball League (PDVL) 2026
+          </h4>
+          <p className="mb-0 text-muted">
+            Access event results, registrations, and more.
+          </p>
+        </div>
+      </Link>
+    </li>
+  </ul>
+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+  );
+  
+}
+
+
+<style jsx>{`
+  .announcement-link {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+
+  .announcement-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+`}</style>

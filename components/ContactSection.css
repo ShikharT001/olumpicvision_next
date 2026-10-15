@@ -1,0 +1,90 @@
+/* ==========================================================================
+   CONTACT US SECTION PREMIUM STYLESHEET
+   ========================================================================== */
+
+.bg-light-gradient {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.text-dark-blue-tint {
+  color: #0A3D7A;
+}
+
+.text-amber-gold {
+  color: #F2A900;
+}
+
+/* --- Left Side Contact Cards --- */
+.sc-contact-card {
+  border-color: #e2e8f0 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sc-contact-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background-color: rgba(10, 61, 122, 0.05);
+  color: #0A3D7A;
+  transition: all 0.3s ease;
+}
+
+.sc-contact-link {
+  text-decoration: none;
+  font-size: 1.05rem;
+  transition: color 0.2s ease;
+}
+
+/* Card Hover Interactions */
+.sc-contact-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 8px 20px rgba(10, 61, 122, 0.06) !important;
+  border-color: rgba(10, 61, 122, 0.15) !important;
+}
+
+.sc-contact-card:hover .sc-contact-icon-wrapper {
+  background-color: #0A3D7A;
+  color: #ffffff;
+}
+
+.sc-contact-card:hover .sc-contact-link {
+  color: #F2A900 !important;
+}
+
+/* --- Right Side Input Form Elements --- */
+.sc-form-input {
+  border: 1px solid #d8e2ef;
+  background-color: #f8fafc;
+  font-size: 0.95rem;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+
+.sc-form-input:focus {
+  background-color: #ffffff;
+  border-color: #0A3D7A;
+  box-shadow: 0 0 0 4px rgba(10, 61, 122, 0.1);
+  outline: none;
+}
+
+/* Premium Form Submit Button */
+.sc-submit-btn {
+  box-shadow: 0 4px 12px rgba(10, 61, 122, 0.15);
+  transition: all 0.3s ease;
+}
+
+.sc-submit-btn:hover {
+  background-color: #082f5e !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(10, 61, 122, 0.25);
+}
+
+.sc-submit-btn:active {
+  transform: translateY(0);
+}
+
+/* Layout helper */
+.max-w-2xl { max-width: 42rem; }
+.py-6 {
+  padding-top: 4.5rem !important;
+  padding-bottom: 4.5rem !important;
+}

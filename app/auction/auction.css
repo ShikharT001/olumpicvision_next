@@ -1,0 +1,613 @@
+/* ========================================================
+   PDVL LIVE AUCTION SYSTEM — PRESTIGE SPORTS THEME
+   Tailored for High-Impact Stage Screens & Auctioneer Console
+   ======================================================== */
+
+:root {
+  --auction-bg: #050a18;
+  --auction-surface: #0a1428;
+  --auction-surface-glass: rgba(14, 25, 48, 0.78);
+  --auction-card: #0f1f3d;
+  --auction-card-hover: #15294f;
+  --auction-border: rgba(255, 255, 255, 0.12);
+  --auction-border-light: rgba(255, 255, 255, 0.2);
+  --auction-accent-gold: #f59e0b;
+  --auction-accent-gold-bright: #fbbf24;
+  --auction-accent-cyan: #06b6d4;
+  --auction-accent-cyan-bright: #22d3ee;
+  --auction-accent-green: #10b981;
+  --auction-accent-red: #ef4444;
+  --auction-text: #f8fafc;
+  --auction-text-muted: #94a3b8;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.auction-shell {
+  background-color: var(--auction-bg);
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(6, 182, 212, 0.16) 0px, transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(245, 158, 11, 0.14) 0px, transparent 40%),
+    radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+    radial-gradient(circle at 50% 40%, rgba(99, 102, 241, 0.08) 0px, transparent 60%),
+    linear-gradient(180deg, #070e1e 0%, #030712 100%);
+  min-height: 100vh;
+  color: var(--auction-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism Cards */
+.auction-card {
+  background: var(--auction-surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--auction-border);
+  border-radius: 1.15rem;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.auction-card-glow {
+  box-shadow: 0 0 45px -10px rgba(6, 182, 212, 0.35), 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+  border-color: rgba(6, 182, 212, 0.45);
+}
+
+.auction-card-gold {
+  box-shadow: 0 0 50px -10px rgba(245, 158, 11, 0.4), 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+/* Big Stage Numbers */
+.auction-giant-price {
+  font-size: clamp(2.8rem, 6.5vw, 5.2rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  background: linear-gradient(135deg, #ffffff 25%, #fde047 75%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 35px rgba(245, 158, 11, 0.45);
+}
+
+/* Prestige Badges */
+.badge-gold {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0b1120;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+}
+
+.badge-cyan {
+  background: rgba(6, 182, 212, 0.16);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  font-weight: 700;
+}
+
+.badge-emerald {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 700;
+}
+
+/* Team Paddle Button */
+.team-paddle-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.95rem;
+  padding: 0.9rem 1.05rem;
+  color: #fff;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.team-paddle-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--team-color, #0d6efd);
+  opacity: 0.9;
+}
+
+.team-paddle-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--auction-accent-cyan-bright);
+  background: rgba(6, 182, 212, 0.14);
+  box-shadow: 0 10px 28px -4px rgba(6, 182, 212, 0.3);
+}
+
+.team-paddle-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.team-paddle-btn.is-highest-bidder {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(20, 35, 67, 0.8) 100%);
+  box-shadow: 0 0 30px -2px rgba(245, 158, 11, 0.45);
+}
+
+.team-paddle-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  filter: grayscale(70%);
+}
+
+/* Hammer Stage Indicator */
+.hammer-pill {
+  transition: all 0.3s ease;
+  padding: 0.5rem 1.4rem;
+  border-radius: 9999px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hammer-stage-0 {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hammer-stage-1 {
+  background: rgba(234, 179, 8, 0.22);
+  color: #facc15;
+  border: 1.5px solid #facc15;
+  animation: pulse-amber 1.2s infinite;
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.35);
+}
+
+.hammer-stage-2 {
+  background: rgba(249, 115, 22, 0.28);
+  color: #fb923c;
+  border: 1.5px solid #fb923c;
+  animation: pulse-orange 0.9s infinite;
+  box-shadow: 0 0 24px rgba(249, 115, 22, 0.45);
+}
+
+.hammer-stage-3 {
+  background: rgba(16, 185, 129, 0.32);
+  color: #34d399;
+  border: 1.5px solid #34d399;
+  animation: pulse-green 1s infinite;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+}
+
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.82; transform: scale(1.04); }
+}
+
+@keyframes pulse-orange {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.86; transform: scale(1.06); }
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.92; transform: scale(1.04); }
+}
+
+/* Player Portrait Frame */
+.auction-portrait-frame {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  background: linear-gradient(145deg, #18233c, #0a1020);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7);
+}
+
+.auction-portrait-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.auction-portrait-frame:hover img {
+  transform: scale(1.03);
+}
+
+/* Marquee Ticker */
+.ticker-wrap {
+  width: 100%;
+  overflow: hidden;
+  background: rgba(10, 16, 32, 0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--auction-border);
+  padding: 0.75rem 0;
+  white-space: nowrap;
+}
+
+.ticker-content {
+  display: inline-block;
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Broadcast Live Notification Banner (Top Ticker/Alert) */
+.auction-notify-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(15, 31, 61, 0.95) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.3);
+  border-radius: 0.9rem;
+  padding: 0.85rem 1.25rem;
+  animation: slide-down 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auction-notify-banner.is-unsold {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(30, 25, 20, 0.95) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.3);
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* SOLD CELEBRATION OVERLAY (Broadcast Grade) */
+.sold-celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(10, 20, 45, 0.92) 0%, rgba(2, 6, 16, 0.97) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: celebration-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes celebration-fade-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.celebration-box {
+  background: linear-gradient(145deg, rgba(20, 38, 75, 0.85) 0%, rgba(9, 17, 36, 0.95) 100%);
+  border: 2px solid rgba(245, 158, 11, 0.7);
+  box-shadow: 0 0 80px -10px rgba(245, 158, 11, 0.55), 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  border-radius: 1.75rem;
+  max-width: 820px;
+  width: 100%;
+  padding: 2.25rem 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  animation: pop-bounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pop-bounce {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.sold-headline-glow {
+  font-size: clamp(3rem, 7.5vw, 5.5rem);
+  font-weight: 950;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #ffffff 15%, #fde047 50%, #f59e0b 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  text-shadow: 0 0 45px rgba(245, 158, 11, 0.6);
+  margin-bottom: 0.5rem;
+}
+
+/* UNSOLD FLOATING TOAST / MODAL */
+.unsold-overlay-card {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(30, 25, 20, 0.95) 0%, rgba(15, 20, 30, 0.98) 100%);
+  border: 2px solid rgba(245, 158, 11, 0.65);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 35px rgba(245, 158, 11, 0.3);
+  border-radius: 1.25rem;
+  padding: 1.25rem 2rem;
+  z-index: 99999;
+  max-width: 90vw;
+  width: 650px;
+  animation: slide-down 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Pure CSS Confetti Particles */
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.confetti-dot {
+  position: absolute;
+  width: 10px;
+  height: 14px;
+  opacity: 0.9;
+  border-radius: 2px;
+  animation: confetti-fall 3.8s linear infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(105vh) rotate(720deg) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* Utility Gradients & Accents */
+.text-cyan {
+  color: #38bdf8 !important;
+}
+
+.text-gold {
+  color: #fbbf24 !important;
+}
+
+.bg-gold-subtle {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+}
+
+.border-gold {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+/* ========================================================
+   AUCTION SYSTEM MODALS & FORM CONTROLS (DARK PRESTIGE THEME)
+   Overrides Bootstrap 5 light defaults completely
+   ======================================================== */
+
+.auction-shell .modal,
+.auction-modal-backdrop {
+  background-color: rgba(3, 7, 18, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.auction-shell .modal-content,
+.modal-content.auction-card,
+.auction-modal-content {
+  background: linear-gradient(150deg, #0e1b36 0%, #071022 100%) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
+  overflow: hidden !important;
+}
+
+.auction-shell .modal-header,
+.modal-content.auction-card .modal-header {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  padding: 1.15rem 1.6rem !important;
+}
+
+.auction-shell .modal-body,
+.modal-content.auction-card .modal-body {
+  background: transparent !important;
+  color: #f8fafc !important;
+  padding: 1.5rem 1.6rem !important;
+}
+
+.auction-shell .modal-footer,
+.modal-content.auction-card .modal-footer {
+  background: rgba(4, 9, 20, 0.75) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  padding: 1rem 1.6rem !important;
+}
+
+/* Form Controls & Inputs */
+.auction-shell .form-control,
+.auction-shell .form-select,
+.modal-content .form-control,
+.modal-content .form-select {
+  background-color: #060e20 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.65rem 0.95rem !important;
+  font-size: 0.92rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.auction-shell .form-control:focus,
+.auction-shell .form-select:focus,
+.modal-content .form-control:focus,
+.modal-content .form-select:focus {
+  background-color: #0a1733 !important;
+  color: #ffffff !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.28) !important;
+  outline: none !important;
+}
+
+.auction-shell .form-control::placeholder,
+.modal-content .form-control::placeholder {
+  color: rgba(255, 255, 255, 0.42) !important;
+}
+
+.auction-shell .form-label,
+.modal-content .form-label {
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.02em !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.auction-shell .form-select option,
+.modal-content .form-select option {
+  background-color: #081124 !important;
+  color: #f8fafc !important;
+  padding: 0.5rem !important;
+}
+
+.auction-shell .list-group-item,
+.modal-content .list-group-item {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Color Swatches for Team Setup */
+.swatch-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+.swatch-pill:hover {
+  transform: scale(1.15);
+  border-color: #ffffff;
+}
+.swatch-pill.is-selected {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.8), 0 0 15px rgba(6, 182, 212, 0.5);
+  transform: scale(1.12);
+}
+
+/* Purse Quick Chips */
+.purse-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e2e8f0;
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.purse-chip:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+.purse-chip.is-active {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-color: #f59e0b;
+  color: #0b1120;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+}
+
+/* Live Team Preview Box */
+.team-preview-box {
+  background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.08) 0%, rgba(10, 20, 42, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1rem;
+  padding: 1.4rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
+}
+
+/* Queue Tab Pills */
+.queue-filter-tab {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #94a3b8;
+  border-radius: 9999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.queue-filter-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+.queue-filter-tab.is-active {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25) 0%, rgba(14, 165, 233, 0.35) 100%);
+  border-color: #22d3ee;
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(6, 182, 212, 0.35);
+}
+
+/* Queue Player Card in Modal */
+.queue-item-card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.95rem;
+  padding: 1rem 1.15rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.queue-item-card:hover {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+}
+.queue-item-card.is-sold {
+  opacity: 0.72;
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.04);
+}
+.queue-item-card.is-sold:hover {
+  transform: none;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.queue-item-card.is-on-hammer {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+/* Scrollbar beautification */
+.auction-scroll-area::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.auction-scroll-area::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.auction-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+.auction-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.6);
+}

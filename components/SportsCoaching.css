@@ -1,0 +1,92 @@
+/* ==========================================================================
+   SPORTS COACHING SECTION PREMIUM STYLESHEET
+   ========================================================================== */
+
+.sc-section {
+  background-color: #ffffff;
+}
+
+/* Base Grey Shadow Variable Adjustments */
+.text-light-gray-tint {
+  color: #94a3b8;
+}
+
+.text-dark-blue-tint {
+  color: #1e293b;
+}
+
+/* Category Variable Configurations */
+.sc-card--aquatic   { --category-color: #378add; --bg-gradient: rgba(55, 138, 221, 0.04); }
+.sc-card--team      { --category-color: #1d9e75; --bg-gradient: rgba(29, 158, 117, 0.04); }
+.sc-card--martial   { --category-color: #7f77dd; --bg-gradient: rgba(127, 119, 221, 0.04); }
+.sc-card--combat    { --category-color: #d85a30; --bg-gradient: rgba(216, 90, 48, 0.04); }
+.sc-card--precision { --category-color: #ba7517; --bg-gradient: rgba(186, 117, 23, 0.04); }
+
+/* Premium Card Structural Block Design layout */
+.sc-premium-card {
+  background-color: #ffffff;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  border: 1px solid #f1f5f9 !important;
+}
+
+.sc-card-top-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--category-color);
+  transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Premium Icon Container Space Layer */
+.sc-premium-card .sc-icon-hub {
+  width: 64px;
+  height: 64px;
+  background-color: #f8fafc;
+  color: var(--category-color);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Legend UI Elements layout */
+.sc-legend-container .sc-legend__pill {
+  border-color: #e2e8f0 !important;
+  background-color: #ffffff !important;
+}
+
+/* --- THE PREMIUM HOVER STATES ANIMATIONS --- */
+
+.sc-premium-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 20px -4px rgba(10, 61, 122, 0.08) !important;
+  background-color: var(--bg-gradient) !important;
+  border-color: rgba(10, 61, 122, 0.1) !important;
+}
+
+/* Expand the top color border to cover the background slightly on hover */
+.sc-premium-card:hover .sc-card-top-strip {
+  height: 6px;
+}
+
+/* Pop individual icons visually into inverted state matches */
+.sc-premium-card:hover .sc-icon-hub {
+  background-color: var(--category-color);
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: transparent;
+}
+
+/* Accentuate typography color changes on hover matches */
+.sc-premium-card:hover .card-title {
+  color: #0A3D7A !important;
+}
+
+/* Update just this selector block inside your SportsCoaching.css file */
+.sc-premium-card .sc-icon-hub i {
+  font-size: 1.5rem !important; /* Forces uniform size constraints across Font Awesome glyph structural sets */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
