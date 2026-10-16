@@ -3,10 +3,40 @@
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
 import Link from 'next/link';
 
+// Web Audio API fanfare synthesizer for live sales
+function playFanfareSound() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.11);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.11);
+      gain.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + idx * 0.11 + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.11 + 0.42);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.11);
+      osc.stop(ctx.currentTime + idx * 0.11 + 0.45);
+    });
+  } catch {
+    // Ignore audio permission blocks
+  }
+}
+
 export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin }) {
   const isAdmin = propIsAdmin !== undefined ? propIsAdmin : role === 'admin';
   const [data, setData] = useState(initialData || {});
   const [liveNotification, setLiveNotification] = useState(initialData?.lastNotification || null);
+  const [soldModalData, setSoldModalData] = useState(null);
+  const [unsoldModalData, setUnsoldModalData] = useState(null);
+  const [confirmSaleModal, setConfirmSaleModal] = useState(null);
+  const [confirmUnsoldModal, setConfirmUnsoldModal] = useState(null);
+  const [confirmUndoModal, setConfirmUndoModal] = useState(false);
   const [selectedIncrement, setSelectedIncrement] = useState(500);
   const [customBidInput, setCustomBidInput] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -27,6 +57,19 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         if (json.lastNotification && json.lastNotification.id !== lastNotifIdRef.current) {
           lastNotifIdRef.current = json.lastNotification.id;
           setLiveNotification(json.lastNotification);
+          if (json.lastNotification.type === 'sold') {
+            const foundTeam = (json.teams || []).find(
+              (t) => t.team_name === json.lastNotification.teamName || t.id === json.lastNotification.teamId
+            );
+            setSoldModalData({
+              ...json.lastNotification,
+              teamColor: foundTeam?.primary_color || '#f59e0b',
+              teamCode: foundTeam?.team_code || 'WIN',
+            });
+            playFanfareSound();
+          } else if (json.lastNotification.type === 'unsold') {
+            setUnsoldModalData(json.lastNotification);
+          }
         }
         setData(json);
       }
@@ -99,17 +142,21 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     }
   };
 
-  // Finalize Sale
-  const handleFinalizeSale = async () => {
+  // Finalize Sale — Request Modal
+  const requestFinalizeSale = () => {
     if (!activePlayer || !highestTeam || currentBid <= 0) {
       setError('Cannot mark as Sold without an active high bidder.');
       return;
     }
+    setConfirmSaleModal({
+      player: activePlayer,
+      team: highestTeam,
+      price: currentBid,
+    });
+  };
 
-    if (!window.confirm(`CONFIRM SALE:\n\nPlayer: ${activePlayer.full_name}\nWinning Team: ${highestTeam.team_name}\nSold Price: ₹${currentBid.toLocaleString()}\n\nProceed to deduct purse and award player?`)) {
-      return;
-    }
-
+  // Finalize Sale — Execute
+  const executeFinalizeSale = async () => {
     setError('');
     setActionLoading(true);
     try {
@@ -122,18 +169,26 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       if (!res.ok) throw new Error(resData.error || 'Sale finalization failed');
 
       const soldMsg = resData.message || `${activePlayer.full_name} sold to ${highestTeam.team_name} at ₹${currentBid.toLocaleString()}`;
-      if (resData.notification) {
-        setLiveNotification(resData.notification);
-      } else {
-        setLiveNotification({
-          type: 'sold',
-          message: soldMsg,
-          playerName: activePlayer.full_name,
-          teamName: highestTeam.team_name,
-          price: currentBid,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      const notifData = resData.notification || {
+        type: 'sold',
+        message: soldMsg,
+        playerName: activePlayer.full_name,
+        teamName: highestTeam.team_name,
+        price: currentBid,
+        timestamp: new Date().toISOString(),
+      };
+
+      setLiveNotification(notifData);
+      setSoldModalData({
+        ...notifData,
+        position: activePlayer.playing_position,
+        category: activePlayer.player_category,
+        lot: activePlayer.lot_number,
+        teamColor: highestTeam.primary_color || '#f59e0b',
+        teamCode: highestTeam.team_code || 'WIN',
+      });
+      playFanfareSound();
+      setConfirmSaleModal(null);
       setActionMessage(soldMsg);
       fetchState();
     } catch (err) {
@@ -143,14 +198,17 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     }
   };
 
-  // Mark Unsold
-  const handleMarkUnsold = async () => {
+  // Mark Unsold — Request Modal
+  const requestMarkUnsold = () => {
     if (!activePlayer) return;
+    setConfirmUnsoldModal({
+      player: activePlayer,
+      basePrice: activePlayer.base_price || 1000,
+    });
+  };
 
-    if (!window.confirm(`Mark ${activePlayer.full_name} as UNSOLD and clear the podium?`)) {
-      return;
-    }
-
+  // Mark Unsold — Execute
+  const executeMarkUnsold = async () => {
     setError('');
     setActionLoading(true);
     try {
@@ -163,16 +221,21 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       if (!res.ok) throw new Error(resData.error || 'Failed to mark unsold');
 
       const unsoldMsg = resData.message || `${activePlayer.full_name} remained UNSOLD and moved to the unsold pool.`;
-      if (resData.notification) {
-        setLiveNotification(resData.notification);
-      } else {
-        setLiveNotification({
-          type: 'unsold',
-          message: unsoldMsg,
-          playerName: activePlayer.full_name,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      const notifData = resData.notification || {
+        type: 'unsold',
+        message: unsoldMsg,
+        playerName: activePlayer.full_name,
+        timestamp: new Date().toISOString(),
+      };
+
+      setLiveNotification(notifData);
+      setUnsoldModalData({
+        ...notifData,
+        position: activePlayer.playing_position,
+        basePrice: activePlayer.base_price,
+        lot: activePlayer.lot_number,
+      });
+      setConfirmUnsoldModal(null);
       setActionMessage(unsoldMsg);
       fetchState();
     } catch (err) {
@@ -182,9 +245,13 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     }
   };
 
-  // Undo Last Action
-  const handleUndo = async () => {
-    if (!window.confirm('Revert the last auction action/sale?')) return;
+  // Undo Last Action — Request Modal
+  const requestUndo = () => {
+    setConfirmUndoModal(true);
+  };
+
+  // Undo Last Action — Execute
+  const executeUndo = async () => {
     setError('');
     setActionLoading(true);
     try {
@@ -196,6 +263,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Undo failed');
 
+      setConfirmUndoModal(false);
       setActionMessage(resData.message || 'Action reverted.');
       fetchState();
     } catch (err) {
@@ -515,7 +583,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 <button
                   type="button"
                   className={`btn btn-sm rounded-3 px-4 py-2 fw-bold text-xs flex-fill shadow-sm ${state.hammer_stage === 3 ? 'btn-success text-white' : 'btn-outline-success'}`}
-                  onClick={() => isAdmin && handleFinalizeSale()}
+                  onClick={() => isAdmin && requestFinalizeSale()}
                   disabled={!isAdmin || !activePlayer || !highestTeam || currentBid <= 0 || actionLoading}
                   title={!isAdmin ? 'Operated by official auctioneer only' : 'Confirm player sale'}
                 >
@@ -527,7 +595,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-danger rounded-3 px-3 py-2 fw-bold text-xs"
-                      onClick={handleMarkUnsold}
+                      onClick={requestMarkUnsold}
                       disabled={!activePlayer || actionLoading}
                     >
                       ✕ Unsold
@@ -536,7 +604,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-secondary rounded-3 px-2.5 py-2 fw-semibold text-xs"
-                      onClick={handleUndo}
+                      onClick={requestUndo}
                       disabled={actionLoading}
                       title="Undo last action"
                     >
@@ -1045,6 +1113,317 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   Close Drawer
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* CONFIRM SALE MODAL */}
+      {confirmSaleModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-confirm-card text-white p-4 shadow-2xl">
+              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-30 pb-2.5">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge bg-success text-white px-2.5 py-1 rounded-pill text-xs fw-extrabold">
+                    HAMMER CALL
+                  </span>
+                  <h5 className="modal-title fw-extrabold text-white mb-0 fs-6">
+                    Confirm Player Sale
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setConfirmSaleModal(null)}
+                  aria-label="Close"
+                ></button>
+              </div>
+
+              <div className="text-center py-2">
+                <div className="fs-1 mb-2">🔨</div>
+                <h4 className="fw-black text-white mb-1 fs-5">Bring Down The Gavel?</h4>
+                <p className="text-white-50 text-xs mb-3">
+                  This will deduct the purse, award the player to the team roster, and broadcast the sale live.
+                </p>
+
+                <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 text-start mb-3">
+                  <div className="d-flex justify-content-between align-items-center mb-1.5">
+                    <span className="text-white-50 text-xs">Player:</span>
+                    <strong className="text-white small fw-bold">{confirmSaleModal.player?.full_name}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center mb-1.5">
+                    <span className="text-white-50 text-xs">Winning Franchise:</span>
+                    <strong className="text-info small fw-bold">{confirmSaleModal.team?.team_name} ({confirmSaleModal.team?.team_code})</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-white-50 text-xs">Final Hammer Amount:</span>
+                    <strong className="text-warning font-monospace fs-5 fw-black">₹{Number(confirmSaleModal.price || 0).toLocaleString()}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-top border-secondary border-opacity-25">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                  onClick={() => setConfirmSaleModal(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-success rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
+                  disabled={actionLoading}
+                  onClick={executeFinalizeSale}
+                >
+                  {actionLoading ? 'Awarding Player...' : '✓ Confirm & Award Player'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM UNSOLD MODAL */}
+      {confirmUnsoldModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-unsold-card text-white p-4 shadow-2xl">
+              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-30 pb-2.5">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge bg-warning text-dark px-2.5 py-1 rounded-pill text-xs fw-extrabold">
+                    UNSOLD CONFIRMATION
+                  </span>
+                  <h5 className="modal-title fw-extrabold text-white mb-0 fs-6">
+                    Mark Player Unsold
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setConfirmUnsoldModal(null)}
+                  aria-label="Close"
+                ></button>
+              </div>
+
+              <div className="text-center py-2">
+                <div className="fs-1 mb-2">⚠️</div>
+                <h4 className="fw-black text-white mb-1 fs-5">Pass on {confirmUnsoldModal.player?.full_name}?</h4>
+                <p className="text-white-50 text-xs mb-3">
+                  This player will be cleared from the podium and redirected into the unsold lot pool for subsequent rounds.
+                </p>
+                <div className="bg-dark bg-opacity-70 rounded-3 p-2.5 border border-secondary border-opacity-30 text-start">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-white-50 text-xs">Starting Base Price:</span>
+                    <strong className="text-warning font-monospace small">₹{Number(confirmUnsoldModal.basePrice || 1000).toLocaleString()}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                  onClick={() => setConfirmUnsoldModal(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-warning rounded-pill px-4 py-1.5 fw-bold text-dark text-xs shadow"
+                  disabled={actionLoading}
+                  onClick={executeMarkUnsold}
+                >
+                  {actionLoading ? 'Marking Unsold...' : '✓ Confirm Unsold'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM UNDO MODAL */}
+      {confirmUndoModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-sm modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-confirm-card text-white p-4 text-center shadow-2xl">
+              <div className="fs-1 mb-2">↺</div>
+              <h5 className="fw-bold text-white mb-1 fs-6">Revert Last Action?</h5>
+              <p className="text-white-50 text-xs mb-3">
+                This will roll back the most recent auction sale or stage change.
+              </p>
+              <div className="d-flex align-items-center justify-content-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs"
+                  onClick={() => setConfirmUndoModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger rounded-pill px-3.5 py-1.5 fw-bold text-xs shadow"
+                  disabled={actionLoading}
+                  onClick={executeUndo}
+                >
+                  {actionLoading ? 'Reverting...' : 'Yes, Revert'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLAYER SOLD CELEBRATION MODAL (Admin & Spectator Live) */}
+      {soldModalData && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-sold-card text-white text-center p-4 shadow-2xl">
+              <div className="modal-action-avatar bg-warning text-dark">
+                🎉
+              </div>
+              <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Hammer Fell • Official Sale
+              </span>
+              <h2 className="fs-3 fw-black text-white mb-1">
+                PLAYER SOLD!
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Official PDVL Live Auction Result
+              </p>
+
+              {/* Player Card */}
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <div className="d-flex align-items-center justify-content-between mb-1.5">
+                  <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Volleyball Athlete'}</span>
+                  {soldModalData.lot && <span className="text-white-50 text-xs">Lot #{soldModalData.lot}</span>}
+                </div>
+                <h4 className="fw-extrabold text-white mb-1 fs-5">
+                  {soldModalData.playerName || soldModalData.player_name || 'Player'}
+                </h4>
+                {soldModalData.category && (
+                  <div className="text-white-50 text-xs">
+                    Category: <strong className="text-light text-capitalize">{soldModalData.category.replace('_', ' ')}</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Winning Team Banner */}
+              <div
+                className="rounded-3 p-3 border mb-3 d-flex align-items-center justify-content-between shadow-sm"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderColor: soldModalData.teamColor || '#f59e0b',
+                }}
+              >
+                <div className="d-flex align-items-center gap-2.5 text-start">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black font-monospace text-xs shadow"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      background: soldModalData.teamColor || '#0d6efd',
+                    }}
+                  >
+                    {soldModalData.teamCode || 'WIN'}
+                  </div>
+                  <div>
+                    <span className="text-white-50 text-xs d-block">Awarded To</span>
+                    <strong className="text-white small fw-bold">{soldModalData.teamName || soldModalData.team_name || 'Winning Team'}</strong>
+                  </div>
+                </div>
+                <div className="text-end">
+                  <span className="text-white-50 text-xs d-block">Hammer Price</span>
+                  <strong className="text-warning fs-5 fw-black font-monospace">
+                    ₹{Number(soldModalData.price || 0).toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark w-100 shadow"
+                onClick={() => setSoldModalData(null)}
+              >
+                Continue Live Console ➔
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLAYER UNSOLD NOTIFICATION MODAL (Admin & Spectator Live) */}
+      {unsoldModalData && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-unsold-card text-white text-center p-4 shadow-2xl">
+              <div className="modal-action-avatar bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40">
+                ⚠️
+              </div>
+              <span className="badge bg-warning text-dark px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Hammer Passed • Unsold
+              </span>
+              <h2 className="fs-3 fw-black text-white mb-1">
+                PLAYER UNSOLD
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Returned to the unsold queue for subsequent auction rounds
+              </p>
+
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="badge badge-cyan text-xs text-uppercase">{unsoldModalData.position || 'Athlete'}</span>
+                  {unsoldModalData.basePrice && (
+                    <span className="text-warning font-monospace small fw-bold">
+                      Base: ₹{Number(unsoldModalData.basePrice).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                <h4 className="fw-extrabold text-white mb-1 fs-5">
+                  {unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
+                </h4>
+                <p className="text-white-50 text-xs mb-0">
+                  {unsoldModalData.message || 'Player was not claimed at base price and has been routed to the unsold lot pool.'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline-light rounded-pill px-4 py-2 fw-bold text-xs w-100"
+                onClick={() => setUnsoldModalData(null)}
+              >
+                Acknowledge & Next Player ➔
+              </button>
             </div>
           </div>
         </div>

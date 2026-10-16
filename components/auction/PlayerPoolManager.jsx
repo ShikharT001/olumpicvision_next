@@ -14,6 +14,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalError, setModalError] = useState('');
+  const [pendingHammerPlayer, setPendingHammerPlayer] = useState(null);
+  const [podiumSuccessModal, setPodiumSuccessModal] = useState(null);
+  const [playerRegisteredModal, setPlayerRegisteredModal] = useState(null);
+  const [importSuccessModal, setImportSuccessModal] = useState(null);
+  const [editSuccessModal, setEditSuccessModal] = useState(null);
   const [addForm, setAddForm] = useState({
     full_name: '',
     playing_position: 'outside_hitter',
@@ -76,11 +81,24 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       const savedName = addForm.full_name;
       const savedPrice = Number(addForm.base_price || 0).toLocaleString();
       const savedLot = addForm.lot_number || 1;
+      const savedPos = addForm.playing_position;
+      const savedCat = addForm.player_category;
+      const savedGrade = addForm.player_grade;
 
       // In-modal notification
       setModalMessage(`✓ Player "${savedName}" registered successfully with base price ₹${savedPrice} (Lot ${savedLot})!`);
       // Outer page notification
       setMessage(`Player "${savedName}" added to auction database.`);
+
+      // Open Action Celebration Modal
+      setPlayerRegisteredModal({
+        name: savedName,
+        position: savedPos,
+        category: savedCat,
+        basePrice: savedPrice,
+        lot: savedLot,
+        grade: savedGrade,
+      });
 
       // Clear the add player form completely
       setAddForm({
@@ -117,7 +135,9 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Import failed');
 
-      setMessage(`Successfully imported ${data.importedCount || 0} verified player(s) into the auction pool.`);
+      const count = data.importedCount || 0;
+      setImportSuccessModal({ count });
+      setMessage(`Successfully imported ${count} verified player(s) into the auction pool.`);
       fetchPlayers();
     } catch (err) {
       setError(err.message);
@@ -126,8 +146,12 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
     }
   };
 
-  const handleSendToHammer = async (player) => {
-    if (!window.confirm(`Load ${player.full_name} onto the live auction podium?`)) return;
+  const requestSendToHammer = (player) => {
+    setPendingHammerPlayer(player);
+  };
+
+  const executeSendToHammer = async (player) => {
+    setLoading(true);
     try {
       const res = await fetch('/api/auction/players', {
         method: 'POST',
@@ -142,10 +166,14 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       }
       if (!res.ok) throw new Error(data.error || 'Failed to set on hammer');
 
+      setPendingHammerPlayer(null);
+      setPodiumSuccessModal({ player });
       setMessage(`✓ ${player.full_name} is now on the auction podium.`);
       fetchPlayers();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -173,6 +201,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Update failed');
 
+      setEditSuccessModal({
+        playerName: editingPlayer.full_name,
+        basePrice: editForm.base_price,
+        lot: editForm.lot_number,
+      });
       setMessage(`Updated ${editingPlayer.full_name} details.`);
       setEditingPlayer(null);
       fetchPlayers();
@@ -455,7 +488,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                              onClick={() => handleSendToHammer(player)}
+                              onClick={() => requestSendToHammer(player)}
                             >
                               To Podium →
                             </button>
@@ -777,6 +810,258 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* CONFIRM LOAD TO PODIUM MODAL */}
+      {pendingHammerPlayer && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-confirm-card text-white p-4 shadow-2xl">
+              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-30 pb-2.5">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                    Podium Selection
+                  </span>
+                  <h5 className="modal-title fw-extrabold text-white mb-0 fs-6">
+                    Allow Player to Hammer Podium
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setPendingHammerPlayer(null)}
+                  aria-label="Close"
+                ></button>
+              </div>
+
+              <div className="text-center py-2">
+                <div className="fs-1 mb-2">🔨</div>
+                <h4 className="fw-black text-white mb-1 fs-5">
+                  Put {pendingHammerPlayer.full_name} on Live Podium?
+                </h4>
+                <p className="text-white-50 text-xs mb-3">
+                  This player will be set as the active podium target for all franchise paddles in the live auction.
+                </p>
+
+                <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 text-start mb-3">
+                  <div className="d-flex justify-content-between align-items-center mb-1.5">
+                    <span className="text-white-50 text-xs">Playing Position:</span>
+                    <span className="badge badge-cyan text-xs text-uppercase">{pendingHammerPlayer.playing_position}</span>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center mb-1.5">
+                    <span className="text-white-50 text-xs">Lot & Grade:</span>
+                    <strong className="text-white small">Lot #{pendingHammerPlayer.lot_number || 1} • {pendingHammerPlayer.player_grade || 'Grade A'}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-white-50 text-xs">Starting Base Price:</span>
+                    <strong className="text-warning font-monospace fs-5 fw-black">₹{Number(pendingHammerPlayer.base_price || 1000).toLocaleString()}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-top border-secondary border-opacity-25">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                  onClick={() => setPendingHammerPlayer(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
+                  disabled={loading}
+                  onClick={() => executeSendToHammer(pendingHammerPlayer)}
+                >
+                  {loading ? 'Activating Podium...' : '🔨 Load to Podium Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PODIUM SUCCESS MODAL */}
+      {podiumSuccessModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-success-card text-white text-center p-4 shadow-2xl">
+              <div className="modal-action-avatar bg-success text-white">
+                🔨
+              </div>
+              <span className="badge badge-emerald px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Now Live On Podium
+              </span>
+              <h2 className="fs-4 fw-black text-white mb-1">
+                PLAYER ON HAMMER!
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Franchises can now attribute paddle bids for this player
+              </p>
+
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <h4 className="fw-extrabold text-white mb-1 fs-5">
+                  {podiumSuccessModal.player.full_name}
+                </h4>
+                <div className="d-flex align-items-center justify-content-between text-xs text-white-50">
+                  <span className="text-capitalize">{podiumSuccessModal.player.playing_position?.replace('_', ' ')}</span>
+                  <span className="text-warning font-monospace fw-bold">Base: ₹{Number(podiumSuccessModal.player.base_price || 1000).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-light rounded-pill px-3.5 py-2 fw-semibold text-xs flex-fill"
+                  onClick={() => setPodiumSuccessModal(null)}
+                >
+                  Stay in Player Pool
+                </button>
+                <Link
+                  href="/auction/admin"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-2 fw-bold text-xs flex-fill shadow"
+                  onClick={() => setPodiumSuccessModal(null)}
+                >
+                  Open Live Podium ↗
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLAYER REGISTERED MODAL */}
+      {playerRegisteredModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-success-card text-white text-center p-4 shadow-2xl">
+              <div className="modal-action-avatar bg-primary text-white">
+                🏐
+              </div>
+              <span className="badge badge-cyan px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Auction Pool Registered
+              </span>
+              <h2 className="fs-4 fw-black text-white mb-1">
+                PLAYER ADDED!
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Successfully enrolled into the PDVL auction database
+              </p>
+
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-white-50 text-xs">Full Name:</span>
+                  <strong className="text-white small fw-bold">{playerRegisteredModal.name}</strong>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-white-50 text-xs">Position:</span>
+                  <span className="badge badge-cyan text-xs text-uppercase">{playerRegisteredModal.position}</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-white-50 text-xs">Lot & Grade:</span>
+                  <span className="text-white small">Lot #{playerRegisteredModal.lot} • {playerRegisteredModal.grade}</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="text-white-50 text-xs">Base Price:</span>
+                  <strong className="text-warning font-monospace fs-6 fw-bold">₹{playerRegisteredModal.basePrice}</strong>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-light rounded-pill px-3.5 py-2 fw-semibold text-xs flex-fill"
+                  onClick={() => setPlayerRegisteredModal(null)}
+                >
+                  View Player Pool
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-2 fw-bold text-xs flex-fill shadow"
+                  onClick={() => {
+                    setPlayerRegisteredModal(null);
+                    openAddModal();
+                  }}
+                >
+                  + Add Another Player
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMPORT SUCCESS MODAL */}
+      {importSuccessModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-sm modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-confirm-card text-white p-4 text-center shadow-2xl">
+              <div className="fs-1 mb-2">📋</div>
+              <h5 className="fw-bold text-white mb-1 fs-6">Import Complete!</h5>
+              <p className="text-white-50 text-xs mb-3">
+                Successfully imported <strong>{importSuccessModal.count}</strong> verified player(s) into the auction pool.
+              </p>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs w-100"
+                onClick={() => setImportSuccessModal(null)}
+              >
+                View Pool
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLAYER EDIT SAVED MODAL */}
+      {editSuccessModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-sm modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-confirm-card text-white p-4 text-center shadow-2xl">
+              <div className="fs-1 mb-2">✓</div>
+              <h5 className="fw-bold text-white mb-1 fs-6">Player Updated!</h5>
+              <p className="text-white-50 text-xs mb-3">
+                <strong>{editSuccessModal.playerName}</strong> details updated (Base: ₹{Number(editSuccessModal.basePrice || 1000).toLocaleString()}, Lot #{editSuccessModal.lot}).
+              </p>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs w-100"
+                onClick={() => setEditSuccessModal(null)}
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

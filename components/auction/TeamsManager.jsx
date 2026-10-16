@@ -26,6 +26,10 @@ export default function TeamsManager({ initialTeams }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [teamRegisteredModal, setTeamRegisteredModal] = useState(null);
+  const [teamUpdatedModal, setTeamUpdatedModal] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
 
@@ -55,8 +59,22 @@ export default function TeamsManager({ initialTeams }) {
     }
   }, []);
 
+  const openAddModal = () => {
+    setModalMessage('');
+    setModalError('');
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setModalMessage('');
+    setModalError('');
+    setShowAddModal(false);
+  };
+
   const handleCreateTeam = async (e) => {
     e.preventDefault();
+    setModalError('');
+    setModalMessage('');
     setError('');
     setMessage('');
     setLoading(true);
@@ -67,11 +85,41 @@ export default function TeamsManager({ initialTeams }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server returned an invalid response. Please verify admin privileges.');
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to create team');
 
-      setMessage(`Team ${formData.team_name} (${formData.team_code}) added successfully.`);
-      setShowAddModal(false);
+      const savedName = formData.team_name;
+      const savedCode = formData.team_code;
+      const savedPurse = Number(formData.initial_purse || 100000).toLocaleString();
+      const savedColor = formData.primary_color || '#0d6efd';
+      const savedOwner = formData.owner_name;
+      const savedCoach = formData.coach_name;
+      const savedMinSquad = formData.min_squad_size || 8;
+      const savedMaxSquad = formData.max_squad_size || 12;
+
+      // In-modal notification
+      setModalMessage(`✓ Team "${savedName}" (${savedCode}) registered successfully with purse ₹${savedPurse}!`);
+      // Outer page notification
+      setMessage(`Team "${savedName}" (${savedCode}) added to tournament roster.`);
+
+      // Open Team Registered Action Modal
+      setTeamRegisteredModal({
+        team_name: savedName,
+        team_code: savedCode,
+        initial_purse: savedPurse,
+        primary_color: savedColor,
+        owner_name: savedOwner,
+        coach_name: savedCoach,
+        min_squad_size: savedMinSquad,
+        max_squad_size: savedMaxSquad,
+      });
+
+      // Clear add team form completely
       setFormData({
         team_name: '',
         team_code: '',
@@ -84,6 +132,7 @@ export default function TeamsManager({ initialTeams }) {
       });
       fetchTeams();
     } catch (err) {
+      setModalError(err.message);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -102,9 +151,19 @@ export default function TeamsManager({ initialTeams }) {
           ...editingTeam,
         }),
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server returned an invalid response.');
+      }
       if (!res.ok) throw new Error(data.error || 'Update failed');
 
+      setTeamUpdatedModal({
+        team_name: editingTeam.team_name,
+        team_code: editingTeam.team_code,
+        remaining_purse: Number(editingTeam.remaining_purse || 0).toLocaleString(),
+      });
       setMessage(`Updated ${editingTeam.team_name} details.`);
       setEditingTeam(null);
       fetchTeams();
@@ -147,7 +206,7 @@ export default function TeamsManager({ initialTeams }) {
           <button
             type="button"
             className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 shadow-sm"
-            onClick={() => setShowAddModal(true)}
+            onClick={openAddModal}
           >
             <span>+ Add New Team</span>
           </button>
@@ -285,12 +344,42 @@ export default function TeamsManager({ initialTeams }) {
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={closeAddModal}
                     aria-label="Close"
                   ></button>
                 </div>
 
                 <div className="modal-body p-4 auction-scroll-area">
+                  {/* In-modal Save Notification Banner */}
+                  {modalMessage && (
+                    <div className="alert alert-success border-0 bg-success bg-opacity-20 text-success d-flex align-items-center justify-content-between py-2.5 px-3 rounded-3 small shadow-sm mb-3" role="alert">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-5">🎉</span>
+                        <strong className="text-white small">{modalMessage}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        onClick={() => setModalMessage('')}
+                        aria-label="Close"
+                      ></button>
+                    </div>
+                  )}
+
+                  {modalError && (
+                    <div className="alert alert-danger border-0 bg-danger bg-opacity-20 text-danger d-flex align-items-center justify-content-between py-2.5 px-3 rounded-3 small shadow-sm mb-3" role="alert">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-5">⚠️</span>
+                        <strong className="text-white small">{modalError}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        onClick={() => setModalError('')}
+                        aria-label="Close"
+                      ></button>
+                    </div>
+                  )}
                   <div className="row g-4">
                     {/* Left Column: Form Fields */}
                     <div className="col-12 col-md-7 border-end-md border-secondary border-opacity-20 pe-md-4">
@@ -549,9 +638,9 @@ export default function TeamsManager({ initialTeams }) {
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={closeAddModal}
                   >
-                    Cancel
+                    Close
                   </button>
                   <button
                     type="submit"
@@ -715,6 +804,115 @@ export default function TeamsManager({ initialTeams }) {
                   Save Changes
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* TEAM REGISTERED CELEBRATION MODAL */}
+      {teamRegisteredModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-success-card text-white text-center p-4 shadow-2xl">
+              <div
+                className="modal-action-avatar text-white shadow"
+                style={{ background: teamRegisteredModal.primary_color || '#0d6efd' }}
+              >
+                {teamRegisteredModal.team_code}
+              </div>
+              <span className="badge badge-emerald px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Franchise Registered
+              </span>
+              <h2 className="fs-4 fw-black text-white mb-1">
+                TEAM CREATED!
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Successfully enrolled in the official PDVL tournament roster
+              </p>
+
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <div className="d-flex justify-content-between align-items-center mb-1.5">
+                  <span className="text-white-50 text-xs">Franchise Name:</span>
+                  <strong className="text-white small fw-bold">{teamRegisteredModal.team_name}</strong>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-1.5">
+                  <span className="text-white-50 text-xs">Team Code:</span>
+                  <span className="badge bg-secondary font-monospace text-xs">{teamRegisteredModal.team_code}</span>
+                </div>
+                {teamRegisteredModal.owner_name && (
+                  <div className="d-flex justify-content-between align-items-center mb-1.5">
+                    <span className="text-white-50 text-xs">Owner:</span>
+                    <strong className="text-light small">{teamRegisteredModal.owner_name}</strong>
+                  </div>
+                )}
+                {teamRegisteredModal.coach_name && (
+                  <div className="d-flex justify-content-between align-items-center mb-1.5">
+                    <span className="text-white-50 text-xs">Coach:</span>
+                    <strong className="text-light small">{teamRegisteredModal.coach_name}</strong>
+                  </div>
+                )}
+                <div className="d-flex justify-content-between align-items-center mb-1.5">
+                  <span className="text-white-50 text-xs">Allocated Purse:</span>
+                  <strong className="text-warning font-monospace fs-6 fw-bold">₹{teamRegisteredModal.initial_purse}</strong>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="text-white-50 text-xs">Squad Limit:</span>
+                  <span className="text-info font-monospace text-xs">{teamRegisteredModal.min_squad_size} - {teamRegisteredModal.max_squad_size} Players</span>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-light rounded-pill px-3.5 py-2 fw-semibold text-xs flex-fill"
+                  onClick={() => setTeamRegisteredModal(null)}
+                >
+                  View Teams Table
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-2 fw-bold text-xs flex-fill shadow"
+                  onClick={() => {
+                    setTeamRegisteredModal(null);
+                    openAddModal();
+                  }}
+                >
+                  + Add Another Team
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEAM UPDATED MODAL */}
+      {teamUpdatedModal && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-sm modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-confirm-card text-white p-4 text-center shadow-2xl">
+              <div className="fs-1 mb-2">✓</div>
+              <h5 className="fw-bold text-white mb-1 fs-6">Team Updated!</h5>
+              <p className="text-white-50 text-xs mb-3">
+                <strong>{teamUpdatedModal.team_name}</strong> details & remaining purse of <strong>₹{teamUpdatedModal.remaining_purse}</strong> saved.
+              </p>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs w-100"
+                onClick={() => setTeamUpdatedModal(null)}
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

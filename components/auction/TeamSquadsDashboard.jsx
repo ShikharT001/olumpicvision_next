@@ -7,6 +7,8 @@ export default function TeamSquadsDashboard({ initialTeams }) {
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [liveNotification, setLiveNotification] = useState(null);
+  const [soldModalData, setSoldModalData] = useState(null);
+  const [unsoldModalData, setUnsoldModalData] = useState(null);
   const lastNotifIdRef = useRef(null);
 
   const fetchLiveStateAndTeams = useCallback(async () => {
@@ -20,6 +22,18 @@ export default function TeamSquadsDashboard({ initialTeams }) {
         if (json.lastNotification && json.lastNotification.id !== lastNotifIdRef.current) {
           lastNotifIdRef.current = json.lastNotification.id;
           setLiveNotification(json.lastNotification);
+          if (json.lastNotification.type === 'sold') {
+            const foundTeam = (json.teams || []).find(
+              (t) => t.team_name === json.lastNotification.teamName || t.id === json.lastNotification.teamId
+            );
+            setSoldModalData({
+              ...json.lastNotification,
+              teamColor: foundTeam?.primary_color || '#f59e0b',
+              teamCode: foundTeam?.team_code || 'WIN',
+            });
+          } else if (json.lastNotification.type === 'unsold') {
+            setUnsoldModalData(json.lastNotification);
+          }
         }
       }
     } catch {
@@ -272,6 +286,127 @@ export default function TeamSquadsDashboard({ initialTeams }) {
           );
         })}
       </div>
+
+      {/* PLAYER SOLD LIVE MODAL */}
+      {soldModalData && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-sold-card text-white text-center p-4 shadow-2xl">
+              <div className="modal-action-avatar bg-warning text-dark">
+                🎉
+              </div>
+              <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Live Auction Sale
+              </span>
+              <h2 className="fs-3 fw-black text-white mb-1">
+                PLAYER SOLD!
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Squad roster updated in real time
+              </p>
+
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <h4 className="fw-extrabold text-white mb-1 fs-5">
+                  {soldModalData.playerName || soldModalData.player_name || 'Player'}
+                </h4>
+                <div className="text-white-50 text-xs">
+                  Position: <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Athlete'}</span>
+                </div>
+              </div>
+
+              <div
+                className="rounded-3 p-3 border mb-3 d-flex align-items-center justify-content-between shadow-sm"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderColor: soldModalData.teamColor || '#f59e0b',
+                }}
+              >
+                <div className="d-flex align-items-center gap-2.5 text-start">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black font-monospace text-xs shadow"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      background: soldModalData.teamColor || '#0d6efd',
+                    }}
+                  >
+                    {soldModalData.teamCode || 'WIN'}
+                  </div>
+                  <div>
+                    <span className="text-white-50 text-xs d-block">Awarded To</span>
+                    <strong className="text-white small fw-bold">{soldModalData.teamName || soldModalData.team_name || 'Winning Team'}</strong>
+                  </div>
+                </div>
+                <div className="text-end">
+                  <span className="text-white-50 text-xs d-block">Hammer Price</span>
+                  <strong className="text-warning fs-5 fw-black font-monospace">
+                    ₹{Number(soldModalData.price || 0).toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark w-100 shadow"
+                onClick={() => setSoldModalData(null)}
+              >
+                View Updated Squads ➔
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLAYER UNSOLD LIVE MODAL */}
+      {unsoldModalData && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
+            <div className="modal-content auction-card modal-unsold-card text-white text-center p-4 shadow-2xl">
+              <div className="modal-action-avatar bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40">
+                ⚠️
+              </div>
+              <span className="badge bg-warning text-dark px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Hammer Passed • Unsold
+              </span>
+              <h2 className="fs-3 fw-black text-white mb-1">
+                PLAYER UNSOLD
+              </h2>
+              <p className="text-white-50 text-xs mb-3">
+                Returned to the unsold queue for subsequent auction rounds
+              </p>
+
+              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <h4 className="fw-extrabold text-white mb-1 fs-5">
+                  {unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
+                </h4>
+                <p className="text-white-50 text-xs mb-0">
+                  {unsoldModalData.message || 'Player was not claimed at base price and moved to unsold lot pool.'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline-light rounded-pill px-4 py-2 fw-bold text-xs w-100"
+                onClick={() => setUnsoldModalData(null)}
+              >
+                Dismiss ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
