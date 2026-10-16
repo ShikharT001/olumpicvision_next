@@ -231,7 +231,12 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'select', playerId: player.id }),
       });
-      const resData = await res.json();
+      let resData = {};
+      try {
+        resData = await res.json();
+      } catch {
+        throw new Error('Server returned an invalid response. Please verify you are logged in as admin.');
+      }
       if (!res.ok) throw new Error(resData.error || 'Failed to load player');
 
       setPlayerDrawerOpen(false);

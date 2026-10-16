@@ -12,6 +12,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [editForm, setEditForm] = useState({ base_price: '', lot_number: '', player_grade: '' });
   const [showAddModal, setShowAddModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalError, setModalError] = useState('');
   const [addForm, setAddForm] = useState({
     full_name: '',
     playing_position: 'outside_hitter',
@@ -24,6 +26,18 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
     player_grade: 'Grade A',
     base_price: 3000,
   });
+
+  const openAddModal = () => {
+    setModalMessage('');
+    setModalError('');
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setModalMessage('');
+    setModalError('');
+    setShowAddModal(false);
+  };
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
@@ -42,8 +56,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
 
   const handleCreatePlayer = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
+    setModalMessage('');
+    setModalError('');
     setLoading(true);
     try {
       const res = await fetch('/api/auction/players', {
@@ -51,11 +65,24 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'create', data: addForm }),
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server returned an invalid response. Please verify admin privileges.');
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to create player');
 
-      setMessage(`Player ${addForm.full_name} added to auction database with base price ₹${Number(addForm.base_price).toLocaleString()}.`);
-      setShowAddModal(false);
+      const savedName = addForm.full_name;
+      const savedPrice = Number(addForm.base_price || 0).toLocaleString();
+      const savedLot = addForm.lot_number || 1;
+
+      // In-modal notification
+      setModalMessage(`✓ Player "${savedName}" registered successfully with base price ₹${savedPrice} (Lot ${savedLot})!`);
+      // Outer page notification
+      setMessage(`Player "${savedName}" added to auction database.`);
+
+      // Clear the add player form completely
       setAddForm({
         full_name: '',
         playing_position: 'outside_hitter',
@@ -68,9 +95,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
         player_grade: 'Grade A',
         base_price: 3000,
       });
+
+      // Refresh list
       fetchPlayers();
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     } finally {
       setLoading(false);
     }
@@ -105,10 +134,15 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'select', playerId: player.id }),
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server returned an invalid response. Please verify you are logged in as admin.');
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to set on hammer');
 
-      setMessage(`${player.full_name} is now on the auction podium.`);
+      setMessage(`✓ ${player.full_name} is now on the auction podium.`);
       fetchPlayers();
     } catch (err) {
       setError(err.message);
@@ -202,7 +236,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
               <button
                 type="button"
                 className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 shadow-sm"
-                onClick={() => setShowAddModal(true)}
+                onClick={openAddModal}
               >
                 <span>+ Add Player</span>
               </button>
@@ -554,12 +588,43 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={closeAddModal}
                     aria-label="Close"
                   ></button>
                 </div>
 
                 <div className="modal-body p-4 vstack gap-3 auction-scroll-area">
+                  {/* In-modal Save Notification Banner */}
+                  {modalMessage && (
+                    <div className="alert alert-success border-0 bg-success bg-opacity-20 text-success d-flex align-items-center justify-content-between py-2.5 px-3 rounded-3 small shadow-sm mb-1" role="alert">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-5">🎉</span>
+                        <strong className="text-white small">{modalMessage}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        onClick={() => setModalMessage('')}
+                        aria-label="Close"
+                      ></button>
+                    </div>
+                  )}
+
+                  {modalError && (
+                    <div className="alert alert-danger border-0 bg-danger bg-opacity-20 text-danger d-flex align-items-center justify-content-between py-2.5 px-3 rounded-3 small shadow-sm mb-1" role="alert">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-5">⚠️</span>
+                        <strong className="text-white small">{modalError}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        onClick={() => setModalError('')}
+                        aria-label="Close"
+                      ></button>
+                    </div>
+                  )}
+
                   <div>
                     <label className="form-label text-light small fw-bold mb-1">
                       Full Name <span className="text-danger">*</span>
@@ -699,16 +764,16 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={closeAddModal}
                   >
-                    Cancel
+                    Close
                   </button>
                   <button
                     type="submit"
                     className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
                     disabled={loading || !addForm.full_name}
                   >
-                    {loading ? 'Adding Player...' : '+ Add to Auction Pool'}
+                    {loading ? 'Saving Player...' : '+ Save Player to Pool'}
                   </button>
                 </div>
               </form>
