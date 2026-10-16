@@ -39,9 +39,9 @@ export async function authenticateAuction(formData) {
     maxAge: 60 * 60 * 24,
   });
 
-  // If a team member tried to login while heading to /auction/admin or /auction/manage-teams, redirect to /auction/teams
+  // If a team member tried to login while heading to /auction/manage-teams, redirect to /auction/teams
   let target = returnTo.split('?')[0];
-  if (role === 'team' && (target.includes('/admin') || target.includes('/manage-teams'))) {
+  if (role === 'team' && target.includes('/manage-teams')) {
     target = '/auction/teams';
   }
 

@@ -5,6 +5,8 @@ import { authenticateAdmin, logoutAdmin } from './actions';
 
 const ADMIN_COOKIE = 'olumpicvision_admin';
 
+export const dynamic = 'force-dynamic';
+
 function LoginForm({ errorMessage }) {
   return (
     <main style={styles.loginShell}>

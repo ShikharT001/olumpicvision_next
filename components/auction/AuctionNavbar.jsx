@@ -9,7 +9,7 @@ export default function AuctionNavbar({ role = 'team' }) {
   const isAdmin = role === 'admin';
 
   const allLinks = [
-    { href: '/auction/admin', label: '🔨 Auctioneer Console', adminOnly: true },
+    { href: '/auction/admin', label: isAdmin ? '🔨 Auctioneer Console' : '🔨 Auction Console (Live)', adminOnly: false },
     { href: '/auction/live', label: '📺 Big-Screen Live', adminOnly: false },
     { href: '/auction/teams', label: '🛡️ Team Squads & Purse', adminOnly: false },
     { href: '/auction/players', label: isAdmin ? '📋 Player Pool & Lots' : '📋 Player Pool (View)', adminOnly: false },

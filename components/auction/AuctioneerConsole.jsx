@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
 import Link from 'next/link';
 
-export default function AuctioneerConsole({ initialData }) {
+export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin }) {
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : role === 'admin';
   const [data, setData] = useState(initialData || {});
   const [liveNotification, setLiveNotification] = useState(initialData?.lastNotification || null);
   const [selectedIncrement, setSelectedIncrement] = useState(500);
@@ -267,6 +268,28 @@ export default function AuctioneerConsole({ initialData }) {
 
   return (
     <div className="container-fluid px-3 px-md-4 py-3">
+      {/* Team View-Only Live Spectator Banner */}
+      {!isAdmin && (
+        <div className="alert border border-info border-opacity-30 bg-info bg-opacity-10 d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 px-3 rounded-3 mb-3 shadow-sm">
+          <div className="d-flex align-items-center gap-2">
+            <span className="badge bg-info text-dark rounded-pill px-2.5 py-1 text-xs fw-extrabold">
+              🛡️ TEAM SPECTATOR VIEW
+            </span>
+            <span className="text-white small">
+              You are watching the live Auctioneer Console in real time. All bidding paddles and gavel actions are exclusively operated by the official Tournament Admin.
+            </span>
+          </div>
+          <div className="d-flex align-items-center gap-2">
+            <span className="badge bg-black bg-opacity-50 text-info border border-info border-opacity-25 px-2.5 py-1 rounded-pill text-xs font-monospace">
+              ● LIVE SYNC (1.5s)
+            </span>
+            <Link href="/auction/live" className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-0.5 text-xs fw-bold">
+              Stage Projector ↗
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Broadcast SOLD / UNSOLD Live Notification Banner */}
       {liveNotification && (
         <div
@@ -332,7 +355,9 @@ export default function AuctioneerConsole({ initialData }) {
             {/* Header / Queue selector button */}
             <div className="d-flex align-items-center justify-content-between border-bottom pb-2.5 mb-3 border-secondary border-opacity-25">
               <div>
-                <span className="badge badge-cyan px-2 py-1 rounded-pill text-xs text-uppercase fw-bold">Podium Active</span>
+                <span className="badge badge-cyan px-2 py-1 rounded-pill text-xs text-uppercase fw-bold">
+                  {isAdmin ? 'Podium Active' : 'Live Podium Stream'}
+                </span>
                 <span className="ms-2 text-white-50 text-xs">PDVL 2026/27 Official Auction</span>
               </div>
               <button
@@ -340,7 +365,7 @@ export default function AuctioneerConsole({ initialData }) {
                 className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
                 onClick={openPlayerDrawer}
               >
-                <span>Change Player Queue</span>
+                <span>{isAdmin ? 'Change Player Queue' : 'Explore Player Queue'}</span>
                 <span className="badge bg-info text-dark rounded-pill">☰</span>
               </button>
             </div>
@@ -402,9 +427,13 @@ export default function AuctioneerConsole({ initialData }) {
               <div className="p-4 text-center border rounded-3 border-secondary border-opacity-25 bg-black bg-opacity-20 my-auto">
                 <span className="fs-1 d-block mb-2">🏐</span>
                 <h5 className="fw-bold text-white mb-1">No Player on Hammer</h5>
-                <p className="text-secondary small mb-3">Select a player from the queue to start bidding.</p>
+                <p className="text-secondary small mb-3">
+                  {isAdmin
+                    ? 'Select a player from the queue to start bidding.'
+                    : 'Awaiting the auctioneer to load the next player onto the hammer podium.'}
+                </p>
                 <button type="button" className="btn btn-primary rounded-pill px-4 py-2 fw-bold text-sm" onClick={openPlayerDrawer}>
-                  Select Next Player
+                  {isAdmin ? 'Select Next Player' : 'Browse Upcoming Player Queue'}
                 </button>
               </div>
             )}
@@ -447,13 +476,23 @@ export default function AuctioneerConsole({ initialData }) {
 
             {/* Podium Gavel Action Bar */}
             <div className="mt-auto pt-2 border-top border-secondary border-opacity-25">
-              <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-bold">Gavel Stage Controls</span>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-white-50 text-xs text-uppercase fw-bold">
+                  {isAdmin ? 'Gavel Stage Controls' : 'Live Gavel Status (Admin Controlled)'}
+                </span>
+                {!isAdmin && (
+                  <span className="badge bg-secondary bg-opacity-25 text-white-50 text-xs fw-normal">
+                    👁️ Spectator Mode
+                  </span>
+                )}
+              </div>
               <div className="d-flex flex-wrap align-items-center gap-2">
                 <button
                   type="button"
                   className={`btn btn-sm rounded-3 px-3 py-2 fw-bold text-xs flex-fill ${state.hammer_stage === 1 ? 'btn-warning text-dark' : 'btn-outline-warning'}`}
-                  onClick={() => handleHammerAdvance(1)}
-                  disabled={!activePlayer || currentBid === 0 || actionLoading}
+                  onClick={() => isAdmin && handleHammerAdvance(1)}
+                  disabled={!isAdmin || !activePlayer || currentBid === 0 || actionLoading}
+                  title={!isAdmin ? 'Operated by official auctioneer only' : 'Going once call'}
                 >
                   ⚡ Going 1
                 </button>
@@ -461,40 +500,51 @@ export default function AuctioneerConsole({ initialData }) {
                 <button
                   type="button"
                   className={`btn btn-sm rounded-3 px-3 py-2 fw-bold text-xs flex-fill ${state.hammer_stage === 2 ? 'btn-warning text-dark' : 'btn-outline-warning'}`}
-                  onClick={() => handleHammerAdvance(2)}
-                  disabled={!activePlayer || currentBid === 0 || actionLoading}
+                  onClick={() => isAdmin && handleHammerAdvance(2)}
+                  disabled={!isAdmin || !activePlayer || currentBid === 0 || actionLoading}
+                  title={!isAdmin ? 'Operated by official auctioneer only' : 'Going twice call'}
                 >
                   ⚡⚡ Going 2
                 </button>
 
                 <button
                   type="button"
-                  className="btn btn-sm btn-success rounded-3 px-4 py-2 fw-bold text-xs flex-fill shadow-sm"
-                  onClick={handleFinalizeSale}
-                  disabled={!activePlayer || !highestTeam || currentBid <= 0 || actionLoading}
+                  className={`btn btn-sm rounded-3 px-4 py-2 fw-bold text-xs flex-fill shadow-sm ${state.hammer_stage === 3 ? 'btn-success text-white' : 'btn-outline-success'}`}
+                  onClick={() => isAdmin && handleFinalizeSale()}
+                  disabled={!isAdmin || !activePlayer || !highestTeam || currentBid <= 0 || actionLoading}
+                  title={!isAdmin ? 'Operated by official auctioneer only' : 'Confirm player sale'}
                 >
                   🔨 SOLD!
                 </button>
 
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-danger rounded-3 px-3 py-2 fw-bold text-xs"
-                  onClick={handleMarkUnsold}
-                  disabled={!activePlayer || actionLoading}
-                >
-                  ✕ Unsold
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger rounded-3 px-3 py-2 fw-bold text-xs"
+                      onClick={handleMarkUnsold}
+                      disabled={!activePlayer || actionLoading}
+                    >
+                      ✕ Unsold
+                    </button>
 
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary rounded-3 px-2.5 py-2 fw-semibold text-xs"
-                  onClick={handleUndo}
-                  disabled={actionLoading}
-                  title="Undo last action"
-                >
-                  ↺ Undo
-                </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary rounded-3 px-2.5 py-2 fw-semibold text-xs"
+                      onClick={handleUndo}
+                      disabled={actionLoading}
+                      title="Undo last action"
+                    >
+                      ↺ Undo
+                    </button>
+                  </>
+                )}
               </div>
+              {!isAdmin && (
+                <span className="text-secondary d-block mt-2" style={{ fontSize: '0.74rem' }}>
+                  🔒 Gavel calls & hammer awards are exclusively operated by the main auctioneer.
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -506,7 +556,7 @@ export default function AuctioneerConsole({ initialData }) {
             <div className="border-bottom pb-2.5 mb-3 border-secondary border-opacity-25">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <h5 className="fw-bold text-white mb-0 d-flex align-items-center gap-2">
-                  <span>Physical Paddle Attribution</span>
+                  <span>{isAdmin ? 'Physical Paddle Attribution' : 'Live Team Purses & Paddle Status'}</span>
                 </h5>
                 <span className="text-white-50 text-xs">
                   Next Minimum: <strong className="text-warning">₹{nextMinBid.toLocaleString()}</strong>
@@ -514,43 +564,54 @@ export default function AuctioneerConsole({ initialData }) {
               </div>
 
               {/* Increment Pills */}
-              <div className="d-flex flex-wrap align-items-center gap-1.5">
-                {[200, 500, 1000, 2000, 5000].map((inc) => (
-                  <button
-                    key={inc}
-                    type="button"
-                    className={`btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-bold transition-all ${
-                      selectedIncrement === inc && !customBidInput
-                        ? 'btn-info text-dark shadow-sm'
-                        : 'btn-outline-secondary text-light opacity-75'
-                    }`}
-                    onClick={() => {
-                      setSelectedIncrement(inc);
-                      setCustomBidInput('');
-                    }}
-                  >
-                    +₹{inc.toLocaleString()}
-                  </button>
-                ))}
+              {isAdmin ? (
+                <div className="d-flex flex-wrap align-items-center gap-1.5">
+                  {[200, 500, 1000, 2000, 5000].map((inc) => (
+                    <button
+                      key={inc}
+                      type="button"
+                      className={`btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-bold transition-all ${
+                        selectedIncrement === inc && !customBidInput
+                          ? 'btn-info text-dark shadow-sm'
+                          : 'btn-outline-secondary text-light opacity-75'
+                      }`}
+                      onClick={() => {
+                        setSelectedIncrement(inc);
+                        setCustomBidInput('');
+                      }}
+                    >
+                      +₹{inc.toLocaleString()}
+                    </button>
+                  ))}
 
-                {/* Custom Bid Input */}
-                <div className="ms-auto d-flex align-items-center gap-1" style={{ maxWidth: 140 }}>
-                  <span className="text-white-50 text-xs">₹</span>
-                  <input
-                    type="number"
-                    className="form-control form-control-sm bg-dark text-white border-secondary border-opacity-50 text-xs"
-                    placeholder="Custom Bid"
-                    value={customBidInput}
-                    onChange={(e) => setCustomBidInput(e.target.value)}
-                  />
+                  {/* Custom Bid Input */}
+                  <div className="ms-auto d-flex align-items-center gap-1" style={{ maxWidth: 140 }}>
+                    <span className="text-white-50 text-xs">₹</span>
+                    <input
+                      type="number"
+                      className="form-control form-control-sm bg-dark text-white border-secondary border-opacity-50 text-xs"
+                      placeholder="Custom Bid"
+                      value={customBidInput}
+                      onChange={(e) => setCustomBidInput(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="d-flex align-items-center justify-content-between py-1 px-2.5 rounded-pill bg-black bg-opacity-30 border border-secondary border-opacity-20 text-xs">
+                  <span className="text-white-50">Active Auction Increment:</span>
+                  <span className="badge badge-cyan px-2.5 py-1 rounded-pill fw-bold font-monospace">
+                    +₹{selectedIncrement.toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Team Paddle Grid: 1-Click raises bid for the team holding their paddle */}
+            {/* Team Paddle Grid */}
             <div className="flex-grow-1 overflow-auto pe-1 mb-3" style={{ maxHeight: '420px' }}>
               <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
-                Click team that raised physical paddle:
+                {isAdmin
+                  ? 'Click team that raised physical paddle:'
+                  : 'Franchise teams & live purse balances:'}
               </span>
 
               <div className="row g-2">
@@ -559,16 +620,16 @@ export default function AuctioneerConsole({ initialData }) {
                   const bidAmountToPlace = customBidInput ? Number(customBidInput) : nextMinBid;
                   const hasPurse = Number(team.remaining_purse) >= bidAmountToPlace;
                   const isFull = team.squad_count >= team.max_squad_size;
-                  const canBid = hasPurse && !isFull && activePlayer && !actionLoading;
+                  const canBid = isAdmin && hasPurse && !isFull && activePlayer && !actionLoading;
 
                   return (
                     <div key={team.id} className="col-12 col-sm-6">
                       <button
                         type="button"
-                        className={`team-paddle-btn w-100 ${isHigh ? 'is-highest-bidder' : ''}`}
+                        className={`team-paddle-btn w-100 ${!isAdmin ? 'is-view-only' : ''} ${isHigh ? 'is-highest-bidder' : ''}`}
                         style={{ '--team-color': team.primary_color || '#0d6efd' }}
-                        onClick={() => handleTeamPaddleClick(team)}
-                        disabled={!canBid}
+                        onClick={() => isAdmin && handleTeamPaddleClick(team)}
+                        disabled={isAdmin && !canBid}
                       >
                         <div className="d-flex align-items-center justify-content-between mb-1.5">
                           <span
@@ -593,12 +654,21 @@ export default function AuctioneerConsole({ initialData }) {
                           </span>
                         </div>
 
-                        <div className="mt-2 pt-1 border-top border-secondary border-opacity-15 d-flex align-items-center justify-content-between">
-                          <span className="text-white-50 text-xs">Raise Paddle:</span>
-                          <span className="badge bg-primary text-white px-2 py-0.5 rounded-pill text-xs fw-bold">
-                            +₹{bidAmountToPlace.toLocaleString()} ↗
-                          </span>
-                        </div>
+                        {isAdmin ? (
+                          <div className="mt-2 pt-1 border-top border-secondary border-opacity-15 d-flex align-items-center justify-content-between">
+                            <span className="text-white-50 text-xs">Raise Paddle:</span>
+                            <span className="badge bg-primary text-white px-2 py-0.5 rounded-pill text-xs fw-bold">
+                              +₹{bidAmountToPlace.toLocaleString()} ↗
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mt-2 pt-1 border-top border-secondary border-opacity-15 d-flex align-items-center justify-content-between">
+                            <span className="text-white-50 text-xs">Next Call:</span>
+                            <span className="badge bg-secondary bg-opacity-35 text-white px-2 py-0.5 rounded-pill text-xs font-monospace">
+                              ₹{bidAmountToPlace.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
 
                         {isHigh && (
                           <div className="text-center mt-2 py-0.5 rounded-pill bg-warning-subtle text-warning fw-extrabold text-xs border border-warning-subtle">
@@ -661,10 +731,12 @@ export default function AuctioneerConsole({ initialData }) {
                   </div>
                   <div>
                     <h5 className="modal-title fw-extrabold text-white mb-0 fs-5">
-                      Player Queue & Lot Selector
+                      {isAdmin ? 'Player Queue & Lot Selector' : 'Player Queue & Lot Explorer'}
                     </h5>
                     <span className="text-white-50 text-xs">
-                      Choose any registered, queued, or unsold player to bring to the live hammer stage
+                      {isAdmin
+                        ? 'Choose any registered, queued, or unsold player to bring to the live hammer stage'
+                        : 'Browse all registered, queued, and unsold players in the PDVL tournament pool (View-Only)'}
                     </span>
                   </div>
                 </div>
@@ -673,7 +745,7 @@ export default function AuctioneerConsole({ initialData }) {
                     href="/auction/players"
                     className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold"
                   >
-                    Manage Pool ↗
+                    {isAdmin ? 'Manage Pool ↗' : 'Browse Pool ↗'}
                   </Link>
                   <button
                     type="button"
@@ -915,16 +987,18 @@ export default function AuctioneerConsole({ initialData }) {
                                   <span className="text-success small fw-bold" style={{ fontSize: '0.78rem' }}>
                                     ✓ SOLD for ₹{Number(p.sold_price || 0).toLocaleString()}
                                   </span>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-link text-white-50 p-0 text-xs text-decoration-none"
-                                    onClick={() => handleSelectPlayerToHammer(p)}
-                                    title="Reload to hammer if needed"
-                                  >
-                                    Re-hammer ↻
-                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-link text-white-50 p-0 text-xs text-decoration-none"
+                                      onClick={() => handleSelectPlayerToHammer(p)}
+                                      title="Reload to hammer if needed"
+                                    >
+                                      Re-hammer ↻
+                                    </button>
+                                  )}
                                 </div>
-                              ) : (
+                              ) : isAdmin ? (
                                 <button
                                   type="button"
                                   className={`btn btn-sm w-100 rounded-pill py-1.5 text-xs fw-extrabold d-flex align-items-center justify-content-center gap-1.5 shadow ${
@@ -937,6 +1011,12 @@ export default function AuctioneerConsole({ initialData }) {
                                 >
                                   <span>{isUnsold ? '⚡ Bring Back to Hammer (Round 2) →' : '⚡ Put on Hammer Now →'}</span>
                                 </button>
+                              ) : (
+                                <div className={`badge w-100 rounded-pill py-1.5 text-xs fw-semibold ${
+                                  isUnsold ? 'bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30' : 'bg-secondary bg-opacity-25 text-white-50'
+                                }`}>
+                                  {isUnsold ? '⚠️ In Unsold Pool (Round 2)' : `⭐ Queued in Lot #${p.lot_number || 1}`}
+                                </div>
                               )}
                             </div>
                           </div>

@@ -140,6 +140,25 @@
   filter: grayscale(70%);
 }
 
+.team-paddle-btn.is-view-only {
+  cursor: default !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.team-paddle-btn.is-view-only:hover {
+  transform: none !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: none !important;
+}
+
+.team-paddle-btn.is-view-only.is-highest-bidder {
+  border-color: #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(20, 35, 67, 0.8) 100%) !important;
+  box-shadow: 0 0 30px -2px rgba(245, 158, 11, 0.45) !important;
+}
+
 /* Hammer Stage Indicator */
 .hammer-pill {
   transition: all 0.3s ease;

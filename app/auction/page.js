@@ -63,26 +63,28 @@ export default async function AuctionHubPage({ searchParams }) {
 
           {/* Quick Nav Cards */}
           <div className="row g-3 justify-content-center">
-            {isAdmin && (
-              <div className="col-12 col-sm-6 col-md-4">
-                <Link
-                  href="/auction/admin"
-                  className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-                  style={{ borderColor: 'rgba(6, 182, 212, 0.4)' }}
-                >
-                  <div className="fs-1 mb-2">🔨</div>
-                  <h4 className="fw-bold text-white mb-1">Auctioneer Console</h4>
-                  <p className="text-secondary small mb-3">
-                    Admin podium to control active bids, physical paddle attribution, and hammer gavel.
-                  </p>
-                  <span className="text-cyan small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                    Launch Console →
-                  </span>
-                </Link>
-              </div>
-            )}
+            <div className="col-12 col-sm-6 col-md-3">
+              <Link
+                href="/auction/admin"
+                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                style={{ borderColor: 'rgba(6, 182, 212, 0.4)' }}
+              >
+                <div className="fs-1 mb-2">🔨</div>
+                <h4 className="fw-bold text-white mb-1">
+                  {isAdmin ? 'Auctioneer Console' : 'Live Auction Console'}
+                </h4>
+                <p className="text-secondary small mb-3">
+                  {isAdmin
+                    ? 'Admin podium to control active bids, physical paddle attribution, and hammer gavel.'
+                    : 'Watch the live auctioneer podium in real time. Track current bids, paddle increments, and gavel stages.'}
+                </p>
+                <span className="text-cyan small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  {isAdmin ? 'Launch Console →' : 'Watch Live Console →'}
+                </span>
+              </Link>
+            </div>
 
-            <div className="col-12 col-sm-6 col-md-4">
+            <div className="col-12 col-sm-6 col-md-3">
               <Link
                 href="/auction/live"
                 className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
@@ -99,7 +101,7 @@ export default async function AuctionHubPage({ searchParams }) {
               </Link>
             </div>
 
-            <div className="col-12 col-sm-6 col-md-4">
+            <div className="col-12 col-sm-6 col-md-3">
               <Link
                 href="/auction/teams"
                 className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
@@ -116,24 +118,24 @@ export default async function AuctionHubPage({ searchParams }) {
               </Link>
             </div>
 
-            {!isAdmin && (
-              <div className="col-12 col-sm-6 col-md-4">
-                <Link
-                  href="/auction/players"
-                  className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-                  style={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
-                >
-                  <div className="fs-1 mb-2">📋</div>
-                  <h4 className="fw-bold text-white mb-1">Player Pool</h4>
-                  <p className="text-secondary small mb-3">
-                    Browse all registered tournament players, playing positions, base prices, and lot order.
-                  </p>
-                  <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                    Browse Players →
-                  </span>
-                </Link>
-              </div>
-            )}
+            <div className="col-12 col-sm-6 col-md-3">
+              <Link
+                href="/auction/players"
+                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                style={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
+              >
+                <div className="fs-1 mb-2">📋</div>
+                <h4 className="fw-bold text-white mb-1">
+                  {isAdmin ? 'Player Pool & Lots' : 'Player Pool'}
+                </h4>
+                <p className="text-secondary small mb-3">
+                  Browse all registered tournament players, playing positions, base prices, and lot order.
+                </p>
+                <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  {isAdmin ? 'Manage Players →' : 'Browse Players →'}
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
 
