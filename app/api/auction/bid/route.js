@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 import { placeBid } from '@/lib/auction-db';
-import { isAuctionAdmin } from '@/app/auction/actions';
+import { isAuctionAdmin, isAuctionAuthenticated } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
   try {
+    // Bid attribution is ADMIN-only (auctioneer physically clicks the paddle for the team
+    // that raised their hand — teams watch the live stage but don't click bids themselves)
     const isAdmin = await isAuctionAdmin();
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized. Only the main admin can place bids.' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Unauthorized. Only the main auctioneer/admin can attribute paddle bids.' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();

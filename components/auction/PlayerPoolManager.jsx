@@ -11,6 +11,19 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
   const [filter, setFilter] = useState({ status: '', lot: '', position: '', search: '' });
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [editForm, setEditForm] = useState({ base_price: '', lot_number: '', player_grade: '' });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({
+    full_name: '',
+    playing_position: 'outside_hitter',
+    player_category: 'palghar_open',
+    height_cm: '',
+    weight_kg: '',
+    team_name: '',
+    district: 'Palghar',
+    lot_number: 1,
+    player_grade: 'Grade A',
+    base_price: 3000,
+  });
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
@@ -27,6 +40,41 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
     }
   }, []);
 
+  const handleCreatePlayer = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auction/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', data: addForm }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create player');
+
+      setMessage(`Player ${addForm.full_name} added to auction database with base price ₹${Number(addForm.base_price).toLocaleString()}.`);
+      setShowAddModal(false);
+      setAddForm({
+        full_name: '',
+        playing_position: 'outside_hitter',
+        player_category: 'palghar_open',
+        height_cm: '',
+        weight_kg: '',
+        team_name: '',
+        district: 'Palghar',
+        lot_number: 1,
+        player_grade: 'Grade A',
+        base_price: 3000,
+      });
+      fetchPlayers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleImport = async () => {
     setMessage('');
     setError('');
@@ -153,13 +201,20 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
             <>
               <button
                 type="button"
+                className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 shadow-sm"
+                onClick={() => setShowAddModal(true)}
+              >
+                <span>+ Add Player</span>
+              </button>
+              <button
+                type="button"
                 className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
                 onClick={handleImport}
                 disabled={loading}
               >
                 <span>📥 Import Verified PDVL Players</span>
               </button>
-              <Link href="/auction/admin" className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs">
+              <Link href="/auction/admin" className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 fw-bold text-xs">
                 Open Podium ↗
               </Link>
             </>
@@ -470,6 +525,193 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                   Save Changes
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ADD PLAYER MODAL */}
+      {isAdmin && showAddModal && (
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-md modal-dialog-centered">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              <form onSubmit={handleCreatePlayer}>
+                <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge badge-cyan px-2 py-0.5 rounded-pill text-xs">
+                      NEW PLAYER
+                    </span>
+                    <h5 className="modal-title fw-bold text-white mb-0 fs-6">
+                      Add Player to Auction Pool
+                    </h5>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setShowAddModal(false)}
+                    aria-label="Close"
+                  ></button>
+                </div>
+
+                <div className="modal-body p-4 vstack gap-3 auction-scroll-area">
+                  <div>
+                    <label className="form-label text-light small fw-bold mb-1">
+                      Full Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. Ramesh Kumar Patil"
+                      required
+                      value={addForm.full_name}
+                      onChange={(e) => setAddForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Playing Position</label>
+                      <select
+                        className="form-select"
+                        value={addForm.playing_position}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, playing_position: e.target.value }))}
+                      >
+                        <option value="outside_hitter">Outside Hitter</option>
+                        <option value="setter">Setter</option>
+                        <option value="middle_blocker">Middle Blocker</option>
+                        <option value="opposite_hitter">Opposite Hitter</option>
+                        <option value="libero">Libero</option>
+                      </select>
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Category</label>
+                      <select
+                        className="form-select"
+                        value={addForm.player_category}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, player_category: e.target.value }))}
+                      >
+                        <option value="icon_player">Icon Player</option>
+                        <option value="palghar_open">Palghar Open</option>
+                        <option value="u19">U19 Youth</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Height (cm)</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="e.g. 182"
+                        value={addForm.height_cm}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, height_cm: e.target.value }))}
+                      />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Weight (kg)</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="e.g. 74"
+                        value={addForm.weight_kg}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, weight_kg: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Club / School</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Palghar Spikers Club"
+                        value={addForm.team_name}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, team_name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">District</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addForm.district}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, district: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Lot Assignment</label>
+                      <select
+                        className="form-select"
+                        value={addForm.lot_number}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, lot_number: Number(e.target.value) }))}
+                      >
+                        <option value="1">Lot 1: Icon Players</option>
+                        <option value="2">Lot 2: Open Category</option>
+                        <option value="3">Lot 3: Youth Categories</option>
+                      </select>
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label text-light small fw-bold mb-1">Grade Tier</label>
+                      <select
+                        className="form-select"
+                        value={addForm.player_grade}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, player_grade: e.target.value }))}
+                      >
+                        <option value="Icon">Icon</option>
+                        <option value="Grade A">Grade A</option>
+                        <option value="Grade B">Grade B</option>
+                        <option value="Grade C">Grade C</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label text-light small fw-bold mb-1">
+                      Base Price (₹) <span className="text-danger">*</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
+                      <input
+                        type="number"
+                        step="500"
+                        min="500"
+                        className="form-control font-monospace fw-bold"
+                        required
+                        value={addForm.base_price}
+                        onChange={(e) => setAddForm((prev) => ({ ...prev, base_price: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                    onClick={() => setShowAddModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
+                    disabled={loading || !addForm.full_name}
+                  >
+                    {loading ? 'Adding Player...' : '+ Add to Auction Pool'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
