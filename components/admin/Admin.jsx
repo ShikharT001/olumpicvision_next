@@ -419,6 +419,16 @@ export default function Admin({ tables = [], logoutAction }) {
             value = JSON.stringify(value);
           }
 
+          if (typeof value === 'string') {
+            if (value.startsWith('data:image')) {
+              value = '[Attached Image]';
+            } else if (value.startsWith('data:')) {
+              value = '[Attached File]';
+            } else if (value.length > 32700) {
+              value = value.slice(0, 32700) + '...';
+            }
+          }
+
           exportRow[labelize(col)] = value;
         });
         return exportRow;
