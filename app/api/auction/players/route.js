@@ -4,6 +4,7 @@ import {
   importFromRegistrations,
   updateAuctionPlayer,
   createAuctionPlayer,
+  deleteAuctionPlayer,
   setActivePlayer,
 } from '@/lib/auction-db';
 import { isAuctionAdmin } from '@/app/auction/actions';
@@ -16,8 +17,9 @@ export async function GET(request) {
     const status = searchParams.get('status');
     const lot = searchParams.get('lot');
     const position = searchParams.get('position');
+    const tournamentId = searchParams.get('tournamentId');
 
-    const players = await getAuctionPlayers({ status, lot, position });
+    const players = await getAuctionPlayers({ status, lot, position }, tournamentId);
     return NextResponse.json({ players });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Failed to fetch players' }, { status: 500 });
@@ -35,38 +37,42 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { action } = body;
+    const { action, tournamentId, playerId, data } = body;
 
-    // Import from verified PDVL registrations
+    // Import from verified registrations
     if (action === 'import') {
-      const res = await importFromRegistrations();
+      const res = await importFromRegistrations(tournamentId);
       return NextResponse.json(res);
     }
 
     // Directly add a player without a registration record
     if (action === 'create') {
-      const { data } = body;
       if (!data?.full_name) {
         return NextResponse.json({ error: 'Player full_name is required' }, { status: 400 });
       }
-      const player = await createAuctionPlayer(data);
+      const player = await createAuctionPlayer(data, tournamentId);
       return NextResponse.json({ player });
     }
 
     // Put a player on the live hammer podium
     if (action === 'select') {
-      const { playerId } = body;
       if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
-      const res = await setActivePlayer(playerId);
+      const res = await setActivePlayer(playerId, tournamentId);
       return NextResponse.json(res);
     }
 
     // Update player details (base price, lot, grade)
     if (action === 'update') {
-      const { playerId, data } = body;
       if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
       const res = await updateAuctionPlayer(playerId, data);
       return NextResponse.json({ success: true, player: res });
+    }
+
+    // Delete a player
+    if (action === 'delete') {
+      if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
+      const res = await deleteAuctionPlayer(playerId);
+      return NextResponse.json(res);
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

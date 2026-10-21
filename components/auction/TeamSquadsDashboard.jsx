@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
-export default function TeamSquadsDashboard({ initialTeams }) {
+export default function TeamSquadsDashboard({ initialTeams, tournament = null, tournamentId: propTournamentId }) {
+  const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [liveNotification, setLiveNotification] = useState(null);
@@ -13,7 +14,10 @@ export default function TeamSquadsDashboard({ initialTeams }) {
 
   const fetchLiveStateAndTeams = useCallback(async () => {
     try {
-      const res = await fetch('/api/auction/state');
+      const url = activeTournamentId
+        ? `/api/auction/state?tournamentId=${encodeURIComponent(activeTournamentId)}`
+        : '/api/auction/state';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         if (json.teams) {
@@ -39,7 +43,7 @@ export default function TeamSquadsDashboard({ initialTeams }) {
     } catch {
       // Ignore poll error
     }
-  }, []);
+  }, [activeTournamentId]);
 
   useEffect(() => {
     fetchLiveStateAndTeams();

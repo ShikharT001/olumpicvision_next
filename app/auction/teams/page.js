@@ -2,32 +2,47 @@ import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import TeamSquadsDashboard from '@/components/auction/TeamSquadsDashboard';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
-import { getAuctionTeams } from '@/lib/auction-db';
+import { getAuctionTeams, getTournamentById, getTournaments } from '@/lib/auction-db';
 import { isAuctionAuthenticated, getAuctionRole } from '../actions';
 
 export const metadata = {
-  title: 'Team Squads & Remaining Purse | PDVL 2026 Auction',
-  description: 'Track team purse spending, remaining budget, and acquired volleyball rosters in real time.',
+  title: 'Team Squads & Remaining Purse | Multi-Sport Live Auction',
+  description: 'Track team purse spending, remaining budget, and acquired rosters.',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function AuctionTeamsPage({ searchParams }) {
+export default async function AuctionTeamsPage(props) {
+  const searchParams = await props.searchParams;
   const isAuthed = await isAuctionAuthenticated();
   if (!isAuthed) {
-    const resolvedParams = await searchParams;
-    const errorMessage = resolvedParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction/teams" />;
+    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
+    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
+    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/teams${tournParam}`} />;
   }
 
   const role = await getAuctionRole();
-  const initialTeams = await getAuctionTeams();
+
+  let tournament = null;
+  if (searchParams?.tournamentId) {
+    tournament = await getTournamentById(searchParams.tournamentId);
+  }
+  if (!tournament) {
+    const all = await getTournaments();
+    tournament = all[0] || null;
+  }
+
+  const initialTeams = await getAuctionTeams(tournament?.id);
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
-      <AuctionNavbar role={role} />
+      <AuctionNavbar role={role} tournament={tournament} />
       <main className="flex-grow-1">
-        <TeamSquadsDashboard initialTeams={initialTeams} />
+        <TeamSquadsDashboard
+          initialTeams={initialTeams}
+          tournament={tournament}
+          tournamentId={tournament?.id}
+        />
       </main>
     </div>
   );

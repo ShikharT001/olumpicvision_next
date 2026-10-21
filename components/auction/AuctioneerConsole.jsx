@@ -28,7 +28,8 @@ function playFanfareSound() {
   }
 }
 
-export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin }) {
+export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin, tournament = null, tournamentId: propTournamentId }) {
+  const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const isAdmin = propIsAdmin !== undefined ? propIsAdmin : role === 'admin';
   const [data, setData] = useState(initialData || {});
   const [liveNotification, setLiveNotification] = useState(initialData?.lastNotification || null);
@@ -51,7 +52,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   const fetchState = useCallback(async () => {
     try {
-      const res = await fetch('/api/auction/state');
+      const url = activeTournamentId
+        ? `/api/auction/state?tournamentId=${encodeURIComponent(activeTournamentId)}`
+        : '/api/auction/state';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         if (json.lastNotification && json.lastNotification.id !== lastNotifIdRef.current) {
@@ -76,7 +80,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     } catch {
       // Ignore background heartbeat error
     }
-  }, []);
+  }, [activeTournamentId]);
 
   // 1.5s live polling heartbeat
   useEffect(() => {
@@ -107,7 +111,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch('/api/auction/bid', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId: team.id, bidAmount: bidToPlace }),
+        body: JSON.stringify({ teamId: team.id, bidAmount: bidToPlace, tournamentId: activeTournamentId }),
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Failed to place bid');
@@ -130,7 +134,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stage', stage }),
+        body: JSON.stringify({ action: 'stage', stage, tournamentId: activeTournamentId }),
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Hammer update failed');
@@ -163,7 +167,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sold' }),
+        body: JSON.stringify({ action: 'sold', tournamentId: activeTournamentId }),
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Sale finalization failed');
@@ -215,7 +219,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'unsold' }),
+        body: JSON.stringify({ action: 'unsold', tournamentId: activeTournamentId }),
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Failed to mark unsold');
@@ -258,7 +262,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'undo' }),
+        body: JSON.stringify({ action: 'undo', tournamentId: activeTournamentId }),
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Undo failed');
@@ -278,7 +282,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     setPlayerDrawerOpen(true);
     setLoadingPlayers(true);
     try {
-      const res = await fetch('/api/auction/players');
+      const url = activeTournamentId
+        ? `/api/auction/players?tournamentId=${encodeURIComponent(activeTournamentId)}`
+        : '/api/auction/players';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         setAllPlayers(json.players || []);
@@ -297,7 +304,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch('/api/auction/players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'select', playerId: player.id }),
+        body: JSON.stringify({ action: 'select', playerId: player.id, tournamentId: activeTournamentId }),
       });
       let resData = {};
       try {

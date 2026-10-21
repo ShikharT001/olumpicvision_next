@@ -3,31 +3,41 @@ import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import TeamsManager from '@/components/auction/TeamsManager';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
-import { getAuctionTeams } from '@/lib/auction-db';
+import { getAuctionTeams, getTournamentById, getTournaments } from '@/lib/auction-db';
 import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from '../actions';
 
 export const metadata = {
-  title: 'Manage Teams & Budgets | PDVL 2026 Auction',
-  description: 'Configure participating volleyball teams, starting purses, and squad limits for the PDVL live auction.',
+  title: 'Manage Teams & Budgets | Multi-Sport Live Auction',
+  description: 'Configure participating franchise teams, starting purses, and squad limits.',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function AuctionManageTeamsPage({ searchParams }) {
+export default async function AuctionManageTeamsPage(props) {
+  const searchParams = await props.searchParams;
   const isAuthed = await isAuctionAuthenticated();
   if (!isAuthed) {
-    const resolvedParams = await searchParams;
-    const errorMessage = resolvedParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction/manage-teams" />;
+    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
+    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
+    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/manage-teams${tournParam}`} />;
   }
 
   const role = await getAuctionRole();
   const isAdmin = await isAuctionAdmin();
 
+  let tournament = null;
+  if (searchParams?.tournamentId) {
+    tournament = await getTournamentById(searchParams.tournamentId);
+  }
+  if (!tournament) {
+    const all = await getTournaments();
+    tournament = all[0] || null;
+  }
+
   if (!isAdmin) {
     return (
       <div className="auction-shell min-vh-100 d-flex flex-column">
-        <AuctionNavbar role={role} />
+        <AuctionNavbar role={role} tournament={tournament} />
         <main className="container my-auto py-5 text-center">
           <div className="auction-card p-4 p-md-5 mx-auto text-center" style={{ maxWidth: 540 }}>
             <div className="fs-1 mb-2">🛡️</div>
@@ -35,13 +45,13 @@ export default async function AuctionManageTeamsPage({ searchParams }) {
               Admin Privileges Required
             </span>
             <h3 className="h4 fw-extrabold text-white mb-2">
-              Team & Budget Configuration is Restricted
+              Team &amp; Budget Configuration is Restricted
             </h3>
             <p className="text-secondary small mb-4 leading-relaxed">
-              Teams and purses can only be modified by the Main Tournament Administrator. You can view all live squads and remaining purses on the public team board.
+              Teams and purses can only be modified by the Main Administrator. You can view all live squads and remaining purses on the public team board.
             </p>
             <div className="d-flex flex-wrap align-items-center justify-content-center gap-2">
-              <Link href="/auction/teams" className="btn btn-primary rounded-pill px-4 py-2 text-xs fw-bold">
+              <Link href={tournament?.id ? `/auction/t/${tournament.id}/teams` : '/auction/teams'} className="btn btn-primary rounded-pill px-4 py-2 text-xs fw-bold">
                 Go to Team Squads Board →
               </Link>
             </div>
@@ -51,13 +61,17 @@ export default async function AuctionManageTeamsPage({ searchParams }) {
     );
   }
 
-  const initialTeams = await getAuctionTeams();
+  const initialTeams = await getAuctionTeams(tournament?.id);
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
-      <AuctionNavbar role="admin" />
+      <AuctionNavbar role="admin" tournament={tournament} />
       <main className="flex-grow-1">
-        <TeamsManager initialTeams={initialTeams} />
+        <TeamsManager
+          initialTeams={initialTeams}
+          tournament={tournament}
+          tournamentId={tournament?.id}
+        />
       </main>
     </div>
   );

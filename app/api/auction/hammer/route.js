@@ -12,25 +12,25 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { action, stage } = body;
+    const { action, stage, tournamentId } = body;
 
     if (action === 'stage') {
-      const result = await advanceHammer(Number(stage));
+      const result = await advanceHammer(Number(stage), tournamentId);
       return NextResponse.json(result);
     }
 
     if (action === 'sold') {
-      const result = await finalizeSale();
+      const result = await finalizeSale(tournamentId);
       return NextResponse.json(result);
     }
 
     if (action === 'unsold') {
-      const result = await markPlayerUnsold();
+      const result = await markPlayerUnsold(tournamentId);
       return NextResponse.json(result);
     }
 
     if (action === 'undo') {
-      const result = await undoLastAction();
+      const result = await undoLastAction(tournamentId);
       return NextResponse.json(result);
     }
 

@@ -21,7 +21,8 @@ const QUICK_PURSES = [
   { label: '₹2.0 Lakh', value: 200000 },
 ];
 
-export default function TeamsManager({ initialTeams }) {
+export default function TeamsManager({ initialTeams, tournament = null, tournamentId: propTournamentId }) {
+  const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const [teams, setTeams] = useState(initialTeams || []);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,21 +34,28 @@ export default function TeamsManager({ initialTeams }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
 
+  const defaultPurse = tournament?.default_purse ? Number(tournament.default_purse) : 100000;
+  const defaultMinSquad = tournament?.min_squad_size ? Number(tournament.min_squad_size) : 8;
+  const defaultMaxSquad = tournament?.max_squad_size ? Number(tournament.max_squad_size) : 12;
+
   const [formData, setFormData] = useState({
     team_name: '',
     team_code: '',
     owner_name: '',
     coach_name: '',
-    initial_purse: 100000,
-    min_squad_size: 8,
-    max_squad_size: 12,
+    initial_purse: defaultPurse,
+    min_squad_size: defaultMinSquad,
+    max_squad_size: defaultMaxSquad,
     primary_color: '#0d6efd',
   });
 
   const fetchTeams = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/auction/teams');
+      const url = activeTournamentId
+        ? `/api/auction/teams?tournamentId=${encodeURIComponent(activeTournamentId)}`
+        : '/api/auction/teams';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         setTeams(json.teams || []);
@@ -57,7 +65,7 @@ export default function TeamsManager({ initialTeams }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTournamentId]);
 
   const openAddModal = () => {
     setModalMessage('');
@@ -83,7 +91,7 @@ export default function TeamsManager({ initialTeams }) {
       const res = await fetch('/api/auction/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, tournamentId: activeTournamentId }),
       });
       let data = {};
       try {
@@ -95,12 +103,12 @@ export default function TeamsManager({ initialTeams }) {
 
       const savedName = formData.team_name;
       const savedCode = formData.team_code;
-      const savedPurse = Number(formData.initial_purse || 100000).toLocaleString();
+      const savedPurse = Number(formData.initial_purse || defaultPurse).toLocaleString();
       const savedColor = formData.primary_color || '#0d6efd';
       const savedOwner = formData.owner_name;
       const savedCoach = formData.coach_name;
-      const savedMinSquad = formData.min_squad_size || 8;
-      const savedMaxSquad = formData.max_squad_size || 12;
+      const savedMinSquad = formData.min_squad_size || defaultMinSquad;
+      const savedMaxSquad = formData.max_squad_size || defaultMaxSquad;
 
       // In-modal notification
       setModalMessage(`✓ Team "${savedName}" (${savedCode}) registered successfully with purse ₹${savedPurse}!`);
@@ -125,9 +133,9 @@ export default function TeamsManager({ initialTeams }) {
         team_code: '',
         owner_name: '',
         coach_name: '',
-        initial_purse: 100000,
-        min_squad_size: 8,
-        max_squad_size: 12,
+        initial_purse: defaultPurse,
+        min_squad_size: defaultMinSquad,
+        max_squad_size: defaultMaxSquad,
         primary_color: '#0d6efd',
       });
       fetchTeams();
@@ -148,6 +156,7 @@ export default function TeamsManager({ initialTeams }) {
         body: JSON.stringify({
           action: 'update',
           teamId: editingTeam.id,
+          tournamentId: activeTournamentId,
           ...editingTeam,
         }),
       });
@@ -166,6 +175,24 @@ export default function TeamsManager({ initialTeams }) {
       });
       setMessage(`Updated ${editingTeam.team_name} details.`);
       setEditingTeam(null);
+      fetchTeams();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteTeam = async (teamId, teamName) => {
+    if (!confirm(`Are you sure you want to remove team "${teamName}" from this tournament?`)) return;
+    try {
+      const res = await fetch('/api/auction/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', teamId, tournamentId: activeTournamentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove team');
+
+      setMessage(`Team "${teamName}" removed successfully.`);
       fetchTeams();
     } catch (err) {
       setError(err.message);

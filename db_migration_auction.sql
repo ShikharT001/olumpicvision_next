@@ -8,12 +8,42 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 0. AUCTION TOURNAMENTS (Multi-Sport & Multi-Tournament Engine)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS auction_tournaments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sport_id VARCHAR(50) NOT NULL,
+  sport_name VARCHAR(100) NOT NULL,
+  tournament_name TEXT NOT NULL,
+  slug VARCHAR(100) UNIQUE,
+  season_year VARCHAR(20) DEFAULT '2026/27',
+  venue TEXT,
+  banner_url TEXT,
+  default_purse NUMERIC NOT NULL DEFAULT 100000,
+  min_bid_increment NUMERIC NOT NULL DEFAULT 500,
+  min_squad_size INT DEFAULT 8,
+  max_squad_size INT DEFAULT 15,
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_auction_tournaments_sport ON auction_tournaments(sport_id);
+CREATE INDEX IF NOT EXISTS idx_auction_tournaments_slug ON auction_tournaments(slug);
+
+-- Ensure default initial PDVL volleyball tournament exists
+INSERT INTO auction_tournaments (id, sport_id, sport_name, tournament_name, slug, season_year, venue, default_purse, min_bid_increment, status)
+VALUES ('00000000-0000-0000-0000-000000000001', 'volleyball', 'Volleyball', 'Palghar District Volleyball League 2026/27', 'pdvl-2026', '2026/27', 'Palghar Sports Complex', 100000, 500, 'active')
+ON CONFLICT (id) DO NOTHING;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- 1. AUCTION TEAMS
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS auction_teams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE,
   team_name TEXT NOT NULL,
-  team_code VARCHAR(10) NOT NULL UNIQUE,
+  team_code VARCHAR(10) NOT NULL,
   logo_url TEXT,
   owner_name TEXT,
   coach_name TEXT,
@@ -28,6 +58,10 @@ CREATE TABLE IF NOT EXISTS auction_teams (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE auction_teams ADD COLUMN IF NOT EXISTS tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE;
+UPDATE auction_teams SET tournament_id = '00000000-0000-0000-0000-000000000001' WHERE tournament_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_auction_teams_tournament ON auction_teams(tournament_id);
 CREATE INDEX IF NOT EXISTS idx_auction_teams_code ON auction_teams(team_code);
 CREATE INDEX IF NOT EXISTS idx_auction_teams_active ON auction_teams(is_active);
 
@@ -38,6 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_auction_teams_active ON auction_teams(is_active);
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS auction_players (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE,
   registration_id UUID,                  -- Optional FK to volleyball_registrations
   full_name TEXT NOT NULL,
   photo_url TEXT,
@@ -61,6 +96,10 @@ CREATE TABLE IF NOT EXISTS auction_players (
   auctioned_at TIMESTAMPTZ
 );
 
+ALTER TABLE auction_players ADD COLUMN IF NOT EXISTS tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE;
+UPDATE auction_players SET tournament_id = '00000000-0000-0000-0000-000000000001' WHERE tournament_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_auction_players_tournament ON auction_players(tournament_id);
 CREATE INDEX IF NOT EXISTS idx_auction_players_status ON auction_players(auction_status);
 CREATE INDEX IF NOT EXISTS idx_auction_players_team ON auction_players(sold_to_team_id);
 CREATE INDEX IF NOT EXISTS idx_auction_players_lot ON auction_players(lot_number);
@@ -83,10 +122,11 @@ CREATE INDEX IF NOT EXISTS idx_auction_bids_team ON auction_bids(team_id);
 CREATE INDEX IF NOT EXISTS idx_auction_bids_placed ON auction_bids(placed_at DESC);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. LIVE AUCTION STATE — Single row, polled every ~1.5 s by all clients
+-- 4. LIVE AUCTION STATE — Scoped per tournament (polled every ~1.5 s by clients)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS auction_state (
   id INT PRIMARY KEY DEFAULT 1,
+  tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE,
   active_player_id UUID REFERENCES auction_players(id) ON DELETE SET NULL,
   current_highest_bid NUMERIC NOT NULL DEFAULT 0,
   current_highest_team_id UUID REFERENCES auction_teams(id) ON DELETE SET NULL,
@@ -99,9 +139,12 @@ CREATE TABLE IF NOT EXISTS auction_state (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Guarantee the singleton row exists
-INSERT INTO auction_state (id, current_highest_bid, bid_increment, hammer_stage, is_paused, last_action, updated_at)
-VALUES (1, 0, 500, 0, false, 'Auction System Ready', NOW())
+ALTER TABLE auction_state ADD COLUMN IF NOT EXISTS tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE;
+UPDATE auction_state SET tournament_id = '00000000-0000-0000-0000-000000000001' WHERE tournament_id IS NULL;
+
+-- Guarantee the singleton default row exists
+INSERT INTO auction_state (id, tournament_id, current_highest_bid, bid_increment, hammer_stage, is_paused, last_action, updated_at)
+VALUES (1, '00000000-0000-0000-0000-000000000001', 0, 500, 0, false, 'Auction System Ready', NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Add last_notification column if upgrading from older schema
@@ -130,13 +173,17 @@ CREATE TRIGGER trg_auction_state_updated
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. ROW LEVEL SECURITY
---    All tables allow unrestricted read (so live dashboards poll freely).
---    All tables allow unrestricted write (server uses direct pg pool, NOT anon key).
 -- ─────────────────────────────────────────────────────────────────────────────
+ALTER TABLE auction_tournaments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auction_teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auction_players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auction_bids ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auction_state ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public auction_tournaments select" ON auction_tournaments;
+CREATE POLICY "Public auction_tournaments select" ON auction_tournaments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Server auction_tournaments all" ON auction_tournaments;
+CREATE POLICY "Server auction_tournaments all" ON auction_tournaments FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Public auction_teams select" ON auction_teams;
 CREATE POLICY "Public auction_teams select" ON auction_teams FOR SELECT USING (true);

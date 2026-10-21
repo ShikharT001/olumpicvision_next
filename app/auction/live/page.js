@@ -1,25 +1,41 @@
 import BigScreenStage from '@/components/auction/BigScreenStage';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
-import { getLiveAuctionState } from '@/lib/auction-db';
+import { getLiveAuctionState, getTournamentById, getTournaments } from '@/lib/auction-db';
 import { isAuctionAuthenticated } from '../actions';
 
 export const metadata = {
-  title: 'Stage Live Display | PDVL 2026 Auction',
-  description: '16:9 Big-screen projector stage view for Palghar District Volleyball League live auction.',
+  title: 'Stage Live Display | Multi-Sport Live Auction',
+  description: '16:9 Big-screen projector stage view for live auctions.',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function BigScreenStagePage({ searchParams }) {
+export default async function BigScreenStagePage(props) {
+  const searchParams = await props.searchParams;
   const isAuthed = await isAuctionAuthenticated();
   if (!isAuthed) {
-    const resolvedParams = await searchParams;
-    const errorMessage = resolvedParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo="/auction/live" />;
+    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
+    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
+    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/live${tournParam}`} />;
   }
 
-  const initialData = await getLiveAuctionState();
+  let tournament = null;
+  if (searchParams?.tournamentId) {
+    tournament = await getTournamentById(searchParams.tournamentId);
+  }
+  if (!tournament) {
+    const all = await getTournaments();
+    tournament = all[0] || null;
+  }
 
-  return <BigScreenStage initialData={initialData} />;
+  const initialData = await getLiveAuctionState(tournament?.id);
+
+  return (
+    <BigScreenStage
+      initialData={initialData}
+      tournament={tournament}
+      tournamentId={tournament?.id}
+    />
+  );
 }

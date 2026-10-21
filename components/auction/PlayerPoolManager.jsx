@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { getSportPositions, getSportCategories } from '@/lib/sports-config';
 
-export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
+export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tournament = null, tournamentId: propTournamentId }) {
+  const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
+  const sportId = tournament?.sport_id || 'volleyball';
+  const availablePositions = tournament?.sportConfig?.positions || getSportPositions(sportId);
+  const availableCategories = tournament?.sportConfig?.categories || getSportCategories(sportId);
+
   const [players, setPlayers] = useState(initialPlayers || []);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -19,14 +25,18 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
   const [playerRegisteredModal, setPlayerRegisteredModal] = useState(null);
   const [importSuccessModal, setImportSuccessModal] = useState(null);
   const [editSuccessModal, setEditSuccessModal] = useState(null);
+
+  const defaultPos = availablePositions[0]?.value || 'outside_hitter';
+  const defaultCat = availableCategories[0]?.value || 'palghar_open';
+
   const [addForm, setAddForm] = useState({
     full_name: '',
-    playing_position: 'outside_hitter',
-    player_category: 'palghar_open',
+    playing_position: defaultPos,
+    player_category: defaultCat,
     height_cm: '',
     weight_kg: '',
     team_name: '',
-    district: 'Palghar',
+    district: tournament?.venue?.split(',')[1]?.trim() || 'Palghar',
     lot_number: 1,
     player_grade: 'Grade A',
     base_price: 3000,
@@ -47,7 +57,10 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/auction/players');
+      const url = activeTournamentId
+        ? `/api/auction/players?tournamentId=${encodeURIComponent(activeTournamentId)}`
+        : '/api/auction/players';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         setPlayers(json.players || []);
@@ -57,7 +70,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTournamentId]);
 
   const handleCreatePlayer = async (e) => {
     e.preventDefault();
@@ -68,7 +81,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       const res = await fetch('/api/auction/players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', data: addForm }),
+        body: JSON.stringify({ action: 'create', tournamentId: activeTournamentId, data: addForm }),
       });
       let data = {};
       try {
@@ -100,15 +113,15 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
         grade: savedGrade,
       });
 
-      // Clear the add player form completely
+      // Clear the add player form completely with dynamic defaults
       setAddForm({
         full_name: '',
-        playing_position: 'outside_hitter',
-        player_category: 'palghar_open',
+        playing_position: defaultPos,
+        player_category: defaultCat,
         height_cm: '',
         weight_kg: '',
         team_name: '',
-        district: 'Palghar',
+        district: tournament?.venue?.split(',')[1]?.trim() || 'Palghar',
         lot_number: 1,
         player_grade: 'Grade A',
         base_price: 3000,
@@ -130,7 +143,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       const res = await fetch('/api/auction/players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'import' }),
+        body: JSON.stringify({ action: 'import', tournamentId: activeTournamentId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Import failed');
@@ -156,7 +169,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       const res = await fetch('/api/auction/players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'select', playerId: player.id }),
+        body: JSON.stringify({ action: 'select', playerId: player.id, tournamentId: activeTournamentId }),
       });
       let data = {};
       try {
@@ -195,6 +208,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
         body: JSON.stringify({
           action: 'update',
           playerId: editingPlayer.id,
+          tournamentId: activeTournamentId,
           data: editForm,
         }),
       });
@@ -208,6 +222,24 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
       });
       setMessage(`Updated ${editingPlayer.full_name} details.`);
       setEditingPlayer(null);
+      fetchPlayers();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeletePlayer = async (playerId, playerName) => {
+    if (!confirm(`Are you sure you want to remove ${playerName} from the auction pool?`)) return;
+    try {
+      const res = await fetch('/api/auction/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', playerId, tournamentId: activeTournamentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+
+      setMessage(`Player "${playerName}" removed successfully.`);
       fetchPlayers();
     } catch (err) {
       setError(err.message);
@@ -281,7 +313,10 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
               >
                 <span>📥 Import Verified PDVL Players</span>
               </button>
-              <Link href="/auction/admin" className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 fw-bold text-xs">
+              <Link
+                href={activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin'}
+                className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 fw-bold text-xs"
+              >
                 Open Podium ↗
               </Link>
             </>
@@ -365,11 +400,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
               onChange={(e) => setFilter((prev) => ({ ...prev, position: e.target.value }))}
             >
               <option value="">All Positions</option>
-              <option value="setter">Setter</option>
-              <option value="outside_hitter">Outside Hitter</option>
-              <option value="opposite_hitter">Opposite Hitter</option>
-              <option value="middle_blocker">Middle Blocker</option>
-              <option value="libero">Libero</option>
+              {availablePositions.map((pos) => (
+                <option key={pos.value} value={pos.value}>
+                  {pos.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="col-6 col-sm-3 col-md-2 text-end">
@@ -493,6 +528,14 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                               To Podium →
                             </button>
                           )}
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger rounded-pill px-2 py-0.5 text-xs"
+                            onClick={() => handleDeletePlayer(player.id, player.full_name)}
+                            title="Remove player"
+                          >
+                            🗑️
+                          </button>
                         </div>
                       </td>
                     )}
@@ -680,11 +723,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                         value={addForm.playing_position}
                         onChange={(e) => setAddForm((prev) => ({ ...prev, playing_position: e.target.value }))}
                       >
-                        <option value="outside_hitter">Outside Hitter</option>
-                        <option value="setter">Setter</option>
-                        <option value="middle_blocker">Middle Blocker</option>
-                        <option value="opposite_hitter">Opposite Hitter</option>
-                        <option value="libero">Libero</option>
+                        {availablePositions.map((pos) => (
+                          <option key={pos.value} value={pos.value}>
+                            {pos.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="col-6">
@@ -694,9 +737,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false }) {
                         value={addForm.player_category}
                         onChange={(e) => setAddForm((prev) => ({ ...prev, player_category: e.target.value }))}
                       >
-                        <option value="icon_player">Icon Player</option>
-                        <option value="palghar_open">Palghar Open</option>
-                        <option value="u19">U19 Youth</option>
+                        {availableCategories.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

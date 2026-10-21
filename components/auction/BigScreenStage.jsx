@@ -28,7 +28,8 @@ function playFanfareSound() {
   }
 }
 
-export default function BigScreenStage({ initialData }) {
+export default function BigScreenStage({ initialData, tournament = null, tournamentId: propTournamentId }) {
+  const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const [data, setData] = useState(initialData || {});
   const [soldOverlay, setSoldOverlay] = useState(null);
   const [unsoldNotification, setUnsoldNotification] = useState(null);
@@ -57,7 +58,10 @@ export default function BigScreenStage({ initialData }) {
 
   const fetchState = useCallback(async () => {
     try {
-      const res = await fetch('/api/auction/state');
+      const url = activeTournamentId
+        ? `/api/auction/state?tournamentId=${encodeURIComponent(activeTournamentId)}`
+        : '/api/auction/state';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         if (json.lastNotification) {
@@ -68,7 +72,7 @@ export default function BigScreenStage({ initialData }) {
     } catch {
       // Ignore background poll error
     }
-  }, [handleNewNotification]);
+  }, [activeTournamentId, handleNewNotification]);
 
   useEffect(() => {
     const timer = setInterval(fetchState, 1000);
@@ -91,15 +95,22 @@ export default function BigScreenStage({ initialData }) {
   const currentBid = Number(state.current_highest_bid || 0);
   const basePrice = Number(activePlayer?.base_price || 1000);
   const teams = data?.teams || [];
+  const currentTourn = tournament || data?.tournament;
+  const backHubUrl = activeTournamentId ? `/auction/t/${activeTournamentId}` : '/auction';
+  const consoleUrl = activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin';
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column justify-content-between p-3 p-md-4 position-relative overflow-hidden">
       {/* Top Stage Header Bar */}
       <header className="d-flex align-items-center justify-content-between pb-3 border-bottom border-secondary border-opacity-25" style={{ zIndex: 10 }}>
         <div className="d-flex align-items-center gap-3">
-          <Link href="/auction" className="text-decoration-none d-flex align-items-center gap-2">
-            <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs">PDVL 2026/27</span>
-            <span className="fw-extrabold fs-5 text-white tracking-tight">PALGHAR DISTRICT VOLLEYBALL LEAGUE</span>
+          <Link href={backHubUrl} className="text-decoration-none d-flex align-items-center gap-2">
+            <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs">
+              {currentTourn?.sportConfig?.icon || '🏆'} {currentTourn?.season_year || '2026/27'}
+            </span>
+            <span className="fw-extrabold fs-5 text-white tracking-tight">
+              {currentTourn?.tournament_name || 'LIVE STAGE AUCTION'}
+            </span>
           </Link>
           <span className="badge bg-danger text-white rounded-pill px-2.5 py-1 text-xs fw-bold d-none d-sm-inline-flex align-items-center gap-1.5 shadow-sm">
             <span className="spinner-grow spinner-grow-sm" style={{ width: 8, height: 8 }} role="status"></span>
@@ -115,7 +126,7 @@ export default function BigScreenStage({ initialData }) {
           >
             <span>{isFullscreen ? 'Exit Fullscreen' : '⛶ Fullscreen Stage'}</span>
           </button>
-          <Link href="/auction/admin" className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1.5 text-xs">
+          <Link href={consoleUrl} className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1.5 text-xs">
             Console ↗
           </Link>
         </div>

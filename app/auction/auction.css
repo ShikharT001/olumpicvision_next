@@ -696,3 +696,120 @@
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
 }
 
+/* Multi-Sport Badge Utilities */
+.badge-purple {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  font-weight: 700;
+}
+
+.badge-pink {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.45);
+  font-weight: 700;
+}
+
+.badge-orange {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  font-weight: 700;
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  font-weight: 700;
+}
+
+/* Sport Selection Cards */
+.sport-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--auction-border);
+  background: var(--auction-surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 1.6rem;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sport-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--sport-theme, #06b6d4);
+  opacity: 0.8;
+  transition: height 0.2s ease, opacity 0.2s ease;
+}
+
+.sport-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 30px -4px var(--sport-glow, rgba(6, 182, 212, 0.3));
+  border-color: var(--sport-theme, rgba(6, 182, 212, 0.5));
+}
+
+.sport-card:hover::after {
+  height: 5px;
+  opacity: 1;
+}
+
+.sport-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.15rem;
+  transition: transform 0.25s ease;
+}
+
+.sport-card:hover .sport-icon-box {
+  transform: scale(1.1) rotate(4deg);
+}
+
+/* Tournament Cards */
+.tournament-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--auction-border);
+  background: var(--auction-surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: all 0.25s ease;
+}
+
+.tournament-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.7), 0 0 25px -4px rgba(6, 182, 212, 0.25);
+  border-color: rgba(6, 182, 212, 0.45);
+}
+
+.tournament-badge-live {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  animation: pulseLive 1.8s infinite;
+}
+
+@keyframes pulseLive {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  70% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+

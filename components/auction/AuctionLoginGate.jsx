@@ -3,21 +3,21 @@ import { authenticateAuction } from '@/app/auction/actions';
 export default function AuctionLoginGate({ errorMessage, returnTo = '/auction' }) {
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column align-items-center justify-content-center p-3" data-bs-theme="dark">
-      <div className="auction-card p-4 p-sm-5 text-center shadow-lg" style={{ maxWidth: 440, width: '100%', borderColor: 'rgba(6, 182, 212, 0.4)' }}>
+      <div className="auction-card p-4 p-sm-5 text-center shadow-lg" style={{ maxWidth: 460, width: '100%', borderColor: 'rgba(6, 182, 212, 0.4)' }}>
         {/* Icon & Badge */}
-        <div className="d-inline-flex align-items-center justify-content-center bg-dark rounded-circle mb-3 border border-secondary border-opacity-50" style={{ width: 68, height: 68 }}>
-          <span className="fs-2">🔐</span>
+        <div className="d-inline-flex align-items-center justify-content-center bg-dark rounded-circle mb-3 border border-secondary border-opacity-50" style={{ width: 72, height: 72 }}>
+          <span className="fs-1">🏆</span>
         </div>
 
         <div className="mb-3">
           <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
-            Restricted Tournament Portal
+            Multi-Sport Tournament Portal
           </span>
           <h2 className="h4 fw-bold text-white mt-2 mb-1 tracking-tight">
-            PDVL Live Auction Access
+            Auction Platform Sign-In
           </h2>
-          <p className="text-secondary small mb-0">
-            Enter passcode to enter. Main Admin passcode unlocks Auctioneer Console; Team passcode unlocks Live Stage &amp; Squad Boards (view-only).
+          <p className="text-secondary small mb-0 leading-relaxed">
+            Admin access unlocks sport selection, tournament creation, team purses, and live auction gavel controls. Team passcode unlocks stage viewing and squad boards.
           </p>
         </div>
 
@@ -32,14 +32,14 @@ export default function AuctionLoginGate({ errorMessage, returnTo = '/auction' }
 
           <div>
             <label className="form-label text-white-50 small mb-1.5 fw-semibold" htmlFor="auction-password">
-              Auction Passcode / Access PIN
+              Admin / Franchise Passcode PIN
             </label>
             <input
               id="auction-password"
               name="password"
               type="password"
               autoComplete="current-password"
-              placeholder="Enter authorized passcode"
+              placeholder="Enter authorized password (e.g. admin)"
               className="form-control bg-dark text-white border-secondary"
               required
             />
@@ -47,14 +47,14 @@ export default function AuctionLoginGate({ errorMessage, returnTo = '/auction' }
 
           <button
             type="submit"
-            className="btn btn-primary rounded-pill py-2 fw-bold text-sm w-100 shadow-sm transition-all"
+            className="btn btn-primary rounded-pill py-2.5 fw-bold text-sm w-100 shadow-sm transition-all"
           >
             Unlock Auction Portal →
           </button>
         </form>
 
         <div className="mt-4 pt-3 border-top border-secondary border-opacity-25 text-center text-white-50 text-xs">
-          <span>Protected Area • Palghar District Volleyball League</span>
+          <span>Olympic Vision Multi-Sport Auction System • Protected Area</span>
         </div>
       </div>
     </div>
