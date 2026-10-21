@@ -29,7 +29,7 @@ function playFanfareSound() {
   }
 }
 
-export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin, tournament = null, tournamentId: propTournamentId }) {
+export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin, tournament = null, tournamentId: propTournamentId, loggedTeam = null }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const isAdmin = propIsAdmin !== undefined ? propIsAdmin : role === 'admin';
   const [data, setData] = useState(initialData || {});
@@ -927,6 +927,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               <div className="row g-2">
                 {teams.map((team) => {
                   const isHigh = highestTeam?.id === team.id;
+                  const isMyTeam = loggedTeam && (loggedTeam.id === team.id || loggedTeam.code === team.team_code);
                   const bidAmountToPlace = customBidInput ? Number(customBidInput) : nextMinBid;
                   const hasPurse = Number(team.remaining_purse) >= bidAmountToPlace;
                   const isFull = team.squad_count >= team.max_squad_size;
@@ -937,17 +938,32 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                       <button
                         type="button"
                         className={`team-paddle-btn w-100 ${!isAdmin ? 'is-view-only' : ''} ${isHigh ? 'is-highest-bidder' : ''}`}
-                        style={{ '--team-color': team.primary_color || '#0d6efd' }}
+                        style={{
+                          '--team-color': team.primary_color || '#0d6efd',
+                          ...(isMyTeam
+                            ? {
+                                border: '2px solid #06b6d4',
+                                boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)',
+                              }
+                            : {}),
+                        }}
                         onClick={() => isAdmin && handleTeamPaddleClick(team)}
                         disabled={isAdmin && !canBid}
                       >
                         <div className="d-flex align-items-center justify-content-between mb-1.5">
-                          <span
-                            className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold shadow-sm"
-                            style={{ backgroundColor: team.primary_color || '#0d6efd', color: '#fff' }}
-                          >
-                            {team.team_code}
-                          </span>
+                          <div className="d-flex align-items-center gap-1">
+                            <span
+                              className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold shadow-sm"
+                              style={{ backgroundColor: team.primary_color || '#0d6efd', color: '#fff' }}
+                            >
+                              {team.team_code}
+                            </span>
+                            {isMyTeam && (
+                              <span className="badge badge-gold px-2 py-0.5 rounded-pill text-xs fw-black">
+                                ★ YOUR TEAM
+                              </span>
+                            )}
+                          </div>
                           <span className="badge bg-secondary bg-opacity-30 text-light text-xs font-monospace">
                             Squad: {team.squad_count || 0}/{team.max_squad_size || 12}
                           </span>

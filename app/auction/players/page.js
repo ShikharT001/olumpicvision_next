@@ -3,7 +3,7 @@ import PlayerPoolManager from '@/components/auction/PlayerPoolManager';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getAuctionPlayers, getTournamentById, getTournaments } from '@/lib/auction-db';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from '../actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../actions';
 
 export const metadata = {
   title: 'Auction Player Pool & Lots | Multi-Sport Live Auction',
@@ -21,8 +21,10 @@ export default async function AuctionPlayersPage(props) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/players${tournParam}`} />;
   }
 
-  const role = await getAuctionRole();
-  const isAdmin = await isAuctionAdmin();
+  const session = await getAuctionSession();
+  const role = session.role;
+  const isAdmin = session.isAdmin;
+  const loggedTeam = session.team;
 
   let tournament = null;
   if (searchParams?.tournamentId) {
@@ -37,7 +39,7 @@ export default async function AuctionPlayersPage(props) {
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
-      <AuctionNavbar role={role} tournament={tournament} />
+      <AuctionNavbar role={role} tournament={tournament} team={loggedTeam} />
       <main className="flex-grow-1">
         <PlayerPoolManager
           initialPlayers={initialPlayers}

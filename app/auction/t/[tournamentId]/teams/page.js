@@ -4,7 +4,7 @@ import TeamSquadsDashboard from '@/components/auction/TeamSquadsDashboard';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getTournamentById, getAuctionTeams } from '@/lib/auction-db';
-import { isAuctionAuthenticated, getAuctionRole } from '../../../actions';
+import { isAuctionAuthenticated, getAuctionSession } from '../../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,9 @@ export default async function TournamentTeamsPage(props) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}/teams`} />;
   }
 
-  const role = await getAuctionRole();
+  const session = await getAuctionSession();
+  const role = session.role;
+  const loggedTeam = session.team;
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) notFound();
 
@@ -38,14 +40,16 @@ export default async function TournamentTeamsPage(props) {
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
-      <AuctionNavbar role={role} tournament={tournament} />
+      <AuctionNavbar role={role} tournament={tournament} team={loggedTeam} />
       <main className="flex-grow-1">
         <TeamSquadsDashboard
           initialTeams={initialTeams}
           tournament={tournament}
           tournamentId={tournament.id}
           initialTab={searchParams?.tab || 'squads'}
-          isAdmin={role === 'admin'}
+          isAdmin={session.isAdmin}
+          loggedTeam={loggedTeam}
+          initialTeamId={searchParams?.teamId}
         />
       </main>
     </div>

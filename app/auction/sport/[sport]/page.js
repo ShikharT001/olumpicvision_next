@@ -4,7 +4,7 @@ import TournamentsManager from '@/components/auction/TournamentsManager';
 import '@/app/auction/auction.css';
 import { getTournaments } from '@/lib/auction-db';
 import { getSportById } from '@/lib/sports-config';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from '../../actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,13 +29,15 @@ export default async function SportTournamentsPage(props) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/sport/${sportKey}`} />;
   }
 
-  const role = await getAuctionRole();
-  const isAdmin = await isAuctionAdmin();
+  const session = await getAuctionSession();
+  const role = session.role;
+  const isAdmin = session.isAdmin;
+  const loggedTeam = session.team;
   const tournaments = await getTournaments(sport.id);
 
   return (
     <div className="auction-shell d-flex flex-column min-vh-100" data-bs-theme="dark">
-      <AuctionNavbar role={role} />
+      <AuctionNavbar role={role} team={loggedTeam} />
       <TournamentsManager
         sport={sport}
         initialTournaments={tournaments}

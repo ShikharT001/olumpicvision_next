@@ -4,7 +4,7 @@ import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import TournamentHub from '@/components/auction/TournamentHub';
 import '@/app/auction/auction.css';
 import { getTournamentById, getLiveAuctionState } from '@/lib/auction-db';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from '../../actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +30,10 @@ export default async function TournamentHubPage(props) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}`} />;
   }
 
-  const role = await getAuctionRole();
-  const isAdmin = await isAuctionAdmin();
+  const session = await getAuctionSession();
+  const role = session.role;
+  const isAdmin = session.isAdmin;
+  const loggedTeam = session.team;
 
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) {
@@ -42,7 +44,7 @@ export default async function TournamentHubPage(props) {
 
   return (
     <div className="auction-shell d-flex flex-column min-vh-100" data-bs-theme="dark">
-      <AuctionNavbar role={role} tournament={tournament} />
+      <AuctionNavbar role={role} tournament={tournament} team={loggedTeam} />
       <TournamentHub
         tournament={tournament}
         liveState={liveState}

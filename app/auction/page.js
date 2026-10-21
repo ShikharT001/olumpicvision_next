@@ -11,7 +11,7 @@ import {
   getLiveAuctionState,
 } from '@/lib/auction-db';
 import { getSportById } from '@/lib/sports-config';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from './actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from './actions';
 
 export const metadata = {
   title: 'Olympic Vision Multi-Sport Live Auction Hub | Confidential Portal',
@@ -32,8 +32,10 @@ export default async function AuctionHubPage(props) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo={returnTo} />;
   }
 
-  const role = await getAuctionRole();
-  const isAdmin = await isAuctionAdmin();
+  const session = await getAuctionSession();
+  const role = session.role;
+  const isAdmin = session.isAdmin;
+  const loggedTeam = session.team;
 
   // Mode 1: A specific tournament is requested via query param (?tournamentId=...)
   if (searchParams?.tournamentId) {
@@ -42,7 +44,7 @@ export default async function AuctionHubPage(props) {
       const liveState = await getLiveAuctionState(tournament.id);
       return (
         <div className="auction-shell d-flex flex-column min-vh-100" data-bs-theme="dark">
-          <AuctionNavbar role={role} tournament={tournament} />
+          <AuctionNavbar role={role} tournament={tournament} team={loggedTeam} />
           <TournamentHub
             tournament={tournament}
             liveState={liveState}
@@ -72,7 +74,7 @@ export default async function AuctionHubPage(props) {
 
     return (
       <div className="auction-shell d-flex flex-column min-vh-100" data-bs-theme="dark">
-        <AuctionNavbar role={role} />
+        <AuctionNavbar role={role} team={loggedTeam} />
         <TournamentsManager
           sport={sport}
           initialTournaments={tournaments}
@@ -100,7 +102,7 @@ export default async function AuctionHubPage(props) {
 
   return (
     <div className="auction-shell d-flex flex-column min-vh-100" data-bs-theme="dark">
-      <AuctionNavbar role={role} />
+      <AuctionNavbar role={role} team={loggedTeam} />
       <SportSelector
         sports={sports}
         tournaments={allTournaments}

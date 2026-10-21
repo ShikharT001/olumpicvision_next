@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAuction } from '@/app/auction/actions';
 
-export default function AuctionNavbar({ role = 'team', tournament = null }) {
+export default function AuctionNavbar({ role = 'team', tournament = null, team = null }) {
   const pathname = usePathname();
   const isAdmin = role === 'admin';
 
@@ -15,6 +15,9 @@ export default function AuctionNavbar({ role = 'team', tournament = null }) {
     ? [
         { href: `${basePath}/admin`, label: isAdmin ? '🔨 Auctioneer Console' : '🔨 Auction Console (Live)', adminOnly: false },
         { href: `${basePath}/live`, label: '📺 Big-Screen Live', adminOnly: false },
+        ...(team?.id
+          ? [{ href: `${basePath}/teams?teamId=${team.id}`, label: `⭐ My Squad (${team.code || 'Team'})`, adminOnly: false }]
+          : []),
         { href: `${basePath}/teams`, label: '🛡️ Squads & Purse', adminOnly: false },
         { href: `${basePath}/pools`, label: '🎡 Pool Draw', adminOnly: false },
         { href: `${basePath}/players`, label: isAdmin ? '📋 Player Pool & Lots' : '📋 Player Pool (View)', adminOnly: false },
@@ -62,13 +65,28 @@ export default function AuctionNavbar({ role = 'team', tournament = null }) {
             </>
           )}
 
-          {isAdmin ? (
+          {team ? (
+            <span
+              className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold shadow-sm ms-1 d-inline-flex align-items-center gap-1.5"
+              style={{
+                backgroundColor: team.color || '#06b6d4',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+              title={`Logged in as ${team.name || team.code}`}
+            >
+              <span>🛡️</span>
+              <span className="text-truncate" style={{ maxWidth: 170 }}>
+                {team.name || team.code}
+              </span>
+            </span>
+          ) : isAdmin ? (
             <span className="badge bg-warning text-dark px-2 py-0.5 rounded-pill text-xs fw-extrabold shadow-sm ms-1">
               👑 MAIN ADMIN
             </span>
           ) : (
             <span className="badge bg-info text-dark px-2 py-0.5 rounded-pill text-xs fw-bold shadow-sm ms-1">
-              🛡️ TEAM (VIEW ONLY)
+              🛡️ TEAM FRANCHISE
             </span>
           )}
         </div>

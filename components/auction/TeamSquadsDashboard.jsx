@@ -12,10 +12,12 @@ export default function TeamSquadsDashboard({
   tournamentId: propTournamentId,
   initialTab = 'squads',
   isAdmin = false,
+  loggedTeam = null,
+  initialTeamId = null,
 }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const [teams, setTeams] = useState(initialTeams || []);
-  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedTeam, setSelectedTeam] = useState(initialTeamId || null);
   const [activeTab, setActiveTab] = useState(initialTab || 'squads');
   const [liveNotification, setLiveNotification] = useState(null);
   const [soldModalData, setSoldModalData] = useState(null);
@@ -242,6 +244,56 @@ export default function TeamSquadsDashboard({
       {/* ========================================================================= */}
       {!focusedTeam ? (
         <>
+          {/* LOGGED TEAM QUICK-ACCESS HERO BANNER */}
+          {loggedTeam && (
+            <div
+              className="auction-card p-3 p-md-4 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-lg"
+              style={{
+                borderLeft: `6px solid ${loggedTeam.color || '#06b6d4'}`,
+                background: `linear-gradient(135deg, ${loggedTeam.color || '#06b6d4'}1e 0%, rgba(10, 20, 40, 0.95) 100%)`,
+              }}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <span
+                  className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow"
+                  style={{
+                    width: 48,
+                    height: 48,
+                    backgroundColor: loggedTeam.color || '#06b6d4',
+                    fontSize: '1.05rem',
+                  }}
+                >
+                  {loggedTeam.code || '🛡️'}
+                </span>
+                <div>
+                  <div className="d-flex align-items-center gap-2 mb-0.5">
+                    <span className="badge badge-cyan px-2.5 py-0.5 rounded-pill text-xs fw-black text-uppercase">
+                      🛡️ YOUR FRANCHISE PORTAL
+                    </span>
+                    <span className="text-white-50 text-xs">Franchise Representative Logged In</span>
+                  </div>
+                  <h4 className="fw-extrabold text-white mb-0 fs-5">
+                    {loggedTeam.name || loggedTeam.code}
+                  </h4>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-info text-dark rounded-pill px-3.5 py-1.5 fw-black text-xs shadow-sm d-flex align-items-center gap-1.5"
+                  onClick={() => {
+                    const match = teams.find((t) => t.id === loggedTeam.id || t.team_code === loggedTeam.code);
+                    if (match) setSelectedTeam(match.id);
+                  }}
+                >
+                  <span>★</span>
+                  <span>Inspect My Squad & Purse →</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* League-wide Financial Metric Cards */}
           <div className="row g-3 mb-4">
             <div className="col-6 col-lg-3">
@@ -316,6 +368,8 @@ export default function TeamSquadsDashboard({
                 null
               );
 
+              const isMyTeam = loggedTeam && (loggedTeam.id === team.id || loggedTeam.code === team.team_code);
+
               return (
                 <div key={team.id} className="col-12 col-md-6 col-xl-4">
                   <div
@@ -323,6 +377,13 @@ export default function TeamSquadsDashboard({
                     style={{
                       cursor: 'pointer',
                       borderTop: `4px solid ${team.primary_color || '#0d6efd'}`,
+                      ...(isMyTeam
+                        ? {
+                            boxShadow: '0 0 24px rgba(6, 182, 212, 0.45)',
+                            borderColor: '#06b6d4',
+                            borderWidth: '2px',
+                          }
+                        : {}),
                     }}
                     onClick={() => setSelectedTeam(team.id)}
                     role="button"
@@ -360,6 +421,11 @@ export default function TeamSquadsDashboard({
                                   }}
                                 >
                                   {team.pool}
+                                </span>
+                              )}
+                              {isMyTeam && (
+                                <span className="badge badge-gold px-2 py-0.5 rounded-pill text-xs fw-black">
+                                  ★ YOUR TEAM
                                 </span>
                               )}
                             </h4>

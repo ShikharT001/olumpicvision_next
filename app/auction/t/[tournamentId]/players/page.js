@@ -4,7 +4,7 @@ import PlayerPoolManager from '@/components/auction/PlayerPoolManager';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getTournamentById, getAuctionPlayers } from '@/lib/auction-db';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole } from '../../../actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +30,10 @@ export default async function TournamentPlayersPage(props) {
     return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}/players`} />;
   }
 
-  const role = await getAuctionRole();
-  const isAdmin = await isAuctionAdmin();
+  const session = await getAuctionSession();
+  const role = session.role;
+  const isAdmin = session.isAdmin;
+  const loggedTeam = session.team;
 
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) notFound();
@@ -40,7 +42,7 @@ export default async function TournamentPlayersPage(props) {
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
-      <AuctionNavbar role={role} tournament={tournament} />
+      <AuctionNavbar role={role} tournament={tournament} team={loggedTeam} />
       <main className="flex-grow-1">
         <PlayerPoolManager
           initialPlayers={initialPlayers}
