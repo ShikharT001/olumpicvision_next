@@ -16,8 +16,32 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   const [error, setError] = useState('');
   const [filter, setFilter] = useState({ status: '', lot: '', position: '', search: '' });
   const [editingPlayer, setEditingPlayer] = useState(null);
-  const [editForm, setEditForm] = useState({ base_price: '', lot_number: '', player_grade: '' });
+  const [editForm, setEditForm] = useState({
+    base_price: '',
+    lot_number: '',
+    player_grade: '',
+    photo_url: '',
+    full_name: '',
+    playing_position: '',
+    player_category: '',
+    team_name: '',
+    district: '',
+    height_cm: '',
+    weight_kg: '',
+  });
+
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importTab, setImportTab] = useState('csv'); // 'csv' or 'registrations'
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvPreview, setCsvPreview] = useState([]);
+  const [csvError, setCsvError] = useState('');
+  const [csvLoading, setCsvLoading] = useState(false);
+
+  const [uploadingAddPhoto, setUploadingAddPhoto] = useState(false);
+  const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState('');
+
   const [modalMessage, setModalMessage] = useState('');
   const [modalError, setModalError] = useState('');
   const [pendingHammerPlayer, setPendingHammerPlayer] = useState(null);
@@ -31,6 +55,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
 
   const [addForm, setAddForm] = useState({
     full_name: '',
+    photo_url: '',
     playing_position: defaultPos,
     player_category: defaultCat,
     height_cm: '',
@@ -45,13 +70,190 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   const openAddModal = () => {
     setModalMessage('');
     setModalError('');
+    setPhotoUploadError('');
     setShowAddModal(true);
   };
 
   const closeAddModal = () => {
     setModalMessage('');
     setModalError('');
+    setPhotoUploadError('');
     setShowAddModal(false);
+  };
+
+  const openImportModal = () => {
+    setCsvError('');
+    setCsvPreview([]);
+    setCsvFileName('');
+    setShowImportModal(true);
+  };
+
+  const closeImportModal = () => {
+    setCsvError('');
+    setCsvPreview([]);
+    setCsvFileName('');
+    setShowImportModal(false);
+  };
+
+  // Direct Photo File Upload handler via /api/upload-document
+  const handlePhotoFile = async (e, target = 'add') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoUploadError('Please select a valid image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoUploadError('Image size exceeds 5 MB limit.');
+      return;
+    }
+
+    setPhotoUploadError('');
+    if (target === 'add') setUploadingAddPhoto(true);
+    else setUploadingEditPhoto(true);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('label', 'auction-player-photo');
+
+      const res = await fetch('/api/upload-document', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload image');
+
+      if (target === 'add') {
+        setAddForm((prev) => ({ ...prev, photo_url: data.url }));
+      } else {
+        setEditForm((prev) => ({ ...prev, photo_url: data.url }));
+      }
+    } catch (err) {
+      setPhotoUploadError(err.message || 'Image upload failed. Please try again.');
+    } finally {
+      if (target === 'add') setUploadingAddPhoto(false);
+      else setUploadingEditPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  // Parse CSV text for player import
+  const parseCsvText = (text) => {
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      throw new Error('CSV file must have a header line and at least 1 player data row.');
+    }
+
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/["']/g, ''));
+    const getIdx = (keys) => headers.findIndex((h) => keys.includes(h));
+
+    const nameIdx = getIdx(['full_name', 'name', 'player_name', 'player']);
+    const posIdx = getIdx(['playing_position', 'position', 'pos']);
+    const catIdx = getIdx(['player_category', 'category', 'cat']);
+    const gradeIdx = getIdx(['player_grade', 'grade']);
+    const priceIdx = getIdx(['base_price', 'price', 'base']);
+    const lotIdx = getIdx(['lot_number', 'lot']);
+    const photoIdx = getIdx(['photo_url', 'photo', 'image', 'image_url', 'avatar']);
+    const heightIdx = getIdx(['height_cm', 'height']);
+    const weightIdx = getIdx(['weight_kg', 'weight']);
+    const teamIdx = getIdx(['team_name', 'team', 'club', 'school']);
+    const districtIdx = getIdx(['district', 'city']);
+
+    if (nameIdx === -1) {
+      throw new Error('CSV must contain a "full_name" or "name" column.');
+    }
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+      const nameVal = cols[nameIdx];
+      if (!nameVal || !nameVal.trim()) continue;
+
+      rows.push({
+        full_name: nameVal.trim(),
+        playing_position: posIdx !== -1 && cols[posIdx] ? cols[posIdx].trim() : defaultPos,
+        player_category: catIdx !== -1 && cols[catIdx] ? cols[catIdx].trim() : defaultCat,
+        player_grade: gradeIdx !== -1 && cols[gradeIdx] ? cols[gradeIdx].trim() : 'Grade A',
+        base_price: priceIdx !== -1 && cols[priceIdx] ? Number(cols[priceIdx]) : (tournament?.min_bid_increment ? tournament.min_bid_increment * 4 : 2000),
+        lot_number: lotIdx !== -1 && cols[lotIdx] ? Number(cols[lotIdx]) : 1,
+        photo_url: photoIdx !== -1 && cols[photoIdx] ? cols[photoIdx].trim() : '',
+        height_cm: heightIdx !== -1 && cols[heightIdx] ? Number(cols[heightIdx]) : null,
+        weight_kg: weightIdx !== -1 && cols[weightIdx] ? Number(cols[weightIdx]) : null,
+        team_name: teamIdx !== -1 && cols[teamIdx] ? cols[teamIdx].trim() : '',
+        district: districtIdx !== -1 && cols[districtIdx] ? cols[districtIdx].trim() : (tournament?.venue?.split(',')[1]?.trim() || 'Palghar'),
+      });
+    }
+
+    return rows;
+  };
+
+  const handleCsvFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvError('');
+    setCsvFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result;
+        if (typeof text !== 'string') return;
+        const parsed = parseCsvText(text);
+        setCsvPreview(parsed);
+      } catch (err) {
+        setCsvError(err.message || 'Failed to parse CSV file');
+        setCsvPreview([]);
+      }
+    };
+    reader.onerror = () => setCsvError('Failed to read file');
+    reader.readAsText(file);
+  };
+
+  const downloadSampleCsv = () => {
+    const headers = 'full_name,playing_position,player_category,player_grade,base_price,lot_number,photo_url,height_cm,weight_kg,team_name,district';
+    const sampleRow1 = `Sample Marquee Star,${defaultPos},${defaultCat},Grade A,5000,1,https://images.unsplash.com/photo-1500648767791-00dcc994a43e,182,75,Olympic Club,Palghar`;
+    const sampleRow2 = `Rising Talent,${defaultPos},${defaultCat},Grade B,3000,2,,176,70,District Sports,Palghar`;
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers, sampleRow1, sampleRow2].join('\n'));
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `${sportId}_players_template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExecuteBulkImport = async () => {
+    if (csvPreview.length === 0) return;
+    setCsvLoading(true);
+    setCsvError('');
+    try {
+      const res = await fetch('/api/auction/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'bulk_import',
+          tournamentId: activeTournamentId,
+          data: { players: csvPreview },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bulk import failed');
+
+      setShowImportModal(false);
+      setImportSuccessModal({ count: data.importedCount });
+      setMessage(`Successfully imported ${data.importedCount} player(s) into the auction pool.`);
+      setCsvPreview([]);
+      setCsvFileName('');
+      fetchPlayers();
+    } catch (err) {
+      setCsvError(err.message);
+    } finally {
+      setCsvLoading(false);
+    }
   };
 
   const fetchPlayers = useCallback(async () => {
@@ -97,6 +299,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       const savedPos = addForm.playing_position;
       const savedCat = addForm.player_category;
       const savedGrade = addForm.player_grade;
+      const savedPhoto = addForm.photo_url || '';
 
       // In-modal notification
       setModalMessage(`✓ Player "${savedName}" registered successfully with base price ₹${savedPrice} (Lot ${savedLot})!`);
@@ -111,11 +314,13 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
         basePrice: savedPrice,
         lot: savedLot,
         grade: savedGrade,
+        photo_url: savedPhoto,
       });
 
       // Clear the add player form completely with dynamic defaults
       setAddForm({
         full_name: '',
+        photo_url: '',
         playing_position: defaultPos,
         player_category: defaultCat,
         height_cm: '',
@@ -135,7 +340,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       setLoading(false);
     }
   };
-  const handleImport = async () => {
+
+  const handleRunRegistrationsImport = async () => {
     setMessage('');
     setError('');
     setLoading(true);
@@ -149,6 +355,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       if (!res.ok) throw new Error(data.error || 'Import failed');
 
       const count = data.importedCount || 0;
+      setShowImportModal(false);
       setImportSuccessModal({ count });
       setMessage(`Successfully imported ${count} verified player(s) into the auction pool.`);
       fetchPlayers();
@@ -196,6 +403,14 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       base_price: player.base_price || 1000,
       lot_number: player.lot_number || 1,
       player_grade: player.player_grade || 'Grade A',
+      photo_url: player.photo_url || '',
+      full_name: player.full_name || '',
+      playing_position: player.playing_position || defaultPos,
+      player_category: player.player_category || defaultCat,
+      team_name: player.team_name || '',
+      district: player.district || '',
+      height_cm: player.height_cm || '',
+      weight_kg: player.weight_kg || '',
     });
   };
 
@@ -308,10 +523,10 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
               <button
                 type="button"
                 className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
-                onClick={handleImport}
+                onClick={openImportModal}
                 disabled={loading}
               >
-                <span>📥 Import Verified PDVL Players</span>
+                <span>📥 Import Players (CSV / Data)</span>
               </button>
               <Link
                 href={activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin'}
@@ -448,11 +663,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                     <td className="text-white-50 font-monospace">{idx + 1}</td>
                     <td>
                       <div className="d-flex align-items-center gap-2.5">
-                        <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center" style={{ width: 36, height: 36 }}>
+                        <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center border border-secondary border-opacity-40" style={{ width: 40, height: 40, flexShrink: 0 }}>
                           {player.photo_url ? (
                             <img src={player.photo_url} alt={player.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <span>🏐</span>
+                            <span>{tournament?.sportConfig?.icon || '🏆'}</span>
                           )}
                         </div>
                         <div>
@@ -577,31 +792,123 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
               </div>
 
               <div className="modal-body p-4 vstack gap-3 auction-scroll-area">
+                {/* Photo Upload & Preview */}
                 <div>
-                  <label className="form-label text-light small fw-bold mb-1">Base Price (₹)</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
-                    <input
-                      type="number"
-                      step="500"
-                      className="form-control font-monospace fw-bold"
-                      value={editForm.base_price}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, base_price: Number(e.target.value) }))}
-                    />
+                  <label className="form-label text-light small fw-bold mb-1.5 d-flex align-items-center justify-content-between">
+                    <span>Player Photo</span>
+                    <span className="text-secondary text-xs">JPG, PNG, WEBP</span>
+                  </label>
+                  <div className="d-flex align-items-center gap-3 p-2.5 rounded-3 bg-dark border border-secondary border-opacity-30">
+                    <div className="player-photo-preview" style={{ width: 68, height: 68 }}>
+                      {editForm.photo_url ? (
+                        <img src={editForm.photo_url} alt={editingPlayer.full_name} />
+                      ) : (
+                        <div className="w-100 h-100 d-flex align-items-center justify-content-center text-secondary fs-3">
+                          {tournament?.sportConfig?.icon || '🏆'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow-1">
+                      <div className="d-flex align-items-center gap-2 mb-1.5">
+                        <label className="btn btn-xs btn-outline-info rounded-pill px-3 py-1 text-xs mb-0 cursor-pointer">
+                          {uploadingEditPhoto ? 'Uploading...' : (editForm.photo_url ? 'Change Photo' : 'Upload Photo')}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="d-none"
+                            disabled={uploadingEditPhoto}
+                            onChange={(e) => handlePhotoFile(e, 'edit')}
+                          />
+                        </label>
+                        {editForm.photo_url && (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline-danger rounded-pill px-2.5 py-1 text-xs"
+                            onClick={() => setEditForm((prev) => ({ ...prev, photo_url: '' }))}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="url"
+                        className="form-control form-control-sm bg-dark text-white border-secondary border-opacity-30 text-xs"
+                        placeholder="Or enter direct photo URL"
+                        value={editForm.photo_url || ''}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, photo_url: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="form-label text-light small fw-bold mb-1">Auction Lot Assignment</label>
-                  <select
-                    className="form-select"
-                    value={editForm.lot_number}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, lot_number: Number(e.target.value) }))}
-                  >
-                    <option value="1">Lot 1: Icon Players</option>
-                    <option value="2">Lot 2: Open Category</option>
-                    <option value="3">Lot 3: Youth Categories</option>
-                  </select>
+                  <label className="form-label text-light small fw-bold mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                  />
+                </div>
+
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Playing Position</label>
+                    <select
+                      className="form-select"
+                      value={editForm.playing_position}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, playing_position: e.target.value }))}
+                    >
+                      {availablePositions.map((pos) => (
+                        <option key={pos.value} value={pos.value}>
+                          {pos.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Category</label>
+                    <select
+                      className="form-select"
+                      value={editForm.player_category}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, player_category: e.target.value }))}
+                    >
+                      {availableCategories.map((cat) => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Base Price (₹)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
+                      <input
+                        type="number"
+                        step="500"
+                        className="form-control font-monospace fw-bold"
+                        value={editForm.base_price}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, base_price: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Auction Lot Assignment</label>
+                    <select
+                      className="form-select"
+                      value={editForm.lot_number}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, lot_number: Number(e.target.value) }))}
+                    >
+                      <option value="1">Lot 1: Icon Players</option>
+                      <option value="2">Lot 2: Open Category</option>
+                      <option value="3">Lot 3: Youth Categories</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -700,6 +1007,83 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                       ></button>
                     </div>
                   )}
+
+                  {/* Player Photo Upload */}
+                  <div>
+                    <label className="form-label text-light small fw-bold mb-1.5 d-flex align-items-center justify-content-between">
+                      <span>Player Profile Photo</span>
+                      <span className="text-secondary text-xs">JPG, PNG, WEBP (Max 5MB)</span>
+                    </label>
+
+                    {addForm.photo_url ? (
+                      <div className="d-flex align-items-center gap-3 p-2.5 rounded-3 bg-dark border border-secondary border-opacity-30">
+                        <div className="player-photo-preview" style={{ width: 68, height: 68 }}>
+                          <img src={addForm.photo_url} alt="Uploaded Player Photo" />
+                        </div>
+                        <div className="flex-grow-1">
+                          <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill text-xs fw-bold mb-1.5 d-inline-block">
+                            ✓ Photo Attached
+                          </span>
+                          <div className="d-flex align-items-center gap-2">
+                            <label className="btn btn-xs btn-outline-info rounded-pill px-2.5 py-1 text-xs mb-0 cursor-pointer">
+                              {uploadingAddPhoto ? 'Uploading...' : 'Change Photo'}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="d-none"
+                                disabled={uploadingAddPhoto}
+                                onChange={(e) => handlePhotoFile(e, 'add')}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-outline-danger rounded-pill px-2.5 py-1 text-xs"
+                              onClick={() => setAddForm((prev) => ({ ...prev, photo_url: '' }))}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="player-photo-dropzone d-block mb-1.5 cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="d-none"
+                            disabled={uploadingAddPhoto}
+                            onChange={(e) => handlePhotoFile(e, 'add')}
+                          />
+                          {uploadingAddPhoto ? (
+                            <div className="py-2 text-info">
+                              <div className="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                              <span className="small fw-semibold">Uploading player photo...</span>
+                            </div>
+                          ) : (
+                            <div className="py-1">
+                              <div className="fs-3 mb-1">📸</div>
+                              <div className="small fw-bold text-white mb-0.5">Click or drag &amp; drop to upload player photo</div>
+                              <span className="text-secondary text-xs">High-resolution headshots appear on stage &amp; console</span>
+                            </div>
+                          )}
+                        </label>
+                        <div className="input-group input-group-sm">
+                          <span className="input-group-text bg-dark text-secondary border-secondary border-opacity-30 text-xs">Or URL</span>
+                          <input
+                            type="url"
+                            className="form-control form-control-sm bg-dark text-white border-secondary border-opacity-30 text-xs"
+                            placeholder="https://example.com/photo.jpg"
+                            value={addForm.photo_url || ''}
+                            onChange={(e) => setAddForm((prev) => ({ ...prev, photo_url: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {photoUploadError && (
+                      <div className="text-danger small mt-1 text-xs">{photoUploadError}</div>
+                    )}
+                  </div>
 
                   <div>
                     <label className="form-label text-light small fw-bold mb-1">
@@ -859,6 +1243,192 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
           </div>
         </div>
       )}
+
+      {/* IMPORT PLAYERS MODAL (CSV & DATA IMPORT) */}
+      {isAdmin && showImportModal && (
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge badge-cyan px-2 py-0.5 rounded-pill text-xs">
+                    DATA IMPORT
+                  </span>
+                  <h5 className="modal-title fw-bold text-white mb-0 fs-6">
+                    Import Players &amp; Photos ({tournament?.sport_name || 'Tournament'})
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={closeImportModal}
+                  aria-label="Close"
+                ></button>
+              </div>
+
+              {/* Import Tabs */}
+              <div className="px-4 pt-3 border-bottom border-secondary border-opacity-20 d-flex gap-2">
+                <button
+                  type="button"
+                  className={`import-tab-btn ${importTab === 'csv' ? 'active' : ''}`}
+                  onClick={() => setImportTab('csv')}
+                >
+                  📊 CSV / Spreadsheet Import (with Photos)
+                </button>
+                <button
+                  type="button"
+                  className={`import-tab-btn ${importTab === 'registrations' ? 'active' : ''}`}
+                  onClick={() => setImportTab('registrations')}
+                >
+                  🏅 Verified Registrations
+                </button>
+              </div>
+
+              <div className="modal-body p-4 vstack gap-3 auction-scroll-area">
+                {importTab === 'csv' ? (
+                  <>
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-25">
+                      <div>
+                        <h6 className="fw-bold text-white mb-0.5">Bulk Upload CSV with Photo URLs</h6>
+                        <p className="text-secondary small mb-0 text-xs">
+                          Upload a spreadsheet containing names, positions, base prices, lots, and photo URLs.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-outline-warning rounded-pill px-3 py-1.5 fw-bold text-xs"
+                        onClick={downloadSampleCsv}
+                      >
+                        ⬇ Download Sample CSV Template
+                      </button>
+                    </div>
+
+                    {csvError && (
+                      <div className="alert alert-danger border-0 py-2 px-3 small d-flex align-items-center justify-content-between mb-0" role="alert">
+                        <span><strong>Error:</strong> {csvError}</span>
+                        <button type="button" className="btn-close py-1" onClick={() => setCsvError('')} aria-label="Close"></button>
+                      </div>
+                    )}
+
+                    {/* Drag and Drop Zone for CSV */}
+                    <label className="player-photo-dropzone d-block cursor-pointer">
+                      <input
+                        type="file"
+                        accept=".csv,text/csv,text/plain"
+                        className="d-none"
+                        onChange={handleCsvFileChange}
+                      />
+                      <div className="py-2">
+                        <div className="fs-3 mb-1">📄</div>
+                        <div className="small fw-bold text-white mb-0.5">
+                          {csvFileName ? `Selected: ${csvFileName}` : 'Click or drop your CSV file here'}
+                        </div>
+                        <span className="text-secondary text-xs">
+                          Supports columns: full_name, playing_position, player_grade, base_price, lot_number, photo_url
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* Preview Table */}
+                    {csvPreview.length > 0 && (
+                      <div className="mt-2">
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="text-white small fw-bold">
+                            Found {csvPreview.length} player(s) • {csvPreview.filter((p) => p.photo_url).length} with photo URL
+                          </span>
+                          <span className="badge badge-emerald px-2 py-0.5 rounded-pill text-xs">Ready for Import</span>
+                        </div>
+                        <div className="table-responsive border border-secondary border-opacity-25 rounded-3" style={{ maxHeight: 240 }}>
+                          <table className="table table-dark table-hover mb-0 align-middle text-xs">
+                            <thead className="table-dark text-white-50 text-uppercase border-secondary border-opacity-25">
+                              <tr>
+                                <th>#</th>
+                                <th>Photo</th>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th>Grade</th>
+                                <th>Lot</th>
+                                <th>Base Price</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {csvPreview.map((p, idx) => (
+                                <tr key={idx} className="border-secondary border-opacity-15">
+                                  <td className="text-secondary font-monospace">{idx + 1}</td>
+                                  <td>
+                                    <div className="player-photo-preview" style={{ width: 32, height: 32 }}>
+                                      {p.photo_url ? (
+                                        <img src={p.photo_url} alt={p.full_name} />
+                                      ) : (
+                                        <div className="w-100 h-100 d-flex align-items-center justify-content-center text-secondary" style={{ fontSize: '0.8rem' }}>
+                                          📷
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="fw-bold text-white">{p.full_name}</td>
+                                  <td className="text-capitalize text-secondary">{p.playing_position?.replace(/_/g, ' ')}</td>
+                                  <td><span className="badge badge-gold px-1.5 py-0.5 text-xs">{p.player_grade}</span></td>
+                                  <td>Lot {p.lot_number}</td>
+                                  <td className="font-monospace text-warning fw-bold">₹{Number(p.base_price).toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="p-3 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-25">
+                    <h6 className="fw-bold text-white mb-1">Import from Official Registrations</h6>
+                    <p className="text-secondary small mb-3">
+                      Pulls all verified, approved tournament player registrations directly into the auction pool.
+                      Uploaded player photos, identity docs, positions, heights, weights, and categories will be automatically imported and mapped.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-info rounded-pill px-4 py-2 fw-bold text-xs d-inline-flex align-items-center gap-2"
+                      onClick={handleRunRegistrationsImport}
+                      disabled={loading}
+                    >
+                      <span>📥 Run Registration Import Now</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 text-xs"
+                  onClick={closeImportModal}
+                >
+                  Close
+                </button>
+                {importTab === 'csv' && csvPreview.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 fw-bold text-xs shadow"
+                    onClick={handleExecuteBulkImport}
+                    disabled={csvLoading}
+                  >
+                    {csvLoading ? 'Importing...' : `Import ${csvPreview.length} Player(s) to Pool →`}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CONFIRM LOAD TO PODIUM MODAL */}
       {pendingHammerPlayer && (
         <div
@@ -1000,8 +1570,16 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
         >
           <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
             <div className="modal-content auction-card modal-success-card text-white text-center p-4 shadow-2xl">
-              <div className="modal-action-avatar bg-primary text-white">
-                🏐
+              <div className="d-flex justify-content-center mb-3">
+                {playerRegisteredModal.photo_url ? (
+                  <div className="player-photo-preview" style={{ width: 76, height: 76 }}>
+                    <img src={playerRegisteredModal.photo_url} alt={playerRegisteredModal.name} />
+                  </div>
+                ) : (
+                  <div className="modal-action-avatar bg-primary text-white">
+                    {tournament?.sportConfig?.icon || '🏆'}
+                  </div>
+                )}
               </div>
               <span className="badge badge-cyan px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
                 Auction Pool Registered
@@ -1010,7 +1588,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                 PLAYER ADDED!
               </h2>
               <p className="text-white-50 text-xs mb-3">
-                Successfully enrolled into the PDVL auction database
+                Successfully enrolled into the {tournament?.sport_name || 'Tournament'} auction database
               </p>
 
               <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">

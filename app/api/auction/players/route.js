@@ -45,6 +45,26 @@ export async function POST(request) {
       return NextResponse.json(res);
     }
 
+    // Bulk import players array (from CSV/JSON with photos)
+    if (action === 'bulk_import') {
+      const playersList = Array.isArray(data?.players) ? data.players : [];
+      if (playersList.length === 0) {
+        return NextResponse.json({ error: 'No player records provided for bulk import' }, { status: 400 });
+      }
+      const imported = [];
+      for (const p of playersList) {
+        if (p && (p.full_name || p.name)) {
+          const created = await createAuctionPlayer({
+            ...p,
+            full_name: p.full_name || p.name,
+            photo_url: p.photo_url || p.photo || p.image_url || '',
+          }, tournamentId);
+          imported.push(created);
+        }
+      }
+      return NextResponse.json({ success: true, importedCount: imported.length, players: imported });
+    }
+
     // Directly add a player without a registration record
     if (action === 'create') {
       if (!data?.full_name) {
