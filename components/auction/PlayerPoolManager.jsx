@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getSportPositions, getSportCategories } from '@/lib/sports-config';
+import { getSportPositions, getSportCategories, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
 
 export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tournament = null, tournamentId: propTournamentId }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
@@ -685,11 +685,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                       </span>
                     </td>
                     <td>
-                      <span className="badge badge-gold px-2 py-0.5 text-xs d-inline-block mb-1">
-                        {player.player_grade || 'Grade A'}
+                      <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold d-inline-block mb-1 ${getCategoryBadgeClass(player.player_category)}`}>
+                        {formatCategoryLabel(player.player_category)}
                       </span>
-                      <span className="text-white-50 d-block text-xs text-capitalize">
-                        {player.player_category?.replace('_', ' ')}
+                      <span className="text-white-50 d-block text-xs">
+                        {player.player_grade || 'Grade A'}
                       </span>
                     </td>
                     <td>

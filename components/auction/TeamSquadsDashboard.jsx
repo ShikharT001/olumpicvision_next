@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
 
 export default function TeamSquadsDashboard({ initialTeams, tournament = null, tournamentId: propTournamentId }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
@@ -51,16 +52,16 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
     return () => clearInterval(timer);
   }, [fetchLiveStateAndTeams]);
 
-  const activeTeamList = selectedTeam
-    ? teams.filter((t) => t.id === selectedTeam)
-    : teams;
-
   // Aggregate league stats
   const totalPurse = teams.reduce((acc, t) => acc + Number(t.initial_purse || 0), 0);
   const remainingPurse = teams.reduce((acc, t) => acc + Number(t.remaining_purse || 0), 0);
   const totalSpent = Math.max(0, totalPurse - remainingPurse);
   const allSoldPlayers = teams.flatMap((t) => t.squad || []);
+  const totalSlotsCapacity = teams.reduce((acc, t) => acc + (t.max_squad_size || 12), 0);
   const highestBuy = allSoldPlayers.reduce((max, p) => (Number(p.sold_price || 0) > Number(max?.sold_price || 0) ? p : max), null);
+
+  // Active focused team
+  const focusedTeam = selectedTeam ? teams.find((t) => t.id === selectedTeam) : null;
 
   return (
     <div className="container-fluid px-3 px-md-4 py-4">
@@ -102,196 +103,652 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
         </div>
       )}
 
-      {/* Page Title & Filter Bar */}
+      {/* TOP HEADER & NAVIGATION */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom border-secondary border-opacity-25 pb-3 mb-4">
         <div>
-          <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase mb-1">
-            PDVL 2026/27 League Roster Hub
-          </span>
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase">
+              {tournament?.sportConfig?.icon || '🏆'} {tournament?.sportConfig?.name || 'Tournament'} • {tournament?.season_year || '2026/27'}
+            </span>
+            <span className="badge bg-secondary bg-opacity-30 text-white-50 px-2 py-0.5 rounded-pill text-xs">
+              Live Squads & Financial Hub
+            </span>
+          </div>
           <h2 className="h3 fw-extrabold text-white mb-0 tracking-tight">
-            Team Squads & Remaining Purse
+            {focusedTeam ? `${focusedTeam.team_name} — Squad & Purse Details` : 'Team Squads & Remaining Purse'}
           </h2>
+          <p className="text-white-50 text-xs mb-0 mt-1">
+            {focusedTeam
+              ? `Inspecting complete roster composition, category distribution, and bidding capacity for ${focusedTeam.team_name}`
+              : 'Comparative purse utilization and squad capacity across all teams. Click any team card to inspect their entire roster.'}
+          </p>
         </div>
 
-        {/* Filter by Team */}
+        {/* Team Filter / Switcher Buttons */}
         <div className="d-flex flex-wrap align-items-center gap-2">
           <button
             type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold ${!selectedTeam ? 'btn-primary' : 'btn-outline-secondary text-light'}`}
+            className={`btn btn-sm rounded-pill px-3 py-1.5 text-xs fw-bold transition-all ${
+              !selectedTeam ? 'btn-primary shadow' : 'btn-outline-secondary text-light'
+            }`}
             onClick={() => setSelectedTeam(null)}
           >
-            All Teams ({teams.length})
+            All Teams Overview ({teams.length})
           </button>
           {teams.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold ${selectedTeam === t.id ? 'btn-info text-dark' : 'btn-outline-secondary text-light'}`}
+              className={`btn btn-sm rounded-pill px-3 py-1.5 text-xs fw-bold transition-all d-flex align-items-center gap-1.5 ${
+                selectedTeam === t.id ? 'btn-info text-dark shadow' : 'btn-outline-secondary text-light'
+              }`}
               onClick={() => setSelectedTeam(t.id)}
             >
-              {t.team_code}
+              <span
+                className="rounded-circle d-inline-block"
+                style={{ width: 8, height: 8, backgroundColor: t.primary_color || '#0d6efd' }}
+              ></span>
+              <span>{t.team_code}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* League Financial Summary Cards */}
-      <div className="row g-3 mb-4">
-        <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block mb-1">Total League Purse</span>
-            <strong className="fs-4 fw-extrabold text-warning">₹{totalPurse.toLocaleString()}</strong>
+      {/* ========================================================================= */}
+      {/* MODE 1: ALL TEAMS SQUADS & PURSE OVERVIEW (INITIAL DEFAULT VIEW)          */}
+      {/* ========================================================================= */}
+      {!focusedTeam ? (
+        <>
+          {/* League-wide Financial Metric Cards */}
+          <div className="row g-3 mb-4">
+            <div className="col-6 col-lg-3">
+              <div className="auction-card p-3 text-center h-100 d-flex flex-column justify-content-center">
+                <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
+                  Total League Purse
+                </span>
+                <strong className="fs-4 fw-extrabold text-warning">₹{totalPurse.toLocaleString()}</strong>
+                <span className="text-white-50 text-xs mt-1">{teams.length} Franchises</span>
+              </div>
+            </div>
+            <div className="col-6 col-lg-3">
+              <div className="auction-card p-3 text-center h-100 d-flex flex-column justify-content-center">
+                <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
+                  Spent in Live Bids
+                </span>
+                <strong className="fs-4 fw-extrabold text-info">₹{totalSpent.toLocaleString()}</strong>
+                <span className="text-white-50 text-xs mt-1">
+                  {totalPurse > 0 ? `${Math.round((totalSpent / totalPurse) * 100)}% Utilized` : '0%'}
+                </span>
+              </div>
+            </div>
+            <div className="col-6 col-lg-3">
+              <div className="auction-card p-3 text-center h-100 d-flex flex-column justify-content-center">
+                <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
+                  Roster Slots Filled
+                </span>
+                <strong className="fs-4 fw-extrabold text-success">
+                  {allSoldPlayers.length} <span className="text-white-50 fs-6 fw-normal">/ {totalSlotsCapacity}</span>
+                </strong>
+                <span className="text-white-50 text-xs mt-1">
+                  {totalSlotsCapacity - allSoldPlayers.length} Slots Remaining
+                </span>
+              </div>
+            </div>
+            <div className="col-6 col-lg-3">
+              <div className="auction-card p-3 text-center h-100 d-flex flex-column justify-content-center">
+                <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
+                  Season Record Hammer
+                </span>
+                <strong className="fs-5 fw-extrabold text-white text-truncate d-block">
+                  {highestBuy ? `${highestBuy.full_name}` : '—'}
+                </strong>
+                <span className="text-warning text-xs font-monospace fw-bold mt-1">
+                  {highestBuy ? `₹${Number(highestBuy.sold_price).toLocaleString()}` : 'Awaiting Bids'}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block mb-1">Spent in Bids</span>
-            <strong className="fs-4 fw-extrabold text-info">₹{totalSpent.toLocaleString()}</strong>
-          </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block mb-1">Players Acquired</span>
-            <strong className="fs-4 fw-extrabold text-success">{allSoldPlayers.length}</strong>
-          </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block mb-1">Season Record Buy</span>
-            <strong className="fs-5 fw-extrabold text-white text-truncate d-block">
-              {highestBuy ? `${highestBuy.full_name} (₹${Number(highestBuy.sold_price).toLocaleString()})` : '—'}
-            </strong>
-          </div>
-        </div>
-      </div>
 
-      {/* Teams Grid */}
-      <div className="row g-4">
-        {activeTeamList.map((team) => {
-          const initialPurse = Number(team.initial_purse || 100000);
-          const remainingPurse = Number(team.remaining_purse || 0);
-          const spentPurse = Math.max(0, initialPurse - remainingPurse);
-          const percentSpent = Math.min(100, Math.round((spentPurse / initialPurse) * 100));
-          const squad = team.squad || [];
-          const squadCount = squad.length;
-          const maxSquad = team.max_squad_size || 12;
+          {/* Teams Comparative Purse & Squad Overview Cards */}
+          <div className="row g-4">
+            {teams.map((team) => {
+              const initialPurse = Number(team.initial_purse || 100000);
+              const remainingPurse = Number(team.remaining_purse || 0);
+              const spentPurse = Math.max(0, initialPurse - remainingPurse);
+              const percentSpent = Math.min(100, Math.round((spentPurse / initialPurse) * 100));
+              const squad = team.squad || [];
+              const squadCount = squad.length;
+              const maxSquad = team.max_squad_size || 12;
+              const slotsLeft = Math.max(0, maxSquad - squadCount);
 
-          return (
-            <div key={team.id} className="col-12 col-lg-6">
-              <div className="auction-card p-4 h-100 d-flex flex-column">
-                {/* Team Header */}
-                <div className="d-flex align-items-start justify-content-between border-bottom border-secondary border-opacity-25 pb-3 mb-3">
-                  <div className="d-flex align-items-center gap-3">
-                    <span
-                      className="rounded-circle d-flex align-items-center justify-content-center text-white fw-extrabold shadow-sm"
-                      style={{
-                        width: 52,
-                        height: 52,
-                        backgroundColor: team.primary_color || '#0d6efd',
-                        fontSize: '1.15rem',
+              // Calculate category counts
+              const openCount = squad.filter((p) => normalizeCategory(p.player_category) === 'open').length;
+              const u19Count = squad.filter((p) => normalizeCategory(p.player_category) === 'u19').length;
+              const u14Count = squad.filter((p) => normalizeCategory(p.player_category) === 'u14').length;
+              const iconCount = squad.filter((p) => normalizeCategory(p.player_category) === 'icon_player').length;
+
+              // Top purchase for this team
+              const teamHighest = squad.reduce(
+                (max, p) => (Number(p.sold_price || 0) > Number(max?.sold_price || 0) ? p : max),
+                null
+              );
+
+              return (
+                <div key={team.id} className="col-12 col-md-6 col-xl-4">
+                  <div
+                    className="auction-card p-4 h-100 d-flex flex-column justify-content-between position-relative transition-all"
+                    style={{
+                      cursor: 'pointer',
+                      borderTop: `4px solid ${team.primary_color || '#0d6efd'}`,
+                    }}
+                    onClick={() => setSelectedTeam(team.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setSelectedTeam(team.id);
+                    }}
+                  >
+                    {/* Top Team Badge & Squad Slot Counter */}
+                    <div>
+                      <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
+                        <div className="d-flex align-items-center gap-3">
+                          <span
+                            className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow"
+                            style={{
+                              width: 52,
+                              height: 52,
+                              backgroundColor: team.primary_color || '#0d6efd',
+                              fontSize: '1.15rem',
+                              letterSpacing: '0.02em',
+                            }}
+                          >
+                            {team.team_code}
+                          </span>
+                          <div>
+                            <h4 className="fw-extrabold text-white mb-0 fs-5">{team.team_name}</h4>
+                            <span className="text-white-50 text-xs d-block">
+                              Owner: <strong>{team.owner_name || 'Management'}</strong>
+                              {team.coach_name && ` • Coach: ${team.coach_name}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="badge bg-secondary bg-opacity-30 text-light px-2.5 py-1 rounded-pill text-xs flex-shrink-0">
+                          Slots: <strong className="text-white">{squadCount}</strong> / {maxSquad}
+                        </span>
+                      </div>
+
+                      {/* Purse Utilization Progress Bar */}
+                      <div className="bg-dark bg-opacity-60 rounded-3 p-3 border border-secondary border-opacity-20 mb-3">
+                        <div className="d-flex align-items-center justify-content-between small mb-1.5">
+                          <span className="text-white-50 text-xs">Purse Utilization</span>
+                          <span className="text-info text-xs font-monospace fw-bold">{percentSpent}% Spent</span>
+                        </div>
+                        <div className="progress bg-black" style={{ height: 9, borderRadius: 999 }}>
+                          <div
+                            className="progress-bar"
+                            role="progressbar"
+                            style={{
+                              width: `${percentSpent}%`,
+                              backgroundColor: team.primary_color || '#0d6efd',
+                            }}
+                            aria-valuenow={percentSpent}
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                          ></div>
+                        </div>
+
+                        <div className="d-flex align-items-center justify-content-between mt-2.5 pt-1 border-top border-secondary border-opacity-15">
+                          <div>
+                            <span className="text-white-50 text-xs d-block">Spent</span>
+                            <strong className="text-info text-xs font-monospace">₹{spentPurse.toLocaleString()}</strong>
+                          </div>
+                          <div className="text-end">
+                            <span className="text-white-50 text-xs d-block">Remaining Purse</span>
+                            <strong
+                              className={`fs-6 fw-extrabold font-monospace ${
+                                remainingPurse < 10000 ? 'text-danger' : 'text-success'
+                              }`}
+                            >
+                              ₹{remainingPurse.toLocaleString()}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Category Composition Badges */}
+                      <div className="mb-3">
+                        <span className="text-white-50 text-xs d-block mb-1.5 fw-semibold text-uppercase" style={{ letterSpacing: '0.04em' }}>
+                          Squad Composition ({squadCount} Acquired)
+                        </span>
+                        <div className="d-flex flex-wrap align-items-center gap-1.5">
+                          {iconCount > 0 && (
+                            <span className="badge badge-gold px-2 py-0.5 rounded-pill text-xs">
+                              ⭐ {iconCount} Icon
+                            </span>
+                          )}
+                          <span className="badge badge-emerald px-2 py-0.5 rounded-pill text-xs">
+                            🏐 {openCount} Open
+                          </span>
+                          <span className="badge badge-cyan px-2 py-0.5 rounded-pill text-xs">
+                            ⚡ {u19Count} U19
+                          </span>
+                          <span className="badge bg-purple-600 text-white px-2 py-0.5 rounded-pill text-xs">
+                            🌱 {u14Count} U14
+                          </span>
+                          <span className="badge bg-secondary bg-opacity-25 text-white-50 px-2 py-0.5 rounded-pill text-xs ms-auto">
+                            {slotsLeft} Open Slots
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Top Acquisition Snippet */}
+                      {teamHighest && (
+                        <div className="d-flex align-items-center justify-content-between p-2 rounded-2 bg-black bg-opacity-30 border border-secondary border-opacity-15 text-xs mb-3">
+                          <span className="text-white-50">Top Buy:</span>
+                          <span className="text-white fw-bold text-truncate mx-2" style={{ maxWidth: '55%' }}>
+                            {teamHighest.full_name}
+                          </span>
+                          <strong className="text-warning font-monospace">₹{Number(teamHighest.sold_price).toLocaleString()}</strong>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Prominent Action Button to Inspect Full Details */}
+                    <button
+                      type="button"
+                      className="btn btn-outline-info w-100 rounded-pill py-2 text-xs fw-extrabold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTeam(team.id);
                       }}
                     >
-                      {team.team_code}
-                    </span>
-                    <div>
-                      <h4 className="fw-bold text-white mb-0">{team.team_name}</h4>
-                      <span className="text-white-50 text-xs">
-                        Owner: <strong>{team.owner_name || 'Management'}</strong> {team.coach_name && `• Coach: ${team.coach_name}`}
+                      <span>View Entire Squad Details</span>
+                      <span>➔</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        /* ========================================================================= */
+        /* MODE 2: PARTICULAR TEAM DETAILED VIEW (WHEN A TEAM IS CLICKED)            */
+        /* ========================================================================= */
+        <div>
+          {/* Back & Team Switcher Bar */}
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+            <button
+              type="button"
+              className="btn btn-outline-light rounded-pill px-4 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-2 shadow"
+              onClick={() => setSelectedTeam(null)}
+            >
+              <span>← Back to All Teams Overview</span>
+            </button>
+
+            <div className="d-flex flex-wrap align-items-center gap-1.5">
+              <span className="text-white-50 text-xs me-1">Switch Franchise:</span>
+              {teams.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-bold ${
+                    selectedTeam === t.id ? 'btn-info text-dark shadow' : 'btn-outline-secondary text-light'
+                  }`}
+                  onClick={() => setSelectedTeam(t.id)}
+                >
+                  {t.team_code}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Focused Team Master Hero Profile */}
+          {(() => {
+            const initialPurse = Number(focusedTeam.initial_purse || 100000);
+            const remainingPurse = Number(focusedTeam.remaining_purse || 0);
+            const spentPurse = Math.max(0, initialPurse - remainingPurse);
+            const percentSpent = Math.min(100, Math.round((spentPurse / initialPurse) * 100));
+            const squad = focusedTeam.squad || [];
+            const squadCount = squad.length;
+            const maxSquad = focusedTeam.max_squad_size || 12;
+            const slotsRemaining = Math.max(0, maxSquad - squadCount);
+
+            // Minimum bid increment for this tournament/sport
+            const minBid = Number(tournament?.sportConfig?.minBidIncrement || 500);
+
+            // Calculate Max Single Bid Allowed (team must reserve minBid for all subsequent unfilled slots)
+            const reserveRequired = Math.max(0, (slotsRemaining - 1) * minBid);
+            const maxBidAllowed = Math.max(0, remainingPurse - reserveRequired);
+
+            // Average spend per player
+            const avgSpend = squadCount > 0 ? Math.round(spentPurse / squadCount) : 0;
+
+            // Category counts
+            const openSquad = squad.filter((p) => normalizeCategory(p.player_category) === 'open');
+            const u19Squad = squad.filter((p) => normalizeCategory(p.player_category) === 'u19');
+            const u14Squad = squad.filter((p) => normalizeCategory(p.player_category) === 'u14');
+            const iconSquad = squad.filter((p) => normalizeCategory(p.player_category) === 'icon_player');
+
+            // Positional Breakdown
+            const positionCounts = squad.reduce((acc, p) => {
+              const pos = p.playing_position || 'other';
+              acc[pos] = (acc[pos] || 0) + 1;
+              return acc;
+            }, {});
+
+            return (
+              <div>
+                {/* Hero Header Card */}
+                <div
+                  className="auction-card p-4 mb-4 position-relative overflow-hidden"
+                  style={{
+                    borderLeft: `6px solid ${focusedTeam.primary_color || '#0d6efd'}`,
+                    background: `linear-gradient(135deg, ${focusedTeam.primary_color}18 0%, rgba(10, 20, 40, 0.95) 100%)`,
+                  }}
+                >
+                  <div className="d-flex flex-wrap align-items-center justify-content-between gap-4">
+                    <div className="d-flex align-items-center gap-3.5">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow-lg"
+                        style={{
+                          width: 68,
+                          height: 68,
+                          backgroundColor: focusedTeam.primary_color || '#0d6efd',
+                          fontSize: '1.5rem',
+                          border: '3px solid rgba(255,255,255,0.2)',
+                        }}
+                      >
+                        {focusedTeam.team_code}
+                      </div>
+                      <div>
+                        <div className="d-flex align-items-center gap-2 mb-1">
+                          <span className="badge bg-secondary bg-opacity-40 text-light px-2.5 py-0.5 rounded-pill text-xs">
+                            Franchise #{focusedTeam.team_code}
+                          </span>
+                          <span className="badge badge-gold px-2.5 py-0.5 rounded-pill text-xs">
+                            Active Competitor
+                          </span>
+                        </div>
+                        <h2 className="fs-3 fw-black text-white mb-1 tracking-tight">
+                          {focusedTeam.team_name}
+                        </h2>
+                        <div className="text-white-50 text-xs d-flex flex-wrap align-items-center gap-3">
+                          <span>
+                            Owner: <strong className="text-light">{focusedTeam.owner_name || 'Management'}</strong>
+                          </span>
+                          {focusedTeam.coach_name && (
+                            <span>
+                              Head Coach: <strong className="text-light">{focusedTeam.coach_name}</strong>
+                            </span>
+                          )}
+                          <span>
+                            Squad Size: <strong className="text-white">{squadCount} / {maxSquad} Players</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-end ms-auto">
+                      <span className="text-white-50 text-xs d-block mb-1">Available Bidding Purse</span>
+                      <strong className="fs-3 fw-black text-success font-monospace">
+                        ₹{remainingPurse.toLocaleString()}
+                      </strong>
+                      <span className="text-white-50 text-xs d-block">
+                        Initial: ₹{initialPurse.toLocaleString()} ({percentSpent}% used)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4 Deep Financial Metrics */}
+                <div className="row g-3 mb-4">
+                  <div className="col-6 col-lg-3">
+                    <div className="auction-card p-3.5 text-center">
+                      <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold">
+                        Remaining Purse
+                      </span>
+                      <strong className="fs-4 fw-extrabold text-success font-monospace">
+                        ₹{remainingPurse.toLocaleString()}
+                      </strong>
+                      <span className="text-white-50 text-xs d-block mt-1">Available for Bids</span>
+                    </div>
+                  </div>
+
+                  <div className="col-6 col-lg-3">
+                    <div className="auction-card p-3.5 text-center">
+                      <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold">
+                        Spent on Roster
+                      </span>
+                      <strong className="fs-4 fw-extrabold text-info font-monospace">
+                        ₹{spentPurse.toLocaleString()}
+                      </strong>
+                      <span className="text-white-50 text-xs d-block mt-1">{percentSpent}% of Budget</span>
+                    </div>
+                  </div>
+
+                  <div className="col-6 col-lg-3">
+                    <div className="auction-card p-3.5 text-center">
+                      <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold">
+                        Max Allowed Single Bid
+                      </span>
+                      <strong className="fs-4 fw-extrabold text-warning font-monospace">
+                        ₹{maxBidAllowed.toLocaleString()}
+                      </strong>
+                      <span className="text-white-50 text-xs d-block mt-1">
+                        Reserves ₹{reserveRequired.toLocaleString()} for {slotsRemaining - 1} slots
                       </span>
                     </div>
                   </div>
 
-                  <span className="badge bg-secondary bg-opacity-30 text-light px-2.5 py-1 rounded-pill text-xs">
-                    Squad: <strong className="text-white">{squadCount}</strong> / {maxSquad}
-                  </span>
+                  <div className="col-6 col-lg-3">
+                    <div className="auction-card p-3.5 text-center">
+                      <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold">
+                        Avg Spend / Player
+                      </span>
+                      <strong className="fs-4 fw-extrabold text-white font-monospace">
+                        ₹{avgSpend.toLocaleString()}
+                      </strong>
+                      <span className="text-white-50 text-xs d-block mt-1">Across {squadCount} Acquired</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Purse Progress Bar */}
-                <div className="mb-4">
-                  <div className="d-flex align-items-center justify-content-between small mb-1.5">
-                    <span className="text-white-50 text-xs">Purse Utilization ({percentSpent}%)</span>
-                    <span className="text-white-50 text-xs">
-                      Total: <strong className="text-white">₹{initialPurse.toLocaleString()}</strong>
+                {/* Category & Positional Breakdown Strips */}
+                <div className="auction-card p-3.5 mb-4">
+                  <div className="row g-3">
+                    {/* Systematic Category Distribution */}
+                    <div className="col-12 col-md-6 border-end-md border-secondary border-opacity-20 pe-md-3">
+                      <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-bold" style={{ letterSpacing: '0.04em' }}>
+                        Category Distribution ({squadCount} Players)
+                      </span>
+                      <div className="d-flex flex-wrap align-items-center gap-2">
+                        <span className="badge badge-gold px-3 py-1.5 rounded-pill text-xs fw-bold">
+                          ⭐ Icon: <strong>{iconSquad.length}</strong>
+                        </span>
+                        <span className="badge badge-emerald px-3 py-1.5 rounded-pill text-xs fw-bold">
+                          🏐 Open Category: <strong>{openSquad.length}</strong>
+                        </span>
+                        <span className="badge badge-cyan px-3 py-1.5 rounded-pill text-xs fw-bold">
+                          ⚡ Under-19 (U19): <strong>{u19Squad.length}</strong>
+                        </span>
+                        <span className="badge bg-purple-600 text-white px-3 py-1.5 rounded-pill text-xs fw-bold">
+                          🌱 Under-14 (U14): <strong>{u14Squad.length}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Playing Position Distribution */}
+                    <div className="col-12 col-md-6 ps-md-3">
+                      <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-bold" style={{ letterSpacing: '0.04em' }}>
+                        Positional Balance
+                      </span>
+                      <div className="d-flex flex-wrap align-items-center gap-2">
+                        {Object.keys(positionCounts).length === 0 ? (
+                          <span className="text-white-50 text-xs">No players acquired yet</span>
+                        ) : (
+                          Object.entries(positionCounts).map(([pos, count]) => (
+                            <span key={pos} className="badge bg-secondary bg-opacity-30 text-light px-2.5 py-1.5 rounded-pill text-xs text-capitalize">
+                              {pos.replace('_', ' ')}: <strong className="text-white">{count}</strong>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Squad Roster & Empty Slots */}
+                <div className="auction-card p-4">
+                  <div className="d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25 pb-3 mb-3">
+                    <div>
+                      <h4 className="fw-extrabold text-white mb-0 fs-5">
+                        Acquired Squad Roster ({squadCount} / {maxSquad})
+                      </h4>
+                      <span className="text-white-50 text-xs">
+                        Official player registrations contracted to {focusedTeam.team_name}
+                      </span>
+                    </div>
+                    <span className="badge bg-info text-dark rounded-pill px-3 py-1 text-xs fw-bold">
+                      {slotsRemaining} Slots Open for Hammer
                     </span>
                   </div>
-                  <div className="progress bg-dark" style={{ height: 10, borderRadius: 999 }}>
-                    <div
-                      className="progress-bar"
-                      role="progressbar"
-                      style={{
-                        width: `${percentSpent}%`,
-                        backgroundColor: team.primary_color || '#0d6efd',
-                      }}
-                      aria-valuenow={percentSpent}
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    ></div>
-                  </div>
-                  <div className="d-flex align-items-center justify-content-between mt-2">
-                    <div>
-                      <span className="text-white-50 text-xs d-block">Spent in Bids</span>
-                      <strong className="text-info fs-6">₹{spentPurse.toLocaleString()}</strong>
-                    </div>
-                    <div className="text-end">
-                      <span className="text-white-50 text-xs d-block">Remaining Purse</span>
-                      <strong className={`fs-6 fw-extrabold ${remainingPurse < 10000 ? 'text-danger' : 'text-success'}`}>
-                        ₹{remainingPurse.toLocaleString()}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Squad Player List */}
-                <div className="mt-auto">
-                  <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-bold" style={{ letterSpacing: '0.04em' }}>
-                    Acquired Players ({squadCount})
-                  </span>
 
                   {squadCount === 0 ? (
-                    <div className="p-3 text-center rounded-3 bg-black bg-opacity-20 border border-secondary border-opacity-15 text-white-50 small">
-                      No players acquired yet. Bids will appear here in real time.
+                    <div className="p-5 text-center rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-20 my-3">
+                      <div className="fs-1 mb-2">🏐</div>
+                      <h5 className="fw-bold text-white mb-1">No Players Acquired Yet</h5>
+                      <p className="text-white-50 small mb-0">
+                        {focusedTeam.team_name} currently has all {maxSquad} squad slots open and full ₹
+                        {initialPurse.toLocaleString()} purse available.
+                        <br />
+                        Successful bids from the live hammer podium will appear here automatically.
+                      </p>
                     </div>
                   ) : (
-                    <div className="list-group list-group-flush rounded-3 overflow-hidden border border-secondary border-opacity-20" style={{ maxHeight: 280, overflowY: 'auto' }}>
-                      {squad.map((player) => (
-                        <div
-                          key={player.id}
-                          className="list-group-item bg-transparent text-white border-secondary border-opacity-15 p-2 d-flex align-items-center justify-content-between"
-                        >
-                          <div className="d-flex align-items-center gap-2.5">
-                            <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center" style={{ width: 34, height: 34 }}>
-                              {player.photo_url ? (
-                                <img src={player.photo_url} alt={player.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <span className="small">🏐</span>
-                              )}
-                            </div>
-                            <div>
-                              <strong className="text-white text-xs d-block">{player.full_name}</strong>
-                              <span className="badge bg-secondary bg-opacity-25 text-white-50 text-xs text-capitalize">
-                                {player.playing_position?.replace('_', ' ')}
-                              </span>
-                              {player.height_cm && <span className="text-white-50 text-xs ms-1.5">• {player.height_cm}cm</span>}
-                            </div>
-                          </div>
+                    <div className="table-responsive">
+                      <table className="table table-dark table-hover align-middle mb-0">
+                        <thead>
+                          <tr className="text-white-50 text-xs border-secondary border-opacity-25">
+                            <th scope="col" style={{ width: 50 }}>#</th>
+                            <th scope="col">Athlete</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Position</th>
+                            <th scope="col">Grade / Lot</th>
+                            <th scope="col">Height / Club</th>
+                            <th scope="col" className="text-end">Base Price</th>
+                            <th scope="col" className="text-end">Hammer Price</th>
+                            <th scope="col" className="text-end">Premium</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {squad.map((player, idx) => {
+                            const baseP = Number(player.base_price || 1000);
+                            const soldP = Number(player.sold_price || baseP);
+                            const premiumPercent = baseP > 0 ? Math.round(((soldP - baseP) / baseP) * 100) : 0;
+                            const badgeCls = getCategoryBadgeClass(player.player_category);
 
-                          <div className="text-end">
-                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 text-xs fw-bold">
-                              ₹{Number(player.sold_price || 0).toLocaleString()}
-                            </span>
+                            return (
+                              <tr key={player.id} className="border-secondary border-opacity-15">
+                                <td className="text-white-50 font-monospace text-xs">{idx + 1}</td>
+                                <td>
+                                  <div className="d-flex align-items-center gap-2.5">
+                                    <div
+                                      className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center flex-shrink-0 border border-secondary border-opacity-30 shadow-sm"
+                                      style={{ width: 40, height: 40 }}
+                                    >
+                                      {player.photo_url ? (
+                                        <img
+                                          src={player.photo_url}
+                                          alt={player.full_name}
+                                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                      ) : (
+                                        <span className="small">🏐</span>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <strong className="text-white text-sm d-block">{player.full_name}</strong>
+                                      <span className="text-white-50 text-xs">{player.district || 'Maharashtra'}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <span className={`badge px-2.5 py-1 rounded-pill text-xs fw-bold ${badgeCls}`}>
+                                    {formatCategoryLabel(player.player_category)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="badge bg-secondary bg-opacity-25 text-light text-capitalize px-2 py-0.5 rounded-pill text-xs">
+                                    {player.playing_position?.replace('_', ' ')}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="text-xs">
+                                    <span className="text-light fw-bold">{player.player_grade || 'Grade A'}</span>
+                                    <span className="text-white-50 d-block">Lot #{player.lot_number || 1}</span>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="text-xs">
+                                    <span className="text-light">{player.height_cm ? `${player.height_cm} cm` : '—'}</span>
+                                    <span className="text-white-50 d-block text-truncate" style={{ maxWidth: 140 }}>
+                                      {player.team_name || 'Individual'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="text-end text-white-50 font-monospace text-xs">
+                                  ₹{baseP.toLocaleString()}
+                                </td>
+                                <td className="text-end">
+                                  <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 text-xs fw-extrabold font-monospace">
+                                    ₹{soldP.toLocaleString()}
+                                  </span>
+                                </td>
+                                <td className="text-end text-xs">
+                                  {premiumPercent > 0 ? (
+                                    <span className="text-warning fw-bold font-monospace">+{premiumPercent}%</span>
+                                  ) : (
+                                    <span className="text-white-50">Base Price</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Open Unfilled Slots Preview */}
+                  {slotsRemaining > 0 && (
+                    <div className="mt-4 pt-3 border-top border-secondary border-opacity-20">
+                      <span className="text-white-50 text-xs d-block mb-2.5 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
+                        Remaining Squad Slots to Fill ({slotsRemaining} Available)
+                      </span>
+                      <div className="row g-2">
+                        {Array.from({ length: slotsRemaining }).map((_, i) => (
+                          <div key={i} className="col-6 col-sm-4 col-md-3 col-xl-2">
+                            <div className="p-2.5 rounded-3 bg-black bg-opacity-20 border border-secondary border-opacity-20 border-dashed text-center">
+                              <span className="text-white-50 text-xs d-block">Slot #{squadCount + i + 1}</span>
+                              <span className="badge bg-secondary bg-opacity-30 text-white-50 rounded-pill text-xs mt-1">
+                                Open for Bid
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })()}
+        </div>
+      )}
 
-      {/* PLAYER SOLD LIVE MODAL */}
+      {/* PLAYER SOLD LIVE CELEBRATION MODAL */}
       {soldModalData && (
         <div
           className="modal show d-block auction-modal-overlay"
@@ -316,12 +773,17 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
               </p>
 
               <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                <div className="d-flex align-items-center justify-content-between mb-1.5">
+                  <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Athlete'}</span>
+                  {soldModalData.category && (
+                    <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(soldModalData.category)}`}>
+                      {formatCategoryLabel(soldModalData.category)}
+                    </span>
+                  )}
+                </div>
                 <h4 className="fw-extrabold text-white mb-1 fs-5">
                   {soldModalData.playerName || soldModalData.player_name || 'Player'}
                 </h4>
-                <div className="text-white-50 text-xs">
-                  Position: <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Athlete'}</span>
-                </div>
               </div>
 
               <div

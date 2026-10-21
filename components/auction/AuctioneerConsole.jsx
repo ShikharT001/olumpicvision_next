@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
 import Link from 'next/link';
+import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
 
 // Web Audio API fanfare synthesizer for live sales
 function playFanfareSound() {
@@ -45,7 +46,8 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   const [error, setError] = useState('');
   const [playerDrawerOpen, setPlayerDrawerOpen] = useState(false);
   const [allPlayers, setAllPlayers] = useState([]);
-  const [playerFilter, setPlayerFilter] = useState({ lot: '', status: '', search: '', position: '' });
+  const [activeCategory, setActiveCategory] = useState('open');
+  const [playerFilter, setPlayerFilter] = useState({ lot: '', status: '', search: '', position: '', category: '' });
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const lastNotifIdRef = useRef(initialData?.lastNotification?.id || null);
   const [, startTransition] = useTransition();
@@ -277,10 +279,8 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     }
   };
 
-  // Load Players Drawer
-  const openPlayerDrawer = async () => {
-    setPlayerDrawerOpen(true);
-    setLoadingPlayers(true);
+  // Fetch all players for systematic queue calculations
+  const fetchPlayersList = useCallback(async () => {
     try {
       const url = activeTournamentId
         ? `/api/auction/players?tournamentId=${encodeURIComponent(activeTournamentId)}`
@@ -292,6 +292,22 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       }
     } catch {
       // Ignore
+    }
+  }, [activeTournamentId]);
+
+  // Initial and periodic player list sync
+  useEffect(() => {
+    fetchPlayersList();
+    const pTimer = setInterval(fetchPlayersList, 3000);
+    return () => clearInterval(pTimer);
+  }, [fetchPlayersList]);
+
+  // Load Players Drawer
+  const openPlayerDrawer = async () => {
+    setPlayerDrawerOpen(true);
+    setLoadingPlayers(true);
+    try {
+      await fetchPlayersList();
     } finally {
       setLoadingPlayers(false);
     }
@@ -317,11 +333,77 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       setPlayerDrawerOpen(false);
       setActionMessage(`Now on hammer: ${player.full_name}`);
       fetchState();
+      fetchPlayersList();
     } catch (err) {
       setError(err.message);
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Systematic Category Definitions in canonical auction progression order
+  const SYSTEMATIC_CATEGORIES = [
+    { key: 'icon_player', label: 'Icon / Marquee', shortLabel: 'Icon', icon: '⭐', badgeClass: 'badge-gold' },
+    { key: 'open', label: 'Open Category (Senior)', shortLabel: 'Open', icon: '🏐', badgeClass: 'badge-emerald' },
+    { key: 'u19', label: 'Under-19 (U19 Youth)', shortLabel: 'U19', icon: '⚡', badgeClass: 'badge-cyan' },
+    { key: 'u14', label: 'Under-14 (U14 Junior)', shortLabel: 'U14', icon: '🌱', badgeClass: 'bg-purple-600 text-white' },
+    { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '⚠️', badgeClass: 'bg-warning text-dark' },
+  ];
+
+  // Compute category statistics and next sequential player per category
+  const categoryStats = SYSTEMATIC_CATEGORIES.map((catDef) => {
+    let pool = [];
+    if (catDef.key === 'unsold') {
+      pool = allPlayers.filter((p) => p.auction_status === 'unsold');
+    } else {
+      pool = allPlayers.filter(
+        (p) => normalizeCategory(p.player_category) === catDef.key
+      );
+    }
+
+    const queued = pool.filter((p) => (catDef.key === 'unsold' ? true : p.auction_status === 'queued'));
+    const sold = pool.filter((p) => p.auction_status === 'sold');
+    const onHammer = pool.filter((p) => p.auction_status === 'on_hammer');
+
+    const sortedQueued = [...queued].sort((a, b) => {
+      const lotA = Number(a.lot_number || 1);
+      const lotB = Number(b.lot_number || 1);
+      if (lotA !== lotB) return lotA - lotB;
+      const orderA = Number(a.bidding_order || 0);
+      const orderB = Number(b.bidding_order || 0);
+      if (orderA !== orderB) return orderA - orderB;
+      return String(a.full_name || '').localeCompare(String(b.full_name || ''));
+    });
+
+    return {
+      ...catDef,
+      totalCount: pool.length,
+      queuedCount: queued.length,
+      soldCount: sold.length,
+      onHammerCount: onHammer.length,
+      nextPlayer: sortedQueued[0] || null,
+      queuedPlayers: sortedQueued,
+    };
+  });
+
+  const currentCategoryInfo = categoryStats.find((c) => c.key === activeCategory) || categoryStats[1];
+  const nextPlayerInActiveCategory = currentCategoryInfo?.nextPlayer;
+  const currentCategoryIndex = SYSTEMATIC_CATEGORIES.findIndex((c) => c.key === activeCategory);
+  const nextCategoryInSequence = SYSTEMATIC_CATEGORIES.slice(currentCategoryIndex + 1).find((c) => {
+    const s = categoryStats.find((st) => st.key === c.key);
+    return s && s.queuedCount > 0;
+  });
+
+  // Action to bring the next player in the systematic category queue to podium
+  const handleCallNextCategoryPlayer = async (playerOverride) => {
+    const targetPlayer = playerOverride || nextPlayerInActiveCategory;
+    if (!targetPlayer) {
+      if (nextCategoryInSequence) {
+        setActiveCategory(nextCategoryInSequence.key);
+      }
+      return;
+    }
+    await handleSelectPlayerToHammer(targetPlayer);
   };
 
   // Filter players in drawer & compute tab counts
@@ -330,21 +412,46 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   const soldCount = allPlayers.filter((p) => p.auction_status === 'sold').length;
   const totalCount = allPlayers.length;
 
-  const filteredPlayers = allPlayers.filter((p) => {
-    if (playerFilter.status && p.auction_status !== playerFilter.status) return false;
-    if (playerFilter.lot && p.lot_number !== Number(playerFilter.lot)) return false;
-    if (playerFilter.position && p.playing_position !== playerFilter.position) return false;
-    if (playerFilter.search) {
-      const term = playerFilter.search.toLowerCase();
-      return (
-        p.full_name?.toLowerCase().includes(term) ||
-        p.playing_position?.toLowerCase().includes(term) ||
-        p.player_category?.toLowerCase().includes(term) ||
-        p.team_name?.toLowerCase().includes(term)
-      );
-    }
-    return true;
-  });
+  const filteredPlayers = allPlayers
+    .filter((p) => {
+      if (playerFilter.status && p.auction_status !== playerFilter.status) return false;
+      if (playerFilter.category) {
+        if (playerFilter.category === 'unsold') {
+          if (p.auction_status !== 'unsold') return false;
+        } else if (normalizeCategory(p.player_category) !== playerFilter.category) {
+          return false;
+        }
+      }
+      if (playerFilter.lot && p.lot_number !== Number(playerFilter.lot)) return false;
+      if (playerFilter.position && p.playing_position !== playerFilter.position) return false;
+      if (playerFilter.search) {
+        const term = playerFilter.search.toLowerCase();
+        return (
+          p.full_name?.toLowerCase().includes(term) ||
+          p.playing_position?.toLowerCase().includes(term) ||
+          p.player_category?.toLowerCase().includes(term) ||
+          p.team_name?.toLowerCase().includes(term)
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      // Systematic category ordering: icon -> open -> u19 -> u14 -> others
+      const catOrder = { icon_player: 1, open: 2, u19: 3, u14: 4, unsold: 5 };
+      const catA = catOrder[normalizeCategory(a.player_category)] || 9;
+      const catB = catOrder[normalizeCategory(b.player_category)] || 9;
+      if (catA !== catB) return catA - catB;
+
+      const lotA = Number(a.lot_number || 1);
+      const lotB = Number(b.lot_number || 1);
+      if (lotA !== lotB) return lotA - lotB;
+
+      const orderA = Number(a.bidding_order || 0);
+      const orderB = Number(b.bidding_order || 0);
+      if (orderA !== orderB) return orderA - orderB;
+
+      return String(a.full_name || '').localeCompare(String(b.full_name || ''));
+    });
 
   return (
     <div className="container-fluid px-3 px-md-4 py-3">
@@ -438,7 +545,9 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 <span className="badge badge-cyan px-2 py-1 rounded-pill text-xs text-uppercase fw-bold">
                   {isAdmin ? 'Podium Active' : 'Live Podium Stream'}
                 </span>
-                <span className="ms-2 text-white-50 text-xs">PDVL 2026/27 Official Auction</span>
+                <span className="ms-2 text-white-50 text-xs">
+                  {tournament?.tournament_name || 'PDVL 2026/27 Official Auction'}
+                </span>
               </div>
               <button
                 type="button"
@@ -448,6 +557,101 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 <span>{isAdmin ? 'Change Player Queue' : 'Explore Player Queue'}</span>
                 <span className="badge bg-info text-dark rounded-pill">☰</span>
               </button>
+            </div>
+
+            {/* SYSTEMATIC CATEGORY SEQUENCE PIPELINE & QUICK PODIUM DISPATCH */}
+            <div className="bg-black bg-opacity-40 rounded-3 p-3 border border-secondary border-opacity-25 mb-3 shadow-sm">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge badge-gold px-2.5 py-0.5 rounded-pill text-xs fw-black">
+                    SEQUENCE: STEP {currentCategoryIndex + 1} / {SYSTEMATIC_CATEGORIES.length}
+                  </span>
+                  <span className="text-white-50 text-xs fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>
+                    Podium Category Queue
+                  </span>
+                </div>
+                <div className="d-flex align-items-center gap-2 text-xs">
+                  <span className="text-white-50">Active Focus:</span>
+                  <strong className="text-info font-monospace">
+                    {currentCategoryInfo?.label} ({currentCategoryInfo?.queuedCount || 0} Ready)
+                  </strong>
+                </div>
+              </div>
+
+              {/* Category Pipeline Stepper Tabs */}
+              <div className="d-flex flex-wrap align-items-center gap-1.5 mb-2.5">
+                {categoryStats.map((cat) => {
+                  const isActive = activeCategory === cat.key;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      className={`btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-bold transition-all d-flex align-items-center gap-1.5 ${
+                        isActive
+                          ? 'btn-info text-dark shadow'
+                          : cat.queuedCount > 0
+                          ? 'btn-outline-light text-light'
+                          : 'btn-outline-secondary text-white-50 opacity-60'
+                      }`}
+                      onClick={() => setActiveCategory(cat.key)}
+                      title={`Focus queue on ${cat.label} (${cat.queuedCount} players ready)`}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.shortLabel}</span>
+                      <span
+                        className={`badge rounded-pill text-xs ${
+                          isActive ? 'bg-dark text-info' : 'bg-secondary bg-opacity-40 text-white'
+                        }`}
+                      >
+                        {cat.queuedCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Systematic Bring-to-Podium Quick Action Bar */}
+              {isAdmin && (
+                <div>
+                  {nextPlayerInActiveCategory ? (
+                    <button
+                      type="button"
+                      className="btn btn-warning w-100 rounded-pill py-2 px-3 fw-black text-dark text-xs d-flex align-items-center justify-content-between shadow"
+                      onClick={() => handleCallNextCategoryPlayer()}
+                      disabled={actionLoading}
+                    >
+                      <span className="d-flex align-items-center gap-2 text-truncate">
+                        <span>⚡</span>
+                        <span>Call Next {currentCategoryInfo?.shortLabel} Player to Podium:</span>
+                        <strong className="text-dark font-monospace text-decoration-underline text-truncate">
+                          {nextPlayerInActiveCategory.full_name}
+                        </strong>
+                      </span>
+                      <span className="badge bg-dark text-warning rounded-pill px-2.5 py-1 text-xs font-monospace flex-shrink-0 ms-2">
+                        {nextPlayerInActiveCategory.playing_position?.replace('_', ' ')} • Lot #{nextPlayerInActiveCategory.lot_number || 1} ➔
+                      </span>
+                    </button>
+                  ) : nextCategoryInSequence ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary w-100 rounded-pill py-2 px-3 fw-bold text-white text-xs d-flex align-items-center justify-content-between shadow"
+                      onClick={() => setActiveCategory(nextCategoryInSequence.key)}
+                    >
+                      <span>
+                        ✓ {currentCategoryInfo?.shortLabel} Category Complete! Advance to:
+                      </span>
+                      <span className="badge bg-white text-primary rounded-pill px-2.5 py-1 text-xs fw-extrabold ms-2">
+                        {nextCategoryInSequence.label} ({categoryStats.find((s) => s.key === nextCategoryInSequence.key)?.queuedCount || 0} Ready) ➔
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="d-flex align-items-center justify-content-between text-xs text-white-50 px-3 py-1.5 bg-dark bg-opacity-50 rounded-pill border border-secondary border-opacity-20">
+                      <span>✓ All registered players in {currentCategoryInfo?.shortLabel} have been auctioned.</span>
+                      <span className="badge bg-success rounded-pill text-xs">Stage Complete</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Active Player Card */}
@@ -473,8 +677,8 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                     <span className="badge badge-gold px-2 py-0.5 rounded-pill text-xs">
                       {activePlayer.player_grade || 'Grade A'}
                     </span>
-                    <span className="badge bg-secondary bg-opacity-25 text-light text-capitalize px-2 py-0.5 rounded-pill text-xs">
-                      {activePlayer.player_category?.replace('_', ' ') || 'Palghar Open'}
+                    <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer.player_category)}`}>
+                      {formatCategoryLabel(activePlayer.player_category)}
                     </span>
                     <span className="text-white-50 text-xs">Lot #{activePlayer.lot_number || 1}</span>
                   </div>
@@ -505,16 +709,42 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               </div>
             ) : (
               <div className="p-4 text-center border rounded-3 border-secondary border-opacity-25 bg-black bg-opacity-20 my-auto">
-                <span className="fs-1 d-block mb-2">🏐</span>
-                <h5 className="fw-bold text-white mb-1">No Player on Hammer</h5>
+                <span className="fs-1 d-block mb-2">{currentCategoryInfo?.icon || '🏐'}</span>
+                <h5 className="fw-bold text-white mb-1">Hammer Podium is Empty</h5>
                 <p className="text-secondary small mb-3">
-                  {isAdmin
-                    ? 'Select a player from the queue to start bidding.'
-                    : 'Awaiting the auctioneer to load the next player onto the hammer podium.'}
+                  {isAdmin ? (
+                    nextPlayerInActiveCategory ? (
+                      <>
+                        Active queue: <strong>{currentCategoryInfo?.label}</strong>. Next in line is{' '}
+                        <strong className="text-white">{nextPlayerInActiveCategory.full_name}</strong> (Base: ₹
+                        {Number(nextPlayerInActiveCategory.base_price || 1000).toLocaleString()}).
+                      </>
+                    ) : (
+                      <>All players in {currentCategoryInfo?.label} have been auctioned. Advance to the next category or explore the queue drawer.</>
+                    )
+                  ) : (
+                    'Awaiting the auctioneer to bring the next player to the live hammer stage.'
+                  )}
                 </p>
-                <button type="button" className="btn btn-primary rounded-pill px-4 py-2 fw-bold text-sm" onClick={openPlayerDrawer}>
-                  {isAdmin ? 'Select Next Player' : 'Browse Upcoming Player Queue'}
-                </button>
+                <div className="d-flex flex-wrap justify-content-center gap-2">
+                  {isAdmin && nextPlayerInActiveCategory && (
+                    <button
+                      type="button"
+                      className="btn btn-warning rounded-pill px-4 py-2 fw-black text-dark text-sm shadow"
+                      onClick={() => handleCallNextCategoryPlayer()}
+                      disabled={actionLoading}
+                    >
+                      ⚡ Bring {nextPlayerInActiveCategory.full_name} to Podium Now
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-outline-info rounded-pill px-4 py-2 fw-bold text-sm"
+                    onClick={openPlayerDrawer}
+                  >
+                    Browse Full Queue Drawer ☰
+                  </button>
+                </div>
               </div>
             )}
 
@@ -883,6 +1113,50 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   )}
                 </div>
 
+                {/* Systematic Category Navigation Tabs with Category Counts */}
+                <div className="d-flex flex-wrap align-items-center gap-1.5 mb-3 pb-2.5 border-bottom border-secondary border-opacity-15">
+                  <span className="text-white-50 text-xs me-1 fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>
+                    Category Filter:
+                  </span>
+                  <button
+                    type="button"
+                    className={`btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-bold ${
+                      playerFilter.category === '' ? 'btn-primary shadow-sm' : 'btn-outline-secondary text-light'
+                    }`}
+                    onClick={() => setPlayerFilter((prev) => ({ ...prev, category: '' }))}
+                  >
+                    All Categories ({totalCount})
+                  </button>
+                  {SYSTEMATIC_CATEGORIES.map((cat) => {
+                    const isCatActive = playerFilter.category === cat.key;
+                    const catPlayerCount = allPlayers.filter((p) => {
+                      if (cat.key === 'unsold') return p.auction_status === 'unsold';
+                      return normalizeCategory(p.player_category) === cat.key;
+                    }).length;
+
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        className={`btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-bold d-flex align-items-center gap-1.5 ${
+                          isCatActive ? 'btn-info text-dark shadow-sm' : 'btn-outline-secondary text-light'
+                        }`}
+                        onClick={() => setPlayerFilter((prev) => ({ ...prev, category: cat.key }))}
+                      >
+                        <span>{cat.icon}</span>
+                        <span>{cat.shortLabel}</span>
+                        <span
+                          className={`badge rounded-pill text-xs ${
+                            isCatActive ? 'bg-dark text-info' : 'bg-secondary bg-opacity-40 text-white'
+                          }`}
+                        >
+                          {catPlayerCount}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Filter Toolbar: Search, Lot Selector, Position Selector */}
                 <div className="row g-2 mb-3">
                   <div className="col-12 col-md-5">
@@ -1022,11 +1296,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                                   </div>
 
                                   <div className="d-flex flex-wrap align-items-center gap-1.5">
-                                    <span
-                                      className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${
-                                        p.player_grade === 'Icon' ? 'badge-gold' : 'badge-cyan'
-                                      }`}
-                                    >
+                                    <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(p.player_category)}`}>
+                                      {formatCategoryLabel(p.player_category)}
+                                    </span>
+                                    <span className="badge badge-gold px-1.5 py-0.5 rounded-pill text-xs">
                                       {p.player_grade || 'Grade A'}
                                     </span>
                                     <span className="badge bg-secondary bg-opacity-30 text-light px-2 py-0.5 rounded-pill text-xs text-capitalize">

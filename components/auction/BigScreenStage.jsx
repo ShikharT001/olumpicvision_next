@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
 
 // Play synthesized fanfare using standard Web Audio API (no external files)
 function playFanfareSound() {
@@ -143,8 +144,8 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
                 <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
                   {activePlayer?.player_grade || 'Grade A'}
                 </span>
-                <span className="badge badge-cyan px-2.5 py-1 rounded-pill text-xs text-capitalize">
-                  {activePlayer?.player_category?.replace('_', ' ') || 'Palghar Open'}
+                <span className={`badge px-2.5 py-1 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer?.player_category)}`}>
+                  {formatCategoryLabel(activePlayer?.player_category)}
                 </span>
                 <span className="ms-auto text-white-50 small font-monospace">
                   Lot #{activePlayer?.lot_number || 1}
