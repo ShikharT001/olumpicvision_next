@@ -30,6 +30,17 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
     );
   });
 
+  const filteredTournaments = tournaments.filter((t) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      t.tournament_name.toLowerCase().includes(term) ||
+      t.sport_name?.toLowerCase().includes(term) ||
+      t.venue?.toLowerCase().includes(term) ||
+      t.season_year?.toLowerCase().includes(term)
+    );
+  });
+
   const totalTeamsCount = tournaments.reduce((acc, t) => acc + (t.teams_count || 0), 0);
   const totalPlayersCount = tournaments.reduce((acc, t) => acc + (t.players_count || 0), 0);
 
@@ -80,13 +91,13 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
         </div>
 
         <h1 className="display-5 fw-extrabold text-white mb-3 tracking-tight">
-          Select Your Sport &amp; Game
+          {isAdmin ? 'Select Your Sport & Game' : 'Active Tournaments & Live Auctions'}
         </h1>
 
         <p className="text-secondary fs-5 mb-4 leading-relaxed">
           {isAdmin
             ? 'Manage multi-sport auctions, create tournament championships, configure franchise team purses, and conduct live gavel hammer sessions in real time.'
-            : 'Welcome Team Franchises & Officials. Select a sport below to view tournaments, monitor live podium bids, and inspect team rosters.'}
+            : 'Welcome Team Franchises & Officials. Select your active tournament below to view team squads, monitor live podium bids, and inspect remaining purse balances.'}
         </p>
 
         {/* Search & Actions Bar */}
@@ -98,7 +109,7 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
             <input
               type="text"
               className="form-control form-control-lg rounded-pill ps-5 bg-dark text-white border-secondary border-opacity-30 small"
-              placeholder="Filter sports (e.g. Volleyball, Football, Kabaddi...)"
+              placeholder={isAdmin ? 'Filter sports or tournaments...' : 'Search tournament name, sport, or venue...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ fontSize: '0.95rem' }}
@@ -161,7 +172,7 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
           </div>
 
           <div className="row g-3">
-            {tournaments.map((t) => {
+            {filteredTournaments.map((t) => {
               const sportConfig = sports.find((s) => s.id === t.sport_id);
               const tId = t.id || t.slug;
               return (
@@ -222,70 +233,74 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
         </div>
       )}
 
-      {/* Section Divider & Heading for Sports Explorer */}
-      <div className="mb-3 d-flex align-items-center justify-content-between">
-        <div>
-          <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-0.5">Explore by Category</span>
-          <h2 className="fs-4 fw-extrabold text-white mb-0">Browse All Sports &amp; Games</h2>
-        </div>
-        <span className="text-secondary small">{filteredSports.length} Sports</span>
-      </div>
-
-      {/* Sports Grid */}
-      <div className="row g-4 mb-5">
-        {filteredSports.map((sport) => {
-          const sportTournaments = tournaments.filter((t) => t.sport_id === sport.id);
-          const activeCount = sportTournaments.length;
-
-          return (
-            <div key={sport.id} className="col-12 col-sm-6 col-lg-3">
-              <div
-                className="sport-card h-100"
-                style={{
-                  '--sport-theme': sport.themeColor,
-                  '--sport-glow': sport.borderColor,
-                }}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <div className="sport-icon-box">{sport.icon}</div>
-                  <span
-                    className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${sport.badgeClass || 'badge-cyan'}`}
-                  >
-                    {activeCount > 0 ? `${activeCount} Tournament${activeCount > 1 ? 's' : ''}` : 'Ready to Add'}
-                  </span>
-                </div>
-
-                <h3 className="h4 fw-bold text-white mb-2">{sport.name}</h3>
-
-                <p className="text-secondary small mb-4 flex-grow-1 leading-relaxed">
-                  {sport.description}
-                </p>
-
-                <div className="vstack gap-2 mt-auto">
-                  <Link
-                    href={`/auction?sport=${sport.id}`}
-                    className="btn btn-sm btn-outline-info rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center gap-1.5 transition-all"
-                  >
-                    <span>View Tournaments</span>
-                    <span>→</span>
-                  </Link>
-
-                  {/* If tournaments exist for this sport, offer quick 1-click jump to the first one */}
-                  {sportTournaments.length > 0 && (
-                    <Link
-                      href={`/auction/t/${sportTournaments[0].id || sportTournaments[0].slug}`}
-                      className="btn btn-sm btn-primary rounded-pill py-1.5 fw-bold text-xs d-flex align-items-center justify-content-center gap-1"
-                    >
-                      <span>Enter Latest Auction</span>
-                      <span>⚡</span>
-                    </Link>
-                  )}
-                </div>
-              </div>
+      {/* Section Divider & Heading for Sports Explorer — Admin Only */}
+      {isAdmin && (
+        <>
+          <div className="mb-3 d-flex align-items-center justify-content-between">
+            <div>
+              <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-0.5">Explore by Category</span>
+              <h2 className="fs-4 fw-extrabold text-white mb-0">Browse All Sports &amp; Games</h2>
             </div>
-          );
-        })}
-      </div>
+            <span className="text-secondary small">{filteredSports.length} Sports</span>
+          </div>
+
+          {/* Sports Grid */}
+          <div className="row g-4 mb-5">
+            {filteredSports.map((sport) => {
+              const sportTournaments = tournaments.filter((t) => t.sport_id === sport.id);
+              const activeCount = sportTournaments.length;
+
+              return (
+                <div key={sport.id} className="col-12 col-sm-6 col-lg-3">
+                  <div
+                    className="sport-card h-100"
+                    style={{
+                      '--sport-theme': sport.themeColor,
+                      '--sport-glow': sport.borderColor,
+                    }}
+                  >
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div className="sport-icon-box">{sport.icon}</div>
+                      <span
+                        className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${sport.badgeClass || 'badge-cyan'}`}
+                      >
+                        {activeCount > 0 ? `${activeCount} Tournament${activeCount > 1 ? 's' : ''}` : 'Ready to Add'}
+                      </span>
+                    </div>
+
+                    <h3 className="h4 fw-bold text-white mb-2">{sport.name}</h3>
+
+                    <p className="text-secondary small mb-4 flex-grow-1 leading-relaxed">
+                      {sport.description}
+                    </p>
+
+                    <div className="vstack gap-2 mt-auto">
+                      <Link
+                        href={`/auction?sport=${sport.id}`}
+                        className="btn btn-sm btn-outline-info rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center gap-1.5 transition-all"
+                      >
+                        <span>View Tournaments</span>
+                        <span>→</span>
+                      </Link>
+
+                      {/* If tournaments exist for this sport, offer quick 1-click jump to the first one */}
+                      {sportTournaments.length > 0 && (
+                        <Link
+                          href={`/auction/t/${sportTournaments[0].id || sportTournaments[0].slug}`}
+                          className="btn btn-sm btn-primary rounded-pill py-1.5 fw-bold text-xs d-flex align-items-center justify-content-center gap-1"
+                        >
+                          <span>Enter Latest Auction</span>
+                          <span>⚡</span>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* CREATE TOURNAMENT MODAL (ADMIN) */}
       {isAdmin && showCreateModal && (
