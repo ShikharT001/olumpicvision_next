@@ -573,7 +573,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
         <div className="col-6 col-md-3">
           <div className="auction-card p-3 text-center">
             <span className="text-white-50 text-xs d-block">Unsold (Round 2)</span>
-            <strong className="fs-4 fw-bold text-warning">{unsoldCount}</strong>
+            <strong className="fs-4 fw-bold text-danger">{unsoldCount}</strong>
           </div>
         </div>
       </div>
@@ -666,7 +666,12 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                 </tr>
               ) : (
                 filtered.map((player, idx) => (
-                  <tr key={player.id} className="border-secondary border-opacity-20">
+                  <tr
+                    key={player.id}
+                    className={`border-secondary border-opacity-20 ${
+                      player.auction_status === 'unsold' ? 'player-row-unsold' : ''
+                    }`}
+                  >
                     <td className="text-white-50 font-monospace">{idx + 1}</td>
                     <td>
                       <div className="d-flex align-items-center gap-2.5">
@@ -726,8 +731,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                         </span>
                       )}
                       {player.auction_status === 'unsold' && (
-                        <span className="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 rounded-pill text-xs">
-                          UNSOLD
+                        <span className="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-40 px-2.5 py-1 rounded-pill text-xs fw-bold font-monospace">
+                          🛑 UNSOLD
                         </span>
                       )}
                     </td>

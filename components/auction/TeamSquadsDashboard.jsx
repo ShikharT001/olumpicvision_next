@@ -97,11 +97,15 @@ export default function TeamSquadsDashboard({
                 liveNotification.type === 'sold'
                   ? 'badge-gold'
                   : liveNotification.type === 'unsold'
-                  ? 'bg-warning text-dark'
+                  ? 'bg-danger text-white'
                   : 'badge-cyan'
               }`}
             >
-              {liveNotification.type === 'sold' ? '📢 LATEST SALE' : '⚠️ LATEST OUTCOME'}
+              {liveNotification.type === 'sold'
+                ? '📢 LATEST SALE'
+                : liveNotification.type === 'unsold'
+                ? '🛑 UNSOLD AT HAMMER'
+                : '⚠️ LATEST OUTCOME'}
             </span>
             <div>
               <h4 className="fw-extrabold text-white mb-0 fs-6">
@@ -1065,34 +1069,67 @@ export default function TeamSquadsDashboard({
         >
           <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
             <div className="modal-content auction-card modal-unsold-card text-white text-center p-4 shadow-2xl">
-              <div className="modal-action-avatar bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40">
-                ⚠️
+              <div className="modal-action-avatar bg-danger bg-opacity-20 text-danger border border-danger border-opacity-50">
+                🛑
               </div>
-              <span className="badge bg-warning text-dark px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+              <span className="badge bg-danger text-white px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2 shadow-sm">
                 Hammer Passed • Unsold
               </span>
-              <h2 className="fs-3 fw-black text-white mb-1">
+              <h2 className="fs-3 fw-black text-danger mb-1 tracking-tight">
                 PLAYER UNSOLD
               </h2>
               <p className="text-white-50 text-xs mb-3">
                 Returned to the unsold queue for subsequent auction rounds
               </p>
 
-              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
-                <h4 className="fw-extrabold text-white mb-1 fs-5">
-                  {unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
-                </h4>
-                <p className="text-white-50 text-xs mb-0">
-                  {unsoldModalData.message || 'Player was not claimed at base price and moved to unsold lot pool.'}
-                </p>
+              {/* Player Card details with photo if available */}
+              <div className="bg-dark bg-opacity-80 rounded-3 p-3 border border-danger border-opacity-40 mb-3 text-start">
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="rounded-3 overflow-hidden border border-danger border-opacity-60 shadow-lg flex-shrink-0 d-flex align-items-center justify-content-center bg-black bg-opacity-60"
+                    style={{ width: 68, height: 80 }}
+                  >
+                    {unsoldModalData.photo_url || unsoldModalData.photoUrl || unsoldModalData.playerImage || unsoldModalData.player_image ? (
+                      <img
+                        src={unsoldModalData.photo_url || unsoldModalData.photoUrl || unsoldModalData.playerImage || unsoldModalData.player_image}
+                        alt={unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="text-danger text-center p-1">
+                        <span className="fs-2 d-block">👤</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-grow-1 min-w-0">
+                    <div className="d-flex align-items-center justify-content-between mb-1">
+                      <span className="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-40 text-xs text-uppercase">
+                        {unsoldModalData.position || 'Athlete'}
+                      </span>
+                      {unsoldModalData.basePrice && (
+                        <span className="text-danger font-monospace small fw-bold">
+                          Base: ₹{Number(unsoldModalData.basePrice).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="fw-extrabold text-white mb-1 fs-5 text-truncate">
+                      {unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
+                    </h4>
+                    <p className="text-white-50 text-xs mb-0">
+                      {unsoldModalData.message || 'Player was not claimed at base price and moved to unsold lot pool.'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <button
                 type="button"
-                className="btn btn-outline-light rounded-pill px-4 py-2 fw-bold text-xs w-100"
+                className="btn btn-danger text-white rounded-pill px-4 py-2 fw-bold text-xs w-100 shadow-sm"
                 onClick={() => setUnsoldModalData(null)}
               >
-                Dismiss ✕
+                Acknowledge & Close ✕
               </button>
             </div>
           </div>

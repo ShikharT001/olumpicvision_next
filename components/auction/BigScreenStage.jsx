@@ -348,10 +348,10 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
 
       {/* UNSOLD NOTIFICATION BANNER / MODAL */}
       {unsoldNotification && (
-        <div className="unsold-overlay-card text-center">
+        <div className="unsold-overlay-card text-center shadow-2xl">
           <div className="d-flex align-items-center justify-content-between mb-2">
-            <span className="badge bg-warning text-dark px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
-              ⚠️ UNSOLD NOTIFICATION
+            <span className="badge bg-danger text-white px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase shadow-sm">
+              🛑 HAMMER PASSED • UNSOLD
             </span>
             <button
               type="button"
@@ -360,11 +360,27 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
               aria-label="Close"
             ></button>
           </div>
-          <h4 className="fw-bold text-white mb-2 fs-5">
-            {unsoldNotification.message}
-          </h4>
-          <span className="text-white-50 small">
-            Player lot will remain eligible for re-introduction in the unsold round.
+          <div className="d-flex align-items-center justify-content-center gap-3 my-2">
+            {(unsoldNotification.photo_url || unsoldNotification.photoUrl || unsoldNotification.playerImage) && (
+              <img
+                src={unsoldNotification.photo_url || unsoldNotification.photoUrl || unsoldNotification.playerImage}
+                alt={unsoldNotification.playerName || 'Player'}
+                className="rounded-3 border border-danger border-opacity-60 shadow-sm object-fit-cover"
+                style={{ width: 56, height: 68 }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+            <div className="text-start">
+              <h4 className="fw-black text-danger mb-1 fs-5">
+                {unsoldNotification.playerName || 'Player Lot Unsold'}
+              </h4>
+              <p className="text-white-50 text-xs mb-0">
+                {unsoldNotification.message}
+              </p>
+            </div>
+          </div>
+          <span className="text-white-50 text-xs d-block mt-2">
+            Player lot will remain eligible for re-introduction in unsold round 2.
           </span>
         </div>
       )}

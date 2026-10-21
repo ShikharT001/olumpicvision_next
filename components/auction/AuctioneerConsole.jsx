@@ -361,7 +361,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     { key: 'open', label: 'Open Category (Senior)', shortLabel: 'Open', icon: '🏐', badgeClass: 'badge-emerald' },
     { key: 'u19', label: 'Under-19 (U19 Youth)', shortLabel: 'U19', icon: '⚡', badgeClass: 'badge-cyan' },
     { key: 'u14', label: 'Under-14 (U14 Junior)', shortLabel: 'U14', icon: '🌱', badgeClass: 'bg-purple-600 text-white' },
-    { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '⚠️', badgeClass: 'bg-warning text-dark' },
+    { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '🛑', badgeClass: 'badge-danger bg-danger text-white' },
   ];
 
   // Compute category statistics and next sequential player per category
@@ -1555,10 +1555,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         >
           <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
             <div className="modal-content auction-card modal-unsold-card text-white p-4 shadow-2xl">
-              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-30 pb-2.5">
+              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom border-danger border-opacity-30 pb-2.5">
                 <div className="d-flex align-items-center gap-2">
-                  <span className="badge bg-warning text-dark px-2.5 py-1 rounded-pill text-xs fw-extrabold">
-                    UNSOLD CONFIRMATION
+                  <span className="badge bg-danger text-white px-2.5 py-1 rounded-pill text-xs fw-extrabold shadow-sm">
+                    🛑 UNSOLD CONFIRMATION
                   </span>
                   <h5 className="modal-title fw-extrabold text-white mb-0 fs-6">
                     Mark Player Unsold
@@ -1573,15 +1573,15 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               </div>
 
               <div className="text-center py-2">
-                <div className="fs-1 mb-2">⚠️</div>
-                <h4 className="fw-black text-white mb-1 fs-5">Pass on {confirmUnsoldModal.player?.full_name}?</h4>
+                <div className="fs-1 mb-2">🛑</div>
+                <h4 className="fw-black text-danger mb-1 fs-5">Pass on {confirmUnsoldModal.player?.full_name}?</h4>
                 <p className="text-white-50 text-xs mb-3">
-                  This player will be cleared from the podium and redirected into the unsold lot pool for subsequent rounds.
+                  This player will be cleared from the podium and redirected into the unsold lot pool for subsequent round 2.
                 </p>
-                <div className="bg-dark bg-opacity-70 rounded-3 p-2.5 border border-secondary border-opacity-30 text-start">
+                <div className="bg-dark bg-opacity-80 rounded-3 p-2.5 border border-danger border-opacity-30 text-start">
                   <div className="d-flex justify-content-between align-items-center">
                     <span className="text-white-50 text-xs">Starting Base Price:</span>
-                    <strong className="text-warning font-monospace small">₹{Number(confirmUnsoldModal.basePrice || 1000).toLocaleString()}</strong>
+                    <strong className="text-danger font-monospace small">₹{Number(confirmUnsoldModal.basePrice || 1000).toLocaleString()}</strong>
                   </div>
                 </div>
               </div>
@@ -1596,7 +1596,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-warning rounded-pill px-4 py-1.5 fw-bold text-dark text-xs shadow"
+                  className="btn btn-sm btn-danger rounded-pill px-4 py-1.5 fw-bold text-white text-xs shadow-sm"
                   disabled={actionLoading}
                   onClick={executeMarkUnsold}
                 >
@@ -1780,39 +1780,75 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         >
           <div className="modal-dialog modal-md modal-dialog-centered auction-modal-pop">
             <div className="modal-content auction-card modal-unsold-card text-white text-center p-4 shadow-2xl">
-              <div className="modal-action-avatar bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40">
-                ⚠️
+              <div className="modal-action-avatar bg-danger bg-opacity-20 text-danger border border-danger border-opacity-50">
+                🛑
               </div>
-              <span className="badge bg-warning text-dark px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+              <span className="badge bg-danger text-white px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2 shadow-sm">
                 Hammer Passed • Unsold
               </span>
-              <h2 className="fs-3 fw-black text-white mb-1">
+              <h2 className="fs-3 fw-black text-danger mb-1 tracking-tight">
                 PLAYER UNSOLD
               </h2>
               <p className="text-white-50 text-xs mb-3">
-                Returned to the unsold queue for subsequent auction rounds
+                Moved to the unsold pool for subsequent auction round 2
               </p>
 
-              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="badge badge-cyan text-xs text-uppercase">{unsoldModalData.position || 'Athlete'}</span>
-                  {unsoldModalData.basePrice && (
-                    <span className="text-warning font-monospace small fw-bold">
-                      Base: ₹{Number(unsoldModalData.basePrice).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                <h4 className="fw-extrabold text-white mb-1 fs-5">
-                  {unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
-                </h4>
-                <p className="text-white-50 text-xs mb-0">
-                  {unsoldModalData.message || 'Player was not claimed at base price and has been routed to the unsold lot pool.'}
-                </p>
-              </div>
+              {/* Player Card with Photo & Danger Theme */}
+              {(() => {
+                const unsoldPhoto =
+                  unsoldModalData.photo_url ||
+                  unsoldModalData.photoUrl ||
+                  unsoldModalData.photo ||
+                  unsoldModalData.image_url ||
+                  allPlayers.find((p) => p.full_name === (unsoldModalData.playerName || unsoldModalData.player_name))?.photo_url ||
+                  '';
+
+                return (
+                  <div className="bg-dark bg-opacity-80 rounded-3 p-3 border border-danger border-opacity-40 mb-3 text-start">
+                    <div className="d-flex align-items-center gap-3">
+                      <div
+                        className="rounded-3 overflow-hidden border border-danger border-opacity-60 shadow-lg flex-shrink-0 d-flex align-items-center justify-content-center bg-black bg-opacity-60"
+                        style={{ width: 72, height: 86 }}
+                      >
+                        {unsoldPhoto ? (
+                          <img
+                            src={unsoldPhoto}
+                            alt={unsoldModalData.playerName || 'Player'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div className="text-danger text-center p-1">
+                            <span className="fs-2 d-block">👤</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-grow-1 min-w-0">
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <span className="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-40 text-xs text-uppercase">
+                            {unsoldModalData.position || 'Athlete'}
+                          </span>
+                          {unsoldModalData.basePrice && (
+                            <span className="text-danger font-monospace small fw-bold">
+                              Base: ₹{Number(unsoldModalData.basePrice).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="fw-extrabold text-white mb-1 fs-5 text-truncate">
+                          {unsoldModalData.playerName || unsoldModalData.player_name || 'Player'}
+                        </h4>
+                        <p className="text-white-50 text-xs mb-0">
+                          {unsoldModalData.message || 'Player was not claimed at base price and has been routed to the unsold lot pool.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <button
                 type="button"
-                className="btn btn-outline-light rounded-pill px-4 py-2 fw-bold text-xs w-100"
+                className="btn btn-danger rounded-pill px-4 py-2.5 fw-bold text-white text-xs w-100 shadow"
                 onClick={() => setUnsoldModalData(null)}
               >
                 Acknowledge & Next Player ➔

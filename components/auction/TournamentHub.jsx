@@ -72,9 +72,29 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
         </p>
 
         {liveState.lastNotification && (
-          <div className="d-inline-flex flex-wrap align-items-center justify-content-center gap-2.5 px-4 py-2 rounded-pill bg-black bg-opacity-40 border border-warning border-opacity-30 mb-4 shadow-sm">
-            <span className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${liveState.lastNotification.type === 'sold' ? 'badge-gold' : 'bg-warning text-dark'}`}>
-              {liveState.lastNotification.type === 'sold' ? '🎉 LATEST SALE' : '⚠️ LATEST OUTCOME'}
+          <div
+            className={`d-inline-flex flex-wrap align-items-center justify-content-center gap-2.5 px-4 py-2 rounded-pill bg-black bg-opacity-40 border mb-4 shadow-sm ${
+              liveState.lastNotification.type === 'sold'
+                ? 'border-warning border-opacity-40'
+                : liveState.lastNotification.type === 'unsold'
+                ? 'border-danger border-opacity-50'
+                : 'border-secondary border-opacity-30'
+            }`}
+          >
+            <span
+              className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${
+                liveState.lastNotification.type === 'sold'
+                  ? 'badge-gold'
+                  : liveState.lastNotification.type === 'unsold'
+                  ? 'bg-danger text-white'
+                  : 'badge-cyan'
+              }`}
+            >
+              {liveState.lastNotification.type === 'sold'
+                ? '🎉 LATEST SALE'
+                : liveState.lastNotification.type === 'unsold'
+                ? '🛑 PLAYER UNSOLD'
+                : '⚠️ LATEST OUTCOME'}
             </span>
             <strong className="text-white small mb-0">{liveState.lastNotification.message}</strong>
           </div>
