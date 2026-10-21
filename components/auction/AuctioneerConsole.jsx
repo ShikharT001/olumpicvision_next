@@ -100,6 +100,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Handle Paddle Click (Bid placed for team)
   const handleTeamPaddleClick = async (team) => {
+    if (!isAdmin) return;
     if (!activePlayer) {
       setError('Please select a player to put on the hammer first.');
       return;
@@ -130,6 +131,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Hammer Stage Control
   const handleHammerAdvance = async (stage) => {
+    if (!isAdmin) return;
     setError('');
     setActionLoading(true);
     try {
@@ -150,6 +152,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Finalize Sale — Request Modal
   const requestFinalizeSale = () => {
+    if (!isAdmin) return;
     if (!activePlayer || !highestTeam || currentBid <= 0) {
       setError('Cannot mark as Sold without an active high bidder.');
       return;
@@ -163,6 +166,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Finalize Sale — Execute
   const executeFinalizeSale = async () => {
+    if (!isAdmin) return;
     setError('');
     setActionLoading(true);
     try {
@@ -206,6 +210,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Mark Unsold — Request Modal
   const requestMarkUnsold = () => {
+    if (!isAdmin) return;
     if (!activePlayer) return;
     setConfirmUnsoldModal({
       player: activePlayer,
@@ -215,6 +220,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Mark Unsold — Execute
   const executeMarkUnsold = async () => {
+    if (!isAdmin) return;
     setError('');
     setActionLoading(true);
     try {
@@ -253,11 +259,13 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Undo Last Action — Request Modal
   const requestUndo = () => {
+    if (!isAdmin) return;
     setConfirmUndoModal(true);
   };
 
   // Undo Last Action — Execute
   const executeUndo = async () => {
+    if (!isAdmin) return;
     setError('');
     setActionLoading(true);
     try {
@@ -314,6 +322,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   };
 
   const handleSelectPlayerToHammer = async (player) => {
+    if (!isAdmin) return;
     setError('');
     setActionLoading(true);
     try {
@@ -396,6 +405,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Action to bring the next player in the systematic category queue to podium
   const handleCallNextCategoryPlayer = async (playerOverride) => {
+    if (!isAdmin) return;
     const targetPlayer = playerOverride || nextPlayerInActiveCategory;
     if (!targetPlayer) {
       if (nextCategoryInSequence) {
@@ -921,7 +931,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
                 {isAdmin
                   ? 'Click team that raised physical paddle:'
-                  : 'Franchise teams & live purse balances:'}
+                  : 'Franchise teams & live purse balances (View-Only Mode):'}
               </span>
 
               <div className="row g-2">
@@ -940,6 +950,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                         className={`team-paddle-btn w-100 ${!isAdmin ? 'is-view-only' : ''} ${isHigh ? 'is-highest-bidder' : ''}`}
                         style={{
                           '--team-color': team.primary_color || '#0d6efd',
+                          cursor: !isAdmin ? 'default' : undefined,
                           ...(isMyTeam
                             ? {
                                 border: '2px solid #06b6d4',
@@ -947,8 +958,9 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                               }
                             : {}),
                         }}
-                        onClick={() => isAdmin && handleTeamPaddleClick(team)}
+                        onClick={isAdmin ? () => handleTeamPaddleClick(team) : undefined}
                         disabled={isAdmin && !canBid}
+                        aria-disabled={!isAdmin}
                       >
                         <div className="d-flex align-items-center justify-content-between mb-1.5">
                           <div className="d-flex align-items-center gap-1">

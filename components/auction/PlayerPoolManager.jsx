@@ -227,6 +227,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   };
 
   const handleExecuteBulkImport = async () => {
+    if (!isAdmin) return;
     if (csvPreview.length === 0) return;
     setCsvLoading(true);
     setCsvError('');
@@ -276,6 +277,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
 
   const handleCreatePlayer = async (e) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setModalMessage('');
     setModalError('');
     setLoading(true);
@@ -342,6 +344,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   };
 
   const handleRunRegistrationsImport = async () => {
+    if (!isAdmin) return;
     setMessage('');
     setError('');
     setLoading(true);
@@ -367,10 +370,12 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   };
 
   const requestSendToHammer = (player) => {
+    if (!isAdmin) return;
     setPendingHammerPlayer(player);
   };
 
   const executeSendToHammer = async (player) => {
+    if (!isAdmin) return;
     setLoading(true);
     try {
       const res = await fetch('/api/auction/players', {
@@ -398,6 +403,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   };
 
   const startEdit = (player) => {
+    if (!isAdmin) return;
     setEditingPlayer(player);
     setEditForm({
       base_price: player.base_price || 1000,
@@ -415,7 +421,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   };
 
   const saveEdit = async () => {
-    if (!editingPlayer) return;
+    if (!isAdmin || !editingPlayer) return;
     try {
       const res = await fetch('/api/auction/players', {
         method: 'POST',
@@ -444,6 +450,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   };
 
   const handleDeletePlayer = async (playerId, playerName) => {
+    if (!isAdmin) return;
     if (!confirm(`Are you sure you want to remove ${playerName} from the auction pool?`)) return;
     try {
       const res = await fetch('/api/auction/players', {

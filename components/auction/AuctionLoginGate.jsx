@@ -103,7 +103,7 @@ export default function AuctionLoginGate({
           </h2>
           <p className="text-white-50 text-xs mb-0 leading-relaxed px-sm-2">
             {loginMode === 'team'
-              ? 'Authorized portal for Team Owners, Coaches & Franchise Representatives to monitor purse, inspect squad, and track live bidding.'
+              ? 'Authorized portal for Team Owners, Coaches & Franchise Representatives with live view-only access to monitor remaining purse, inspect squads, and track podium bidding.'
               : 'Master auctioneer credentials unlock full gavel controls, sport creation, tournament setup, and player management.'}
           </p>
         </div>

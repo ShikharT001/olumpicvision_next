@@ -69,6 +69,7 @@ export default function TeamsPoolingWheel({
 
   // Spin the wheel
   const handleSpinWheel = useCallback(() => {
+    if (!isAdmin) return; // View only for teams
     if (isSpinning || remainingTeams.length === 0) return;
 
     setIsSpinning(true);
@@ -142,6 +143,7 @@ export default function TeamsPoolingWheel({
 
   // Remove a team from a pool (returns them back to the wheel)
   const handleRemoveTeamFromPool = (poolName, teamId) => {
+    if (!isAdmin) return;
     setPools((prev) => ({
       ...prev,
       [poolName]: prev[poolName].filter((t) => t.id !== teamId),
@@ -150,6 +152,7 @@ export default function TeamsPoolingWheel({
 
   // Reset entire draw
   const handleResetDraw = () => {
+    if (!isAdmin) return;
     if (confirm('Are you sure you want to reset all pools and return all teams to the spin wheel?')) {
       const empty = {};
       poolNames.forEach((p) => {
@@ -162,7 +165,7 @@ export default function TeamsPoolingWheel({
 
   // Quick auto-draw all remaining teams systematically
   const handleAutoDrawAll = () => {
-    if (remainingTeams.length === 0) return;
+    if (!isAdmin || remainingTeams.length === 0) return;
     const shuffled = [...remainingTeams].sort(() => Math.random() - 0.5);
     const updated = { ...pools };
     let currIndex = drawnTeamIds.length;
@@ -180,6 +183,7 @@ export default function TeamsPoolingWheel({
 
   // Save official pool draw to backend API
   const handleSavePools = async () => {
+    if (!isAdmin) return;
     setSavingStatus('saving');
     setSaveMessage('');
     try {
@@ -277,58 +281,70 @@ export default function TeamsPoolingWheel({
           <span className="text-white-50 text-xs fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>
             Pool Format:
           </span>
-          {[2, 3, 4].map((num) => (
-            <button
-              key={num}
-              type="button"
-              className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold ${
-                numPools === num ? 'btn-info text-dark shadow-sm' : 'btn-outline-secondary text-light'
-              }`}
-              onClick={() => {
-                if (!isSpinning && (drawnTeamIds.length === 0 || confirm('Changing pool count will reconfigure groups. Proceed?'))) {
-                  setNumPools(num);
-                }
-              }}
-              disabled={isSpinning}
-            >
-              {num} Pools ({num === 2 ? 'A & B' : num === 3 ? 'A, B & C' : 'A, B, C & D'})
-            </button>
-          ))}
+          {isAdmin ? (
+            [2, 3, 4].map((num) => (
+              <button
+                key={num}
+                type="button"
+                className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold ${
+                  numPools === num ? 'btn-info text-dark shadow-sm' : 'btn-outline-secondary text-light'
+                }`}
+                onClick={() => {
+                  if (!isSpinning && (drawnTeamIds.length === 0 || confirm('Changing pool count will reconfigure groups. Proceed?'))) {
+                    setNumPools(num);
+                  }
+                }}
+                disabled={isSpinning}
+              >
+                {num} Pools ({num === 2 ? 'A & B' : num === 3 ? 'A, B & C' : 'A, B, C & D'})
+              </button>
+            ))
+          ) : (
+            <span className="badge bg-secondary bg-opacity-40 text-light px-3 py-1 rounded-pill text-xs fw-bold">
+              {numPools} Pools ({numPools === 2 ? 'Pool A & B' : numPools === 3 ? 'Pool A, B & C' : 'Pool A, B, C & D'})
+            </span>
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="d-flex flex-wrap align-items-center gap-2 ms-auto">
-          {remainingTeams.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-xs fw-bold"
-              onClick={handleAutoDrawAll}
-              disabled={isSpinning}
-            >
-              ⚡ Auto-Draw All
-            </button>
-          )}
+          {isAdmin ? (
+            <>
+              {remainingTeams.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-xs fw-bold"
+                  onClick={handleAutoDrawAll}
+                  disabled={isSpinning}
+                >
+                  ⚡ Auto-Draw All
+                </button>
+              )}
 
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 text-xs fw-bold"
-            onClick={handleResetDraw}
-            disabled={isSpinning || drawnTeamIds.length === 0}
-          >
-            ↺ Reset Draw
-          </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 text-xs fw-bold"
+                onClick={handleResetDraw}
+                disabled={isSpinning || drawnTeamIds.length === 0}
+              >
+                ↺ Reset Draw
+              </button>
 
-          {isAdmin && (
-            <button
-              type="button"
-              className={`btn btn-sm rounded-pill px-4 py-1 text-xs fw-black ${
-                savingStatus === 'saved' ? 'btn-success' : 'btn-warning text-dark'
-              }`}
-              onClick={handleSavePools}
-              disabled={isSpinning || savingStatus === 'saving'}
-            >
-              {savingStatus === 'saving' ? 'Saving...' : savingStatus === 'saved' ? '✓ Saved' : '💾 Save Official Draw'}
-            </button>
+              <button
+                type="button"
+                className={`btn btn-sm rounded-pill px-4 py-1 text-xs fw-black ${
+                  savingStatus === 'saved' ? 'btn-success' : 'btn-warning text-dark'
+                }`}
+                onClick={handleSavePools}
+                disabled={isSpinning || savingStatus === 'saving'}
+              >
+                {savingStatus === 'saving' ? 'Saving...' : savingStatus === 'saved' ? '✓ Saved' : '💾 Save Official Draw'}
+              </button>
+            </>
+          ) : (
+            <span className="badge bg-info bg-opacity-20 text-info border border-info border-opacity-35 px-3 py-1.5 rounded-pill text-xs fw-bold">
+              👁️ View-Only Pool Draw Mode
+            </span>
           )}
         </div>
       </div>
@@ -366,9 +382,9 @@ export default function TeamsPoolingWheel({
                 maxWidth: '100%',
                 aspectRatio: '1/1',
                 filter: 'drop-shadow(0 15px 35px rgba(0,0,0,0.7))',
-                cursor: remainingTeams.length > 0 && !isSpinning ? 'pointer' : 'default',
+                cursor: isAdmin && remainingTeams.length > 0 && !isSpinning ? 'pointer' : 'default',
               }}
-              onClick={handleSpinWheel}
+              onClick={isAdmin ? handleSpinWheel : undefined}
             >
               {/* Outer Metallic Bezel Ring */}
               <svg
@@ -558,52 +574,64 @@ export default function TeamsPoolingWheel({
                     x={center}
                     y={center - 8}
                     textAnchor="middle"
-                    fill={isSpinning ? '#06b6d4' : '#f59e0b'}
-                    fontSize="13"
+                    fill={isSpinning ? '#06b6d4' : !isAdmin ? '#06b6d4' : '#f59e0b'}
+                    fontSize="12.5"
                     fontWeight="900"
                     letterSpacing="1"
                     style={{ userSelect: 'none' }}
                   >
-                    {isSpinning ? 'SPINNING' : remainingTeams.length === 0 ? 'DRAW' : 'SPIN'}
+                    {!isAdmin ? 'DRAW' : isSpinning ? 'SPINNING' : remainingTeams.length === 0 ? 'DRAW' : 'SPIN'}
                   </text>
                   <text
                     x={center}
                     y={center + 12}
                     textAnchor="middle"
                     fill="#ffffff"
-                    fontSize="10"
+                    fontSize="9.5"
                     fontWeight="800"
                     style={{ userSelect: 'none' }}
                   >
-                    {isSpinning ? '...' : remainingTeams.length === 0 ? 'DONE' : `FOR ${targetPoolName.toUpperCase()}`}
+                    {!isAdmin
+                      ? 'VIEW ONLY'
+                      : isSpinning
+                      ? '...'
+                      : remainingTeams.length === 0
+                      ? 'DONE'
+                      : `FOR ${targetPoolName.toUpperCase()}`}
                   </text>
                 </g>
               </svg>
             </div>
 
-            {/* One-Click Spin Action Button below wheel */}
+            {/* Action Area below wheel: Spin Button for Admin, Locked notice for Teams */}
             <div className="w-100 mt-3">
-              <button
-                type="button"
-                className={`btn btn-lg w-100 rounded-pill py-2.5 fw-black text-sm d-flex align-items-center justify-content-center gap-2 shadow-lg transition-all ${
-                  isSpinning
-                    ? 'btn-secondary disabled'
-                    : remainingTeams.length === 0
-                    ? 'btn-outline-success disabled'
-                    : 'btn-warning text-dark'
-                }`}
-                onClick={handleSpinWheel}
-                disabled={isSpinning || remainingTeams.length === 0}
-              >
-                <span>{isSpinning ? '⏳' : '🎯'}</span>
-                <span>
-                  {isSpinning
-                    ? 'Wheel in Motion...'
-                    : remainingTeams.length === 0
-                    ? 'All Teams Assigned to Pools'
-                    : `SPIN WHEEL FOR ${targetPoolName.toUpperCase()} ➔`}
-                </span>
-              </button>
+              {isAdmin ? (
+                <button
+                  type="button"
+                  className={`btn btn-lg w-100 rounded-pill py-2.5 fw-black text-sm d-flex align-items-center justify-content-center gap-2 shadow-lg transition-all ${
+                    isSpinning
+                      ? 'btn-secondary disabled'
+                      : remainingTeams.length === 0
+                      ? 'btn-outline-success disabled'
+                      : 'btn-warning text-dark'
+                  }`}
+                  onClick={handleSpinWheel}
+                  disabled={isSpinning || remainingTeams.length === 0}
+                >
+                  <span>{isSpinning ? '⏳' : '🎯'}</span>
+                  <span>
+                    {isSpinning
+                      ? 'Wheel in Motion...'
+                      : remainingTeams.length === 0
+                      ? 'All Teams Assigned to Pools'
+                      : `SPIN WHEEL FOR ${targetPoolName.toUpperCase()} ➔`}
+                  </span>
+                </button>
+              ) : (
+                <div className="p-2.5 rounded-pill bg-dark bg-opacity-70 border border-secondary border-opacity-30 text-center text-white-50 text-xs shadow-sm">
+                  <span>🔒 <strong>Draw Operated by Committee</strong> • Teams have live view-only access</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -701,15 +729,17 @@ export default function TeamsPoolingWheel({
                                 Squad: {team.squad?.length || team.squad_count || 0}
                               </span>
 
-                              {/* Return team back to wheel button */}
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-link text-white-50 p-0 text-xs text-decoration-none hover-text-danger"
-                                onClick={() => handleRemoveTeamFromPool(poolName, team.id)}
-                                title="Remove team from pool and return to spin wheel"
-                              >
-                                ✕
-                              </button>
+                              {/* Return team back to wheel button (Admin only) */}
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-white-50 p-0 text-xs text-decoration-none hover-text-danger"
+                                  onClick={() => handleRemoveTeamFromPool(poolName, team.id)}
+                                  title="Remove team from pool and return to spin wheel"
+                                >
+                                  ✕
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}

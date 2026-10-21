@@ -47,6 +47,7 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
 
   const handleCreateTournament = async (e) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setCreateError('');
     setCreating(true);
     try {

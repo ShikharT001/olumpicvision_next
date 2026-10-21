@@ -24,6 +24,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
   });
 
   const openAddModal = () => {
+    if (!isAdmin) return;
     setActionError('');
     setActionSuccess('');
     setForm({
@@ -40,6 +41,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
   };
 
   const openEditModal = (tourn) => {
+    if (!isAdmin) return;
     setActionError('');
     setActionSuccess('');
     setEditingTournament(tourn);
@@ -57,6 +59,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setActionError('');
     setLoading(true);
     try {
@@ -84,7 +87,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!editingTournament) return;
+    if (!isAdmin || !editingTournament) return;
     setActionError('');
     setLoading(true);
     try {
@@ -113,6 +116,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
   };
 
   const handleDelete = async (id, name) => {
+    if (!isAdmin) return;
     if (!confirm(`Are you sure you want to delete tournament "${name}" and all its teams and players? This action cannot be undone.`)) {
       return;
     }
