@@ -93,7 +93,7 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
 
         {/* Navigation Tabs & Actions */}
         <nav className="d-flex flex-wrap align-items-center gap-1.5 ms-auto">
-          {tournament && (
+          {isAdmin && tournament && (
             <Link
               href={`/auction?sport=${tournament.sport_id}`}
               className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-xs fw-bold me-1 d-inline-flex align-items-center gap-1"

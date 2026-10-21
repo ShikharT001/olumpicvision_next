@@ -293,7 +293,19 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
             </h1>
 
             {/* Exact requested format: "[Player Name] sold to [Team Name] at ₹[Price]" */}
-            <div className="p-3 my-3 rounded-4 bg-black bg-opacity-40 border border-warning border-opacity-40">
+            <div className="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-3 p-3 my-3 rounded-4 bg-black bg-opacity-40 border border-warning border-opacity-40 text-start">
+              {(soldOverlay.photoUrl || soldOverlay.photo_url) && (
+                <div
+                  className="rounded-3 overflow-hidden border border-warning shadow-lg flex-shrink-0"
+                  style={{ width: 84, height: 102 }}
+                >
+                  <img
+                    src={soldOverlay.photoUrl || soldOverlay.photo_url}
+                    alt={soldOverlay.playerName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
               <h3 className="fs-3 fw-extrabold text-white mb-0 text-break leading-snug">
                 <span className="text-warning">{soldOverlay.playerName}</span> sold to{' '}
                 <span className="text-info">{soldOverlay.teamName}</span> at{' '}

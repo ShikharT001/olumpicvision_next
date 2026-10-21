@@ -51,6 +51,7 @@ export default function TeamSquadsDashboard({
             );
             setSoldModalData({
               ...json.lastNotification,
+              photo_url: json.lastNotification.photo_url || json.lastNotification.photoUrl || '',
               teamColor: foundTeam?.primary_color || '#f59e0b',
               teamCode: foundTeam?.team_code || 'WIN',
             });
@@ -962,19 +963,53 @@ export default function TeamSquadsDashboard({
                 Squad roster updated in real time
               </p>
 
-              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
-                <div className="d-flex align-items-center justify-content-between mb-1.5">
-                  <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Athlete'}</span>
-                  {soldModalData.category && (
-                    <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(soldModalData.category)}`}>
-                      {formatCategoryLabel(soldModalData.category)}
-                    </span>
-                  )}
-                </div>
-                <h4 className="fw-extrabold text-white mb-1 fs-5">
-                  {soldModalData.playerName || soldModalData.player_name || 'Player'}
-                </h4>
-              </div>
+              {/* Player Card with Photo */}
+              {(() => {
+                const soldPhoto =
+                  soldModalData.photo_url ||
+                  soldModalData.photoUrl ||
+                  soldModalData.photo ||
+                  soldModalData.image_url ||
+                  allSoldPlayers.find((p) => p.full_name === (soldModalData.playerName || soldModalData.player_name))?.photo_url ||
+                  '';
+
+                return (
+                  <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                    <div className="d-flex align-items-center gap-3">
+                      <div
+                        className="rounded-3 overflow-hidden border border-warning border-opacity-60 shadow-lg flex-shrink-0 d-flex align-items-center justify-content-center bg-black bg-opacity-60"
+                        style={{ width: 68, height: 82 }}
+                      >
+                        {soldPhoto ? (
+                          <img
+                            src={soldPhoto}
+                            alt={soldModalData.playerName || 'Player'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div className="text-secondary text-center p-1">
+                            <span className="fs-2 d-block">👤</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-grow-1 min-w-0">
+                        <div className="d-flex flex-wrap align-items-center gap-1.5 mb-1">
+                          <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Athlete'}</span>
+                          {soldModalData.category && (
+                            <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(soldModalData.category)}`}>
+                              {formatCategoryLabel(soldModalData.category)}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="fw-extrabold text-white mb-0 fs-5 text-truncate">
+                          {soldModalData.playerName || soldModalData.player_name || 'Player'}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div
                 className="rounded-3 p-3 border mb-3 d-flex align-items-center justify-content-between shadow-sm"

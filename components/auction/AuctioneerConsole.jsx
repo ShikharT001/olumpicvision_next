@@ -69,6 +69,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
             );
             setSoldModalData({
               ...json.lastNotification,
+              photo_url: json.lastNotification.photo_url || json.lastNotification.photoUrl || '',
               teamColor: foundTeam?.primary_color || '#f59e0b',
               teamCode: foundTeam?.team_code || 'WIN',
             });
@@ -185,6 +186,8 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         playerName: activePlayer.full_name,
         teamName: highestTeam.team_name,
         price: currentBid,
+        photo_url: activePlayer.photo_url || activePlayer.photo || activePlayer.image_url || '',
+        photoUrl: activePlayer.photo_url || activePlayer.photo || activePlayer.image_url || '',
         timestamp: new Date().toISOString(),
       };
 
@@ -194,6 +197,8 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         position: activePlayer.playing_position,
         category: activePlayer.player_category,
         lot: activePlayer.lot_number,
+        photo_url: activePlayer.photo_url || activePlayer.photo || activePlayer.image_url || '',
+        photoUrl: activePlayer.photo_url || activePlayer.photo || activePlayer.image_url || '',
         teamColor: highestTeam.primary_color || '#f59e0b',
         teamCode: highestTeam.team_code || 'WIN',
       });
@@ -1461,10 +1466,51 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 </p>
 
                 <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 text-start mb-3">
-                  <div className="d-flex justify-content-between align-items-center mb-1.5">
-                    <span className="text-white-50 text-xs">Player:</span>
-                    <strong className="text-white small fw-bold">{confirmSaleModal.player?.full_name}</strong>
+                  {/* Player Image & Header Row */}
+                  <div className="d-flex align-items-center gap-3 mb-2.5 pb-2.5 border-bottom border-secondary border-opacity-25">
+                    <div
+                      className="rounded-3 overflow-hidden border border-warning border-opacity-50 shadow flex-shrink-0 d-flex align-items-center justify-content-center bg-black bg-opacity-60"
+                      style={{ width: 68, height: 82 }}
+                    >
+                      {confirmSaleModal.player?.photo_url || confirmSaleModal.player?.photo || confirmSaleModal.player?.image_url ? (
+                        <img
+                          src={confirmSaleModal.player.photo_url || confirmSaleModal.player.photo || confirmSaleModal.player.image_url}
+                          alt={confirmSaleModal.player.full_name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div className="text-secondary text-center p-1">
+                          <span className="fs-2 d-block">👤</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow-1 min-w-0">
+                      <div className="d-flex flex-wrap align-items-center gap-1.5 mb-1">
+                        <span className="badge badge-cyan text-xs text-uppercase">
+                          {confirmSaleModal.player?.playing_position?.replace('_', ' ') || 'Athlete'}
+                        </span>
+                        {confirmSaleModal.player?.lot_number && (
+                          <span className="badge bg-secondary bg-opacity-35 text-white-50 text-xs">
+                            Lot #{confirmSaleModal.player.lot_number}
+                          </span>
+                        )}
+                        {confirmSaleModal.player?.player_category && (
+                          <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(confirmSaleModal.player.player_category)}`}>
+                            {formatCategoryLabel(confirmSaleModal.player.player_category)}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="fw-extrabold text-white mb-0 fs-5 text-truncate">
+                        {confirmSaleModal.player?.full_name}
+                      </h4>
+                      {confirmSaleModal.player?.team_name && (
+                        <span className="text-white-50 text-xs d-block text-truncate mt-0.5">
+                          Club: {confirmSaleModal.player.team_name}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
                   <div className="d-flex justify-content-between align-items-center mb-1.5">
                     <span className="text-white-50 text-xs">Winning Franchise:</span>
                     <strong className="text-info small fw-bold">{confirmSaleModal.team?.team_name} ({confirmSaleModal.team?.team_code})</strong>
@@ -1624,21 +1670,60 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 Official PDVL Live Auction Result
               </p>
 
-              {/* Player Card */}
-              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
-                <div className="d-flex align-items-center justify-content-between mb-1.5">
-                  <span className="badge badge-cyan text-xs text-uppercase">{soldModalData.position || 'Volleyball Athlete'}</span>
-                  {soldModalData.lot && <span className="text-white-50 text-xs">Lot #{soldModalData.lot}</span>}
-                </div>
-                <h4 className="fw-extrabold text-white mb-1 fs-5">
-                  {soldModalData.playerName || soldModalData.player_name || 'Player'}
-                </h4>
-                {soldModalData.category && (
-                  <div className="text-white-50 text-xs">
-                    Category: <strong className="text-light text-capitalize">{soldModalData.category.replace('_', ' ')}</strong>
+              {/* Player Card with Photo */}
+              {(() => {
+                const soldPhoto =
+                  soldModalData.photo_url ||
+                  soldModalData.photoUrl ||
+                  soldModalData.photo ||
+                  soldModalData.image_url ||
+                  allPlayers.find((p) => p.full_name === (soldModalData.playerName || soldModalData.player_name))?.photo_url ||
+                  '';
+
+                return (
+                  <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+                    <div className="d-flex align-items-center gap-3">
+                      <div
+                        className="rounded-3 overflow-hidden border border-warning border-opacity-60 shadow-lg flex-shrink-0 d-flex align-items-center justify-content-center bg-black bg-opacity-60"
+                        style={{ width: 74, height: 90 }}
+                      >
+                        {soldPhoto ? (
+                          <img
+                            src={soldPhoto}
+                            alt={soldModalData.playerName || 'Player'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div className="text-secondary text-center p-1">
+                            <span className="fs-2 d-block">👤</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-grow-1 min-w-0">
+                        <div className="d-flex flex-wrap align-items-center gap-1.5 mb-1">
+                          <span className="badge badge-cyan text-xs text-uppercase">
+                            {soldModalData.position || soldModalData.playingPosition || 'Athlete'}
+                          </span>
+                          {(soldModalData.lot || soldModalData.lotNumber) && (
+                            <span className="badge bg-secondary bg-opacity-35 text-white-50 text-xs">
+                              Lot #{soldModalData.lot || soldModalData.lotNumber}
+                            </span>
+                          )}
+                          {soldModalData.category && (
+                            <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(soldModalData.category)}`}>
+                              {formatCategoryLabel(soldModalData.category)}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="fw-black text-white mb-0 fs-4 text-truncate">
+                          {soldModalData.playerName || soldModalData.player_name || 'Player'}
+                        </h3>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Winning Team Banner */}
               <div
