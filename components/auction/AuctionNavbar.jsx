@@ -16,6 +16,7 @@ export default function AuctionNavbar({ role = 'team', tournament = null }) {
         { href: `${basePath}/admin`, label: isAdmin ? '🔨 Auctioneer Console' : '🔨 Auction Console (Live)', adminOnly: false },
         { href: `${basePath}/live`, label: '📺 Big-Screen Live', adminOnly: false },
         { href: `${basePath}/teams`, label: '🛡️ Squads & Purse', adminOnly: false },
+        { href: `${basePath}/pools`, label: '🎡 Pool Draw', adminOnly: false },
         { href: `${basePath}/players`, label: isAdmin ? '📋 Player Pool & Lots' : '📋 Player Pool (View)', adminOnly: false },
         { href: `${basePath}/manage-teams`, label: '⚙️ Teams Setup', adminOnly: true },
       ]

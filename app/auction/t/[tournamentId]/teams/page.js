@@ -44,6 +44,8 @@ export default async function TournamentTeamsPage(props) {
           initialTeams={initialTeams}
           tournament={tournament}
           tournamentId={tournament.id}
+          initialTab={searchParams?.tab || 'squads'}
+          isAdmin={role === 'admin'}
         />
       </main>
     </div>

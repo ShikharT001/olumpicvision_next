@@ -3,15 +3,31 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import TopBidsLeaderboard from './TopBidsLeaderboard';
+import TeamsPoolingWheel from './TeamsPoolingWheel';
 
-export default function TeamSquadsDashboard({ initialTeams, tournament = null, tournamentId: propTournamentId }) {
+export default function TeamSquadsDashboard({
+  initialTeams,
+  tournament = null,
+  tournamentId: propTournamentId,
+  initialTab = 'squads',
+  isAdmin = false,
+}) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const [teams, setTeams] = useState(initialTeams || []);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [activeTab, setActiveTab] = useState(initialTab || 'squads');
   const [liveNotification, setLiveNotification] = useState(null);
   const [soldModalData, setSoldModalData] = useState(null);
   const [unsoldModalData, setUnsoldModalData] = useState(null);
   const lastNotifIdRef = useRef(null);
+
+  // Sync tab if initialTab prop changes
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const fetchLiveStateAndTeams = useCallback(async () => {
     try {
@@ -103,7 +119,74 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
         </div>
       )}
 
-      {/* TOP HEADER & NAVIGATION */}
+      {/* ========================================================================= */}
+      {/* PRIMARY SECTION TABS: SQUADS & PURSE | TOP 10 BIDS | POOL DRAW & WHEEL   */}
+      {/* ========================================================================= */}
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+        <div className="d-flex flex-wrap align-items-center gap-2 p-1.5 rounded-pill bg-dark bg-opacity-70 border border-secondary border-opacity-30">
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 transition-all ${
+              activeTab === 'squads' ? 'btn-primary text-white shadow' : 'text-white-50 hover-text-white'
+            }`}
+            onClick={() => setActiveTab('squads')}
+          >
+            <span>🛡️</span>
+            <span>Squads & Purse</span>
+          </button>
+
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 transition-all ${
+              activeTab === 'top_bids' ? 'badge-gold text-dark shadow fw-extrabold' : 'text-white-50 hover-text-white'
+            }`}
+            onClick={() => {
+              setActiveTab('top_bids');
+              setSelectedTeam(null);
+            }}
+          >
+            <span>🏆</span>
+            <span>Top 10 Highest Bids</span>
+          </button>
+
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 transition-all ${
+              activeTab === 'pools' ? 'btn-info text-dark shadow fw-extrabold' : 'text-white-50 hover-text-white'
+            }`}
+            onClick={() => {
+              setActiveTab('pools');
+              setSelectedTeam(null);
+            }}
+          >
+            <span>🎡</span>
+            <span>Tournament Pool Draw & Wheel</span>
+          </button>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase">
+            {tournament?.sportConfig?.icon || '🏆'} {tournament?.sportConfig?.name || 'Tournament'} • {tournament?.season_year || '2026/27'}
+          </span>
+          {activeTab === 'pools' && (
+            <span className="badge bg-info bg-opacity-20 text-info border border-info border-opacity-40 px-2.5 py-1 rounded-pill text-xs fw-bold">
+              🎡 Spin Wheel Draw
+            </span>
+          )}
+          {activeTab === 'top_bids' && (
+            <span className="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40 px-2.5 py-1 rounded-pill text-xs fw-bold">
+              🏆 Top 10 Leaderboard
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 1: SQUADS & PURSE DASHBOARD (ALL TEAMS OR SINGLE TEAM SQUAD DRILL-DOWN) */}
+      {/* ========================================================================= */}
+      {activeTab === 'squads' && (
+        <>
+          {/* TOP HEADER & NAVIGATION */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom border-secondary border-opacity-25 pb-3 mb-4">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
@@ -265,7 +348,21 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
                             {team.team_code}
                           </span>
                           <div>
-                            <h4 className="fw-extrabold text-white mb-0 fs-5">{team.team_name}</h4>
+                            <h4 className="fw-extrabold text-white mb-0 fs-5 d-flex align-items-center gap-2">
+                              <span>{team.team_name}</span>
+                              {team.pool && (
+                                <span
+                                  className="badge rounded-pill text-xs fw-extrabold px-2 py-0.5"
+                                  style={{
+                                    background: team.pool.includes('A') ? 'rgba(59, 130, 246, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                                    color: team.pool.includes('A') ? '#60a5fa' : '#f87171',
+                                    border: `1px solid ${team.pool.includes('A') ? 'rgba(59, 130, 246, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                                  }}
+                                >
+                                  {team.pool}
+                                </span>
+                              )}
+                            </h4>
                             <span className="text-white-50 text-xs d-block">
                               Owner: <strong>{team.owner_name || 'Management'}</strong>
                               {team.coach_name && ` • Coach: ${team.coach_name}`}
@@ -470,6 +567,11 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
                           <span className="badge badge-gold px-2.5 py-0.5 rounded-pill text-xs">
                             Active Competitor
                           </span>
+                          {focusedTeam.pool && (
+                            <span className="badge bg-primary bg-opacity-30 text-info border border-info border-opacity-40 px-2.5 py-0.5 rounded-pill text-xs fw-extrabold">
+                              🏟️ {focusedTeam.pool}
+                            </span>
+                          )}
                         </div>
                         <h2 className="fs-3 fw-black text-white mb-1 tracking-tight">
                           {focusedTeam.team_name}
@@ -746,6 +848,28 @@ export default function TeamSquadsDashboard({ initialTeams, tournament = null, t
             );
           })()}
         </div>
+      )}
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: TOP 10 HIGHEST BIDS LEADERBOARD                                   */}
+      {/* ========================================================================= */}
+      {activeTab === 'top_bids' && (
+        <TopBidsLeaderboard teams={teams} tournament={tournament} />
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: TOURNAMENT POOL DRAW & SPIN WHEEL                                 */}
+      {/* ========================================================================= */}
+      {activeTab === 'pools' && (
+        <TeamsPoolingWheel
+          teams={teams}
+          tournament={tournament}
+          tournamentId={activeTournamentId}
+          isAdmin={isAdmin}
+          onPoolsUpdated={fetchLiveStateAndTeams}
+        />
       )}
 
       {/* PLAYER SOLD LIVE CELEBRATION MODAL */}

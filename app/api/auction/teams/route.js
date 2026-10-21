@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuctionTeams, createAuctionTeam, updateAuctionTeam, deleteAuctionTeam } from '@/lib/auction-db';
+import { getAuctionTeams, createAuctionTeam, updateAuctionTeam, deleteAuctionTeam, updateTournamentPools } from '@/lib/auction-db';
 import { isAuctionAdmin } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +27,13 @@ export async function POST(request) {
 
     const body = await request.json();
     const { action, tournamentId, teamId, ...teamData } = body;
+
+    // Bulk update tournament pools
+    if (action === 'update_pools') {
+      const { pools, poolAssignments } = body;
+      const updatedTeams = await updateTournamentPools(tournamentId, pools || poolAssignments);
+      return NextResponse.json({ success: true, teams: updatedTeams });
+    }
 
     // Delete team
     if (action === 'delete' && teamId) {

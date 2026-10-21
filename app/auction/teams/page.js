@@ -42,6 +42,8 @@ export default async function AuctionTeamsPage(props) {
           initialTeams={initialTeams}
           tournament={tournament}
           tournamentId={tournament?.id}
+          initialTab={searchParams?.tab || 'squads'}
+          isAdmin={role === 'admin'}
         />
       </main>
     </div>
