@@ -93,11 +93,11 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
 
         {/* Navigation Tabs & Actions */}
         <nav className="d-flex flex-wrap align-items-center gap-1.5 ms-auto">
-          {isAdmin && tournament && (
+          {tournament && (
             <Link
-              href={`/auction?sport=${tournament.sport_id}`}
+              href={isAdmin ? `/auction?sport=${tournament.sport_id}` : '/auction'}
               className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-xs fw-bold me-1 d-inline-flex align-items-center gap-1"
-              title="Change tournament or view other sports"
+              title="Change tournament or explore other simultaneous championships"
             >
               <span>⇄</span>
               <span className="d-none d-md-inline">Switch Tournament</span>

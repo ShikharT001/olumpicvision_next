@@ -140,6 +140,97 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
         </div>
       </div>
 
+      {/* ACTIVE SIMULTANEOUS TOURNAMENTS SECTION */}
+      {tournaments.length > 0 && (
+        <div className="mb-5">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-2 border-bottom border-secondary border-opacity-20">
+            <div>
+              <div className="d-flex align-items-center gap-2">
+                <span className="badge badge-cyan px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                  Live &amp; Active
+                </span>
+                <span className="text-white-50 text-xs">Simultaneous Championships</span>
+              </div>
+              <h2 className="fs-4 fw-extrabold text-white mb-0 mt-1 tracking-tight">
+                Active Tournaments Directory
+              </h2>
+            </div>
+            <span className="badge bg-dark bg-opacity-70 text-secondary border border-secondary border-opacity-30 rounded-pill text-xs px-3 py-1.5">
+              {tournaments.length} Championships Available
+            </span>
+          </div>
+
+          <div className="row g-3">
+            {tournaments.map((t) => {
+              const sportConfig = sports.find((s) => s.id === t.sport_id);
+              const tId = t.id || t.slug;
+              return (
+                <div key={t.id} className="col-12 col-md-6 col-xl-4">
+                  <div className="auction-card h-100 p-4 d-flex flex-column transition-all hover-translate-y">
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-4">{sportConfig?.icon || '🏆'}</span>
+                        <span className="badge badge-cyan px-2 py-0.5 rounded-pill text-xs fw-bold">
+                          {t.sport_name || sportConfig?.name || 'Championship'}
+                        </span>
+                      </div>
+                      <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs rounded-pill">
+                        {t.season_year || '2026/27'}
+                      </span>
+                    </div>
+
+                    <h3 className="fs-6 fw-extrabold text-white mb-1 text-truncate" title={t.tournament_name}>
+                      {t.tournament_name}
+                    </h3>
+                    <p className="text-white-50 text-xs mb-3 flex-grow-1 text-truncate">
+                      {t.venue ? `📍 ${t.venue}` : 'Official District Tournament'}
+                    </p>
+
+                    <div className="d-flex align-items-center justify-content-between py-2 border-top border-secondary border-opacity-20 text-xs text-white-50 mb-3">
+                      <span>Teams: <strong className="text-white">{t.teams_count || 8}</strong></span>
+                      <span>Purse: <strong className="text-warning font-monospace">₹{Number(t.default_purse || 100000).toLocaleString()}</strong></span>
+                      <span>Players: <strong className="text-white">{t.players_count || 48}</strong></span>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2 mt-auto">
+                      <Link
+                        href={`/auction/t/${tId}/teams`}
+                        className="btn btn-sm btn-info text-dark rounded-pill px-3 py-2 fw-bold text-xs flex-fill text-center shadow-sm"
+                      >
+                        🛡️ Squads &amp; Purse ➔
+                      </Link>
+                      <Link
+                        href={`/auction/t/${tId}/admin`}
+                        className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-2 text-xs fw-bold"
+                        title={isAdmin ? 'Auctioneer Console' : 'Watch Live Console'}
+                      >
+                        🔨
+                      </Link>
+                      <Link
+                        href={`/auction/t/${tId}/live`}
+                        className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-2 text-xs fw-bold"
+                        title="Big Screen Projector Stage"
+                      >
+                        📺
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Section Divider & Heading for Sports Explorer */}
+      <div className="mb-3 d-flex align-items-center justify-content-between">
+        <div>
+          <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-0.5">Explore by Category</span>
+          <h2 className="fs-4 fw-extrabold text-white mb-0">Browse All Sports &amp; Games</h2>
+        </div>
+        <span className="text-secondary small">{filteredSports.length} Sports</span>
+      </div>
+
       {/* Sports Grid */}
       <div className="row g-4 mb-5">
         {filteredSports.map((sport) => {

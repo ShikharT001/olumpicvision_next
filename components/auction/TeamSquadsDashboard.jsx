@@ -84,6 +84,44 @@ export default function TeamSquadsDashboard({
 
   return (
     <div className="container-fluid px-3 px-md-4 py-4">
+      {/* TOURNAMENT CONTEXT & IDENTIFICATION STRIP */}
+      {tournament && (
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-3 px-md-4 rounded-3 bg-dark bg-opacity-70 border border-secondary border-opacity-25 shadow-sm">
+          <div className="d-flex align-items-center gap-3">
+            <span className="fs-2">{tournament.sportConfig?.icon || '🏆'}</span>
+            <div>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <span className="badge badge-cyan px-2.5 py-0.5 rounded-pill text-xs fw-extrabold text-uppercase">
+                  {tournament.sport_name || 'Multi-Sport'}
+                </span>
+                <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs rounded-pill">
+                  {tournament.season_year || '2026/27'}
+                </span>
+                {tournament.venue && (
+                  <span className="text-white-50 text-xs d-none d-md-inline">
+                    📍 {tournament.venue}
+                  </span>
+                )}
+              </div>
+              <h2 className="fs-5 fw-extrabold text-white mb-0">
+                {tournament.tournament_name}
+              </h2>
+            </div>
+          </div>
+
+          <div className="d-flex align-items-center gap-2 ms-auto">
+            <Link
+              href="/auction"
+              className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5"
+              title="View all active tournaments and games"
+            >
+              <span>⇄</span>
+              <span>Switch Tournament</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Real-time SOLD / UNSOLD Live Notification Banner */}
       {liveNotification && (
         <div

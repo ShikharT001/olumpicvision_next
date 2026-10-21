@@ -96,19 +96,19 @@ export async function authenticateAuction(formData) {
   }
 
   // Determine post-login redirect path
-  let target = returnTo.split('?')[0];
+  let target = returnTo || '/auction';
 
   if (role === 'team') {
     // Prevent team role from landing on admin-only consoles
     if (target.includes('/manage-teams') || target.includes('/admin')) {
       target = target.replace(/\/manage-teams|\/admin/, '/teams');
     }
-    // If logging in from general login/root, take them straight to squads & purse hub
-    if (target === '/auction' || target === '/auction/login') {
-      target = '/auction/teams';
+    // If logging in from general login, route to the tournament selection hub
+    if (target.startsWith('/auction/login') || target === '/auction') {
+      target = '/auction';
     }
   } else if (role === 'admin') {
-    if (target === '/auction/login') {
+    if (target.startsWith('/auction/login')) {
       target = '/auction';
     }
   }

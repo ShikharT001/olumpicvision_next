@@ -509,11 +509,18 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       {/* Header Bar */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom border-secondary border-opacity-25 pb-3 mb-4">
         <div>
-          <span className="badge badge-cyan px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase mb-1">
-            Player Registry
-          </span>
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <span className="badge badge-cyan px-2.5 py-0.5 rounded-pill text-xs fw-extrabold text-uppercase">
+              {tournament?.sportConfig?.icon || '🏆'} {tournament?.sport_name || 'Player Pool'}
+            </span>
+            {tournament && (
+              <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs rounded-pill">
+                {tournament.season_year || '2026/27'}
+              </span>
+            )}
+          </div>
           <h2 className="h3 fw-extrabold text-white mb-0 tracking-tight">
-            Auction Player Pool & Lot Management
+            {tournament ? `${tournament.tournament_name} — Players` : 'Auction Player Pool & Lot Management'}
           </h2>
         </div>
 
