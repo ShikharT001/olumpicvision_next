@@ -32,6 +32,7 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
   });
 
   const filteredTournaments = tournaments.filter((t) => {
+    if (t.sport_id && t.sport_id.toLowerCase() !== 'volleyball') return false;
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -248,16 +249,16 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
             <div>
               <div className="d-flex align-items-center gap-2">
                 <span className="badge badge-cyan px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
-                  Directory
+                  Official Tournament
                 </span>
-                <span className="text-white-50 text-xs">All Ongoing Championships</span>
+                <span className="text-white-50 text-xs">PDVL 2026/27 Championship</span>
               </div>
               <h2 className="fs-4 fw-extrabold text-white mb-0 mt-1 tracking-tight">
-                All Active Tournaments
+                Active Volleyball Tournament
               </h2>
             </div>
             <span className="badge bg-dark bg-opacity-70 text-secondary border border-secondary border-opacity-30 rounded-pill text-xs px-3 py-1.5">
-              {tournaments.length} Championships Registered
+              Palghar District Volleyball League
             </span>
           </div>
 

@@ -13,7 +13,8 @@ export default function AuctionLoginGate({
   initialRole = 'team',
 }) {
   const [loginMode, setLoginMode] = useState(initialRole || 'team'); // 'team' | 'admin'
-  const [selectedTournamentId, setSelectedTournamentId] = useState(tournament?.id || '');
+  const defaultTourn = tournament || (allTournaments.length === 1 ? allTournaments[0] : null);
+  const [selectedTournamentId, setSelectedTournamentId] = useState(defaultTourn?.id || '');
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,9 +25,10 @@ export default function AuctionLoginGate({
     if (selectedTournamentId && allTournaments.length > 0) {
       return allTournaments.find((t) => String(t.id) === String(selectedTournamentId)) || null;
     }
+    if (defaultTourn) return defaultTourn;
     if (allTournaments.length === 1) return allTournaments[0];
     return null;
-  }, [tournament, selectedTournamentId, allTournaments]);
+  }, [tournament, selectedTournamentId, allTournaments, defaultTourn]);
 
   // Active registered teams list strictly for the selected tournament
   const activeTeams = useMemo(() => {
@@ -66,13 +68,12 @@ export default function AuctionLoginGate({
     return errorMessage;
   }, [errorMessage, selectedTeam]);
 
-  // Quick select team handler
+  // Quick select team handler (confidential — no auto-filling passwords)
   const handleSelectTeam = (team) => {
     setSelectedTeamId(team.id);
     if (team.tournament_id) {
       setSelectedTournamentId(team.tournament_id);
     }
-    setPassword(team.team_code || 'team');
   };
 
   return (
@@ -125,9 +126,9 @@ export default function AuctionLoginGate({
 
           <p className="text-white-50 text-xs mt-2 mb-0 leading-relaxed px-sm-2">
             {loginMode === 'team'
-              ? tournament
-                ? `Sign in for ${tournament.tournament_name}`
-                : 'Select tournament first, choose your registered team, and enter passcode.'
+              ? defaultTourn
+                ? `Sign in for ${defaultTourn.tournament_name}`
+                : 'Choose your registered team and enter confidential passcode.'
               : 'Sign in to access the master multi-sport auction console.'}
           </p>
         </div>
@@ -193,14 +194,12 @@ export default function AuctionLoginGate({
           />
           <input type="hidden" name="loginMode" value={loginMode} />
 
-          {/* Tournament ID hidden field if tournament is fixed via props or in admin mode */}
-          {(tournament || loginMode === 'admin') && (
-            <input
-              type="hidden"
-              name="tournamentId"
-              value={tournament?.id || selectedTournamentId || ''}
-            />
-          )}
+          {/* Tournament ID hidden field */}
+          <input
+            type="hidden"
+            name="tournamentId"
+            value={defaultTourn?.id || selectedTournamentId || ''}
+          />
 
           {loginMode === 'team' && (
             <>
@@ -208,13 +207,13 @@ export default function AuctionLoginGate({
               <div>
                 <label className="form-label text-white-50 text-xs mb-1.5 fw-semibold d-flex align-items-center justify-content-between">
                   <span>1. Championship Tournament</span>
-                  <span className="badge badge-gold text-xs">Step 1</span>
+                  <span className="badge badge-gold text-xs">Official</span>
                 </label>
 
-                {tournament ? (
+                {defaultTourn ? (
                   <div className="p-2.5 rounded-3 bg-dark border border-secondary border-opacity-40 text-xs fw-bold text-white d-flex align-items-center justify-content-between shadow-sm">
-                    <span className="text-truncate">{tournament.tournament_name}</span>
-                    <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs">Fixed</span>
+                    <span className="text-truncate">{defaultTourn.tournament_name}</span>
+                    <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs">Volleyball</span>
                   </div>
                 ) : (
                   <select
@@ -246,7 +245,7 @@ export default function AuctionLoginGate({
                   <span className="badge badge-cyan text-xs">Step 2</span>
                 </label>
 
-                {!selectedTournamentId && !tournament ? (
+                {!selectedTournamentId && !defaultTourn ? (
                   <div className="p-2.5 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-20 text-white-50 text-xs text-center">
                     👆 Please choose a tournament above first to load registered teams
                   </div>
@@ -259,10 +258,6 @@ export default function AuctionLoginGate({
                       onChange={(e) => {
                         const tId = e.target.value;
                         setSelectedTeamId(tId);
-                        const tm = activeTeams.find((x) => String(x.id) === String(tId));
-                        if (tm) {
-                          setPassword(tm.team_code || 'team');
-                        }
                       }}
                       required
                     >
@@ -342,9 +337,9 @@ export default function AuctionLoginGate({
                 placeholder={
                   loginMode === 'team'
                     ? selectedTeam
-                      ? `Enter passcode for ${selectedTeam.team_name} (default: ${selectedTeam.team_code})`
-                      : 'Select team above or enter team code'
-                    : 'Enter admin passcode (default: admin)'
+                      ? `Enter passcode for ${selectedTeam.team_name}`
+                      : 'Enter team access passcode'
+                    : 'Enter admin passcode'
                 }
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -360,50 +355,6 @@ export default function AuctionLoginGate({
                 {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
-          </div>
-
-          {/* QUICK FILL DEMO CHIPS (SCOPED TO REGISTERED TEAMS) */}
-          <div className="d-flex flex-wrap align-items-center gap-1.5">
-            <span className="text-white-50 text-xs me-1">
-              {loginMode === 'team' ? 'Registered Team PINs:' : 'Demo PINs:'}
-            </span>
-            {loginMode === 'team' ? (
-              activeTeams.length > 0 ? (
-                activeTeams.slice(0, 4).map((team) => (
-                  <button
-                    key={team.id}
-                    type="button"
-                    className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5 text-xs fw-bold d-inline-flex align-items-center gap-1"
-                    onClick={() => handleSelectTeam(team)}
-                    title={`Sign in directly as ${team.team_name}`}
-                  >
-                    <span>⚡</span>
-                    <span>{team.team_code}</span>
-                  </button>
-                ))
-              ) : (
-                <span className="text-white-50 text-xs fst-italic">
-                  Select tournament above to view team PINs
-                </span>
-              )
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                  onClick={() => setPassword('admin')}
-                >
-                  ⚡ 'admin'
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                  onClick={() => setPassword('admin123')}
-                >
-                  ⚡ 'admin123'
-                </button>
-              </>
-            )}
           </div>
 
           {/* SUBMIT BUTTON */}
