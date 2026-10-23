@@ -18,19 +18,27 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
       {/* Top Breadcrumb Navigation */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div className="d-flex align-items-center gap-2">
-          <Link
-            href="/auction"
-            className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white text-xs text-decoration-none"
-          >
-            ← All Games
-          </Link>
-          <span className="text-secondary small">/</span>
-          <Link
-            href={`/auction?sport=${tournament.sport_id}`}
-            className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 text-info text-xs text-decoration-none"
-          >
-            {sport.icon || '🏅'} {tournament.sport_name} Tournaments
-          </Link>
+          {isAdmin ? (
+            <>
+              <Link
+                href="/auction"
+                className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white text-xs text-decoration-none"
+              >
+                ← All Games
+              </Link>
+              <span className="text-secondary small">/</span>
+              <Link
+                href={`/auction?sport=${tournament.sport_id}`}
+                className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 text-info text-xs text-decoration-none"
+              >
+                {sport.icon || '🏅'} {tournament.sport_name} Tournaments
+              </Link>
+            </>
+          ) : (
+            <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold shadow-sm">
+              🛡️ {tournament.tournament_name}
+            </span>
+          )}
         </div>
 
         <div className="d-flex align-items-center gap-2">
@@ -100,9 +108,37 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
           </div>
         )}
 
-        {/* Quick Nav Cards */}
+        {/* Quick Nav Cards: Filtered by role (Teams never see YouTube Live or Player Pool) */}
         <div className="row g-3 justify-content-center">
-          <div className="col-12 col-sm-6 col-md-3">
+          {isAdmin && (
+            <div className="col-12 col-sm-6 col-lg">
+              <Link
+                href={`${basePath}/stream`}
+                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                style={{
+                  borderColor: 'rgba(239, 68, 68, 0.55)',
+                  background: 'radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.1) 0%, rgba(11, 18, 33, 0.95) 100%)',
+                }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="fs-1">🎥</span>
+                  <span className="broadcast-pill-live px-2 py-0.5 rounded-pill text-xs">
+                    <span className="broadcast-live-dot" />
+                    <span>LIVE</span>
+                  </span>
+                </div>
+                <h4 className="fw-bold text-white mb-1">YouTube Live</h4>
+                <p className="text-secondary small mb-3">
+                  Watch the real physical live auction shooting camera with real-time bidding details on screen.
+                </p>
+                <span className="text-danger small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  Watch Live Stream →
+                </span>
+              </Link>
+            </div>
+          )}
+
+          <div className="col-12 col-sm-6 col-lg">
             <Link
               href={`${basePath}/admin`}
               className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
@@ -123,24 +159,7 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
             </Link>
           </div>
 
-          <div className="col-12 col-sm-6 col-md-3">
-            <Link
-              href={`${basePath}/live`}
-              className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-              style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}
-            >
-              <div className="fs-1 mb-2">📺</div>
-              <h4 className="fw-bold text-white mb-1">Big-Screen Stage</h4>
-              <p className="text-secondary small mb-3">
-                16:9 fullscreen display designed for venue TVs and projectors with celebratory fanfare.
-              </p>
-              <span className="text-warning small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                Open Projector View →
-              </span>
-            </Link>
-          </div>
-
-          <div className="col-12 col-sm-6 col-md-3">
+          <div className="col-12 col-sm-6 col-lg">
             <Link
               href={`${basePath}/teams`}
               className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
@@ -157,24 +176,41 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
             </Link>
           </div>
 
-          <div className="col-12 col-sm-6 col-md-3">
+          <div className="col-12 col-sm-6 col-lg">
             <Link
-              href={`${basePath}/players`}
+              href={`${basePath}/live`}
               className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-              style={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
+              style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}
             >
-              <div className="fs-1 mb-2">📋</div>
-              <h4 className="fw-bold text-white mb-1">
-                {isAdmin ? 'Player Pool & Lots' : 'Player Pool'}
-              </h4>
+              <div className="fs-1 mb-2">📺</div>
+              <h4 className="fw-bold text-white mb-1">Big-Screen Stage</h4>
               <p className="text-secondary small mb-3">
-                Browse registered players, playing positions for {tournament.sport_name}, base prices, and lot order.
+                16:9 fullscreen display designed for venue TVs and projectors with celebratory fanfare.
               </p>
-              <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                {isAdmin ? 'Manage Players →' : 'Browse Players →'}
+              <span className="text-warning small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                Open Projector View →
               </span>
             </Link>
           </div>
+
+          {isAdmin && (
+            <div className="col-12 col-sm-6 col-lg">
+              <Link
+                href={`${basePath}/players`}
+                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                style={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
+              >
+                <div className="fs-1 mb-2">📋</div>
+                <h4 className="fw-bold text-white mb-1">Player Pool &amp; Lots</h4>
+                <p className="text-secondary small mb-3">
+                  Browse registered players, playing positions for {tournament.sport_name}, base prices, and lot order.
+                </p>
+                <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  Manage Players →
+                </span>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

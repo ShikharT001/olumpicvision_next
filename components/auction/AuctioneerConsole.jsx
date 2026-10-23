@@ -564,14 +564,24 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   {tournament?.tournament_name || 'PDVL 2026/27 Official Auction'}
                 </span>
               </div>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
-                onClick={openPlayerDrawer}
-              >
-                <span>{isAdmin ? 'Change Player Queue' : 'Explore Player Queue'}</span>
-                <span className="badge bg-info text-dark rounded-pill">☰</span>
-              </button>
+              <div className="d-flex align-items-center gap-1.5">
+                <Link
+                  href={activeTournamentId ? `/auction/t/${activeTournamentId}/stream` : '/auction/stream'}
+                  className="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 fw-bold text-xs d-inline-flex align-items-center gap-1 shadow-sm"
+                  title="Open YouTube Live Stream & Auction Screen Window"
+                >
+                  <span>🎥</span>
+                  <span className="d-none d-sm-inline">YouTube Live</span>
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 fw-bold text-xs d-inline-flex align-items-center gap-1.5"
+                  onClick={openPlayerDrawer}
+                >
+                  <span>{isAdmin ? 'Change Player Queue' : 'Explore Player Queue'}</span>
+                  <span className="badge bg-info text-dark rounded-pill">☰</span>
+                </button>
+              </div>
             </div>
 
             {/* SYSTEMATIC CATEGORY SEQUENCE PIPELINE & QUICK PODIUM DISPATCH */}

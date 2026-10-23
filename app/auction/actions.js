@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getAuctionTeams, getTournamentById, getTournaments } from '@/lib/auction-db';
 
 const AUCTION_COOKIE = 'pdvl_auction_access';
 const AUCTION_ROLE_COOKIE = 'pdvl_auction_role';
@@ -9,6 +10,7 @@ const AUCTION_TEAM_ID_COOKIE = 'pdvl_auction_team_id';
 const AUCTION_TEAM_NAME_COOKIE = 'pdvl_auction_team_name';
 const AUCTION_TEAM_CODE_COOKIE = 'pdvl_auction_team_code';
 const AUCTION_TEAM_COLOR_COOKIE = 'pdvl_auction_team_color';
+const AUCTION_TOURNAMENT_ID_COOKIE = 'pdvl_auction_tournament_id';
 
 const AUCTION_ADMIN_PASSWORD = process.env.AUCTION_ADMIN_PASSWORD || 'pdvladmin2026';
 const AUCTION_TEAM_PASSWORD = process.env.AUCTION_TEAM_PASSWORD || 'pdvl2026';
@@ -16,13 +18,22 @@ const AUCTION_TEAM_PASSWORD = process.env.AUCTION_TEAM_PASSWORD || 'pdvl2026';
 export async function authenticateAuction(formData) {
   const password = String(formData.get('password') || '').trim();
   const returnTo = String(formData.get('returnTo') || '/auction').trim();
-  const loginMode = String(formData.get('loginMode') || 'admin').trim(); // 'admin' | 'team'
+  const loginMode = String(formData.get('loginMode') || 'team').trim(); // 'admin' | 'team'
+  let tournamentId = String(formData.get('tournamentId') || '').trim();
+
+  // If tournamentId wasn't passed directly, extract from returnTo if possible
+  if (!tournamentId) {
+    const match = returnTo.match(/\/auction\/t\/([^/?#]+)/);
+    if (match) {
+      tournamentId = match[1];
+    }
+  }
 
   // Team selection fields (when logging in under team mode)
-  const teamId = String(formData.get('teamId') || '').trim();
-  const teamName = String(formData.get('teamName') || '').trim();
-  const teamCode = String(formData.get('teamCode') || '').trim();
-  const teamColor = String(formData.get('teamColor') || '').trim();
+  let teamId = String(formData.get('teamId') || '').trim();
+  let teamName = String(formData.get('teamName') || '').trim();
+  let teamCode = String(formData.get('teamCode') || '').trim();
+  let teamColor = String(formData.get('teamColor') || '').trim();
 
   const adminPasscodes = [
     AUCTION_ADMIN_PASSWORD,
@@ -44,24 +55,114 @@ export async function authenticateAuction(formData) {
   ].filter(Boolean).map((p) => String(p).toLowerCase());
 
   const passLower = password.toLowerCase();
+  const isMatchAdmin = adminPasscodes.includes(passLower);
 
   let role = null;
-  const isMatchAdmin = adminPasscodes.includes(passLower);
-  const isMatchTeam =
-    teamPasscodes.includes(passLower) ||
-    (teamCode && passLower === teamCode.toLowerCase()) ||
-    (teamName && passLower === teamName.toLowerCase());
+  let matchedTeam = null;
 
   if (loginMode === 'team') {
-    // If logging in via Team tab, accept team passcodes or admin passcodes (for testing)
-    if (isMatchTeam || isMatchAdmin) {
-      role = 'team';
+    // -------------------------------------------------------------
+    // REGISTERED TEAM LOGIN FOR A SPECIFIC TOURNAMENT
+    // -------------------------------------------------------------
+    if (tournamentId) {
+      const tournamentTeams = await getAuctionTeams(tournamentId);
+
+      // Case 1: Specific team was selected in the form
+      if (teamId) {
+        const found = tournamentTeams.find((t) => String(t.id) === String(teamId));
+        if (!found) {
+          // Team is not registered for this tournament!
+          const errRedirect = `${returnTo.split('?')[0]}?error=not_registered_team&role=team`;
+          redirect(errRedirect);
+        }
+
+        const isPassCorrect =
+          passLower === found.team_code.toLowerCase() ||
+          passLower === found.team_name.toLowerCase() ||
+          teamPasscodes.includes(passLower) ||
+          isMatchAdmin;
+
+        if (!isPassCorrect) {
+          const errRedirect = `${returnTo.split('?')[0]}?error=invalid_team_passcode&role=team&selectedTeamId=${found.id}`;
+          redirect(errRedirect);
+        }
+
+        matchedTeam = found;
+      } else {
+        // Case 2: No dropdown selection, user entered team code / passcode directly
+        // Check if entered password or teamCode matches any registered team in this tournament
+        const matchByCode = tournamentTeams.find(
+          (t) =>
+            t.team_code.toLowerCase() === passLower ||
+            (teamCode && t.team_code.toLowerCase() === teamCode.toLowerCase()) ||
+            t.team_name.toLowerCase() === passLower
+        );
+
+        if (matchByCode) {
+          matchedTeam = matchByCode;
+        } else if (teamPasscodes.includes(passLower) || isMatchAdmin) {
+          // If they entered the general team password but did not pick a team,
+          // require them to select which registered team they belong to
+          if (tournamentTeams.length > 0) {
+            const errRedirect = `${returnTo.split('?')[0]}?error=select_registered_team&role=team`;
+            redirect(errRedirect);
+          }
+        } else {
+          // Check if code belongs to another tournament to provide helpful feedback
+          const allTeams = await getAuctionTeams();
+          const otherMatch = allTeams.find(
+            (t) => t.team_code.toLowerCase() === passLower || t.team_name.toLowerCase() === passLower
+          );
+          if (otherMatch) {
+            const errRedirect = `${returnTo.split('?')[0]}?error=team_from_other_tournament&role=team`;
+            redirect(errRedirect);
+          } else {
+            const errRedirect = `${returnTo.split('?')[0]}?error=invalid_team_credentials&role=team`;
+            redirect(errRedirect);
+          }
+        }
+      }
     } else {
-      const errRedirect = `${returnTo.split('?')[0]}?error=invalid&role=team`;
+      // General login without pre-selected tournament:
+      // Strictly verify if entered team is registered by admin in any tournament
+      const allTeams = await getAuctionTeams();
+      const found = allTeams.find(
+        (t) =>
+          (teamId && String(t.id) === String(teamId)) ||
+          t.team_code.toLowerCase() === passLower ||
+          (teamCode && t.team_code.toLowerCase() === teamCode.toLowerCase()) ||
+          t.team_name.toLowerCase() === passLower
+      );
+
+      if (found) {
+        const isPassCorrect =
+          passLower === found.team_code.toLowerCase() ||
+          passLower === found.team_name.toLowerCase() ||
+          teamPasscodes.includes(passLower) ||
+          isMatchAdmin;
+
+        if (!isPassCorrect) {
+          const errRedirect = `${returnTo.split('?')[0]}?error=invalid_team_passcode&role=team&selectedTeamId=${found.id}`;
+          redirect(errRedirect);
+        }
+
+        matchedTeam = found;
+        tournamentId = found.tournament_id;
+      } else {
+        // Not registered by admin in any active tournament
+        const errRedirect = `${returnTo.split('?')[0]}?error=not_registered_team&role=team`;
+        redirect(errRedirect);
+      }
+    }
+
+    if (!matchedTeam) {
+      const errRedirect = `${returnTo.split('?')[0]}?error=not_registered_team&role=team`;
       redirect(errRedirect);
     }
+
+    role = 'team';
   } else {
-    // Admin mode requires admin passcode
+    // Admin login mode requires master admin passcode
     if (isMatchAdmin) {
       role = 'admin';
     } else {
@@ -82,35 +183,38 @@ export async function authenticateAuction(formData) {
   cookieStore.set(AUCTION_COOKIE, 'true', cookieOpts);
   cookieStore.set(AUCTION_ROLE_COOKIE, role, cookieOpts);
 
-  if (role === 'team' && teamId) {
-    cookieStore.set(AUCTION_TEAM_ID_COOKIE, teamId, cookieOpts);
-    cookieStore.set(AUCTION_TEAM_NAME_COOKIE, teamName || '', cookieOpts);
-    cookieStore.set(AUCTION_TEAM_CODE_COOKIE, teamCode || '', cookieOpts);
-    cookieStore.set(AUCTION_TEAM_COLOR_COOKIE, teamColor || '', cookieOpts);
+  if (role === 'team' && matchedTeam) {
+    cookieStore.set(AUCTION_TEAM_ID_COOKIE, String(matchedTeam.id), cookieOpts);
+    cookieStore.set(AUCTION_TEAM_NAME_COOKIE, matchedTeam.team_name || '', cookieOpts);
+    cookieStore.set(AUCTION_TEAM_CODE_COOKIE, matchedTeam.team_code || '', cookieOpts);
+    cookieStore.set(AUCTION_TEAM_COLOR_COOKIE, matchedTeam.primary_color || '#06b6d4', cookieOpts);
+    if (tournamentId) {
+      cookieStore.set(AUCTION_TOURNAMENT_ID_COOKIE, String(tournamentId), cookieOpts);
+    }
   } else {
-    // If admin or general team, clear specific team credentials
+    // If admin, clear team credentials
     cookieStore.delete(AUCTION_TEAM_ID_COOKIE);
     cookieStore.delete(AUCTION_TEAM_NAME_COOKIE);
     cookieStore.delete(AUCTION_TEAM_CODE_COOKIE);
     cookieStore.delete(AUCTION_TEAM_COLOR_COOKIE);
+    cookieStore.delete(AUCTION_TOURNAMENT_ID_COOKIE);
   }
 
-  // Determine post-login redirect path
-  let target = returnTo || '/auction';
+  // Determine post-login redirect path:
+  // Admin after login MUST direct to the list of sports (/auction)
+  // Team directly loads the auction screens for their registered tournament!
+  let target = '/auction';
 
-  if (role === 'team') {
-    // Prevent team role from landing on admin-only consoles
-    if (target.includes('/manage-teams') || target.includes('/admin')) {
-      target = target.replace(/\/manage-teams|\/admin/, '/teams');
-    }
-    // If logging in from general login, route to the tournament selection hub
-    if (target.startsWith('/auction/login') || target === '/auction') {
-      target = '/auction';
+  if (role === 'team' && matchedTeam) {
+    const tId = tournamentId || matchedTeam.tournament_id;
+    if (tId) {
+      target = `/auction/t/${tId}/teams?teamId=${matchedTeam.id}&tab=squads`;
+    } else {
+      target = '/auction/teams';
     }
   } else if (role === 'admin') {
-    if (target.startsWith('/auction/login')) {
-      target = '/auction';
-    }
+    // Admin after login directs to list of sports
+    target = '/auction';
   }
 
   redirect(target);
@@ -124,6 +228,7 @@ export async function logoutAuction() {
   cookieStore.delete(AUCTION_TEAM_NAME_COOKIE);
   cookieStore.delete(AUCTION_TEAM_CODE_COOKIE);
   cookieStore.delete(AUCTION_TEAM_COLOR_COOKIE);
+  cookieStore.delete(AUCTION_TOURNAMENT_ID_COOKIE);
   redirect('/auction');
 }
 
@@ -139,13 +244,15 @@ export async function getAuctionSession() {
   const teamName = cookieStore.get(AUCTION_TEAM_NAME_COOKIE)?.value || null;
   const teamCode = cookieStore.get(AUCTION_TEAM_CODE_COOKIE)?.value || null;
   const teamColor = cookieStore.get(AUCTION_TEAM_COLOR_COOKIE)?.value || null;
+  const tournamentId = cookieStore.get(AUCTION_TOURNAMENT_ID_COOKIE)?.value || null;
 
   return {
     isAuthenticated: Boolean(hasAuctionCookie || hasAdminCookie),
     role,
     isAdmin: role === 'admin',
     isTeam: role === 'team',
-    team: teamId ? { id: teamId, name: teamName, code: teamCode, color: teamColor } : null,
+    tournamentId,
+    team: teamId ? { id: teamId, name: teamName, code: teamCode, color: teamColor, tournamentId } : null,
   };
 }
 
@@ -168,3 +275,4 @@ export async function isAuctionAuthenticated() {
   const session = await getAuctionSession();
   return session.isAuthenticated;
 }
+

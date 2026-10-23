@@ -340,28 +340,48 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
                     <div className="d-flex flex-wrap align-items-center gap-1.5">
                       <Link
                         href={`/auction/t/${tId}/admin`}
-                        className="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        title="Auctioneer Hammer Podium"
                       >
                         🔨 {isAdmin ? 'Auction Podium' : 'Watch Podium'}
                       </Link>
                       <Link
+                        href={`/auction/t/${tId}/stream`}
+                        className="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        title="YouTube Live Broadcast Stream"
+                      >
+                        🎥 YouTube Live
+                      </Link>
+                      <Link
                         href={`/auction/t/${tId}/live`}
-                        className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        title="Big Screen Projector Stage"
                       >
                         📺 Big Screen
                       </Link>
                       <Link
                         href={`/auction/t/${tId}/teams`}
-                        className="btn btn-sm btn-outline-success rounded-pill px-3 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        className="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        title="Franchise Squads & Purse"
                       >
                         🛡️ Squads
                       </Link>
                       <Link
                         href={`/auction/t/${tId}/players`}
-                        className="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-1 text-xs fw-bold flex-grow-1 text-center"
+                        title="Player Pool & Lots"
                       >
                         📋 Players
                       </Link>
+                      {isAdmin && (
+                        <Link
+                          href={`/auction/t/${tId}/manage-teams`}
+                          className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-xs fw-bold flex-grow-1 text-center"
+                          title="Register & Setup Teams"
+                        >
+                          ⚙️ Setup Teams
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>

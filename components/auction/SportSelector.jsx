@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/sports-config';
 
 export default function SportSelector({ sports = [], tournaments = [], role = 'team', isAdmin = false }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,23 +152,112 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
         </div>
       </div>
 
-      {/* ACTIVE SIMULTANEOUS TOURNAMENTS SECTION */}
+      {/* PRIMARY SECTION: BROWSE ALL SPORTS & GAMES (ADMIN & USERS) */}
+      <div className="mb-4">
+        <div className="mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                Select Sport
+              </span>
+              <span className="text-white-50 text-xs">Multi-Sport Auction Engine</span>
+            </div>
+            <h2 className="fs-3 fw-black text-white mb-0 mt-1 tracking-tight">
+              Browse All Sports &amp; Games
+            </h2>
+          </div>
+          <span className="badge bg-dark bg-opacity-70 text-secondary border border-secondary border-opacity-30 rounded-pill text-xs px-3 py-1.5">
+            {filteredSports.length} Sports Available
+          </span>
+        </div>
+
+        {/* Sports Grid */}
+        <div className="row g-4 mb-5">
+          {filteredSports.map((sport) => {
+            const sportTournaments = tournaments.filter((t) => t.sport_id === sport.id);
+            const activeCount = sportTournaments.length;
+
+            return (
+              <div key={sport.id} className="col-12 col-sm-6 col-lg-3">
+                <div
+                  className="sport-card h-100"
+                  style={{
+                    '--sport-theme': sport.themeColor,
+                    '--sport-glow': sport.borderColor,
+                  }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <div className="sport-icon-box">{sport.icon}</div>
+                    <span
+                      className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${sport.badgeClass || 'badge-cyan'}`}
+                    >
+                      {activeCount > 0 ? `${activeCount} Tournament${activeCount > 1 ? 's' : ''}` : 'Ready to Add'}
+                    </span>
+                  </div>
+
+                  <h3 className="h4 fw-bold text-white mb-2">{sport.name}</h3>
+
+                  <p className="text-secondary small mb-4 flex-grow-1 leading-relaxed">
+                    {sport.description}
+                  </p>
+
+                  <div className="vstack gap-2 mt-auto">
+                    <Link
+                      href={`/auction?sport=${sport.id}`}
+                      className="btn btn-sm btn-info text-dark rounded-pill py-2 fw-extrabold d-flex align-items-center justify-content-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <span>Select Sport &amp; Tournaments</span>
+                      <span>→</span>
+                    </Link>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-warning rounded-pill py-1.5 text-xs fw-bold d-flex align-items-center justify-content-center gap-1"
+                        onClick={() => {
+                          handleSportSelectChange(sport.id);
+                          setShowCreateModal(true);
+                        }}
+                      >
+                        <span>➕ Add Tournament</span>
+                      </button>
+                    )}
+
+                    {/* Quick jump to active auction if tournaments exist */}
+                    {sportTournaments.length > 0 && (
+                      <Link
+                        href={`/auction/t/${sportTournaments[0].id || sportTournaments[0].slug}`}
+                        className="btn btn-sm btn-outline-light rounded-pill py-1 text-xs fw-bold d-flex align-items-center justify-content-center gap-1"
+                        title={`Open latest ${sport.name} auction`}
+                      >
+                        <span>⚡ Jump to Live Hub</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SECONDARY OVERVIEW: ACTIVE SIMULTANEOUS TOURNAMENTS SECTION */}
       {tournaments.length > 0 && (
-        <div className="mb-5">
+        <div className="mb-5 pt-3 border-top border-secondary border-opacity-20">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-2 border-bottom border-secondary border-opacity-20">
             <div>
               <div className="d-flex align-items-center gap-2">
                 <span className="badge badge-cyan px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
-                  Live &amp; Active
+                  Directory
                 </span>
-                <span className="text-white-50 text-xs">Simultaneous Championships</span>
+                <span className="text-white-50 text-xs">All Ongoing Championships</span>
               </div>
               <h2 className="fs-4 fw-extrabold text-white mb-0 mt-1 tracking-tight">
-                Active Tournaments Directory
+                All Active Tournaments
               </h2>
             </div>
             <span className="badge bg-dark bg-opacity-70 text-secondary border border-secondary border-opacity-30 rounded-pill text-xs px-3 py-1.5">
-              {tournaments.length} Championships Available
+              {tournaments.length} Championships Registered
             </span>
           </div>
 
@@ -199,27 +289,34 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
 
                     <div className="d-flex align-items-center justify-content-between py-2 border-top border-secondary border-opacity-20 text-xs text-white-50 mb-3">
                       <span>Teams: <strong className="text-white">{t.teams_count || 8}</strong></span>
-                      <span>Purse: <strong className="text-warning font-monospace">₹{Number(t.default_purse || 100000).toLocaleString()}</strong></span>
+                      <span suppressHydrationWarning>Purse: <strong className="text-warning font-monospace">₹{formatCurrency(t.default_purse || 100000)}</strong></span>
                       <span>Players: <strong className="text-white">{t.players_count || 48}</strong></span>
                     </div>
 
                     <div className="d-flex align-items-center gap-2 mt-auto">
                       <Link
-                        href={`/auction/t/${tId}/teams`}
+                        href={`/auction/t/${tId}`}
                         className="btn btn-sm btn-info text-dark rounded-pill px-3 py-2 fw-bold text-xs flex-fill text-center shadow-sm"
                       >
-                        🛡️ Squads &amp; Purse ➔
+                        Enter Auction Hub ➔
                       </Link>
                       <Link
                         href={`/auction/t/${tId}/admin`}
-                        className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-2 text-xs fw-bold"
+                        className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-2 text-xs fw-bold"
                         title={isAdmin ? 'Auctioneer Console' : 'Watch Live Console'}
                       >
                         🔨
                       </Link>
                       <Link
+                        href={`/auction/t/${tId}/stream`}
+                        className="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-2 text-xs fw-bold"
+                        title="YouTube Live Stream"
+                      >
+                        🎥
+                      </Link>
+                      <Link
                         href={`/auction/t/${tId}/live`}
-                        className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-2 text-xs fw-bold"
+                        className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-2 text-xs fw-bold"
                         title="Big Screen Projector Stage"
                       >
                         📺
@@ -231,75 +328,6 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
             })}
           </div>
         </div>
-      )}
-
-      {/* Section Divider & Heading for Sports Explorer — Admin Only */}
-      {isAdmin && (
-        <>
-          <div className="mb-3 d-flex align-items-center justify-content-between">
-            <div>
-              <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-0.5">Explore by Category</span>
-              <h2 className="fs-4 fw-extrabold text-white mb-0">Browse All Sports &amp; Games</h2>
-            </div>
-            <span className="text-secondary small">{filteredSports.length} Sports</span>
-          </div>
-
-          {/* Sports Grid */}
-          <div className="row g-4 mb-5">
-            {filteredSports.map((sport) => {
-              const sportTournaments = tournaments.filter((t) => t.sport_id === sport.id);
-              const activeCount = sportTournaments.length;
-
-              return (
-                <div key={sport.id} className="col-12 col-sm-6 col-lg-3">
-                  <div
-                    className="sport-card h-100"
-                    style={{
-                      '--sport-theme': sport.themeColor,
-                      '--sport-glow': sport.borderColor,
-                    }}
-                  >
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <div className="sport-icon-box">{sport.icon}</div>
-                      <span
-                        className={`badge rounded-pill px-2.5 py-1 text-xs fw-extrabold ${sport.badgeClass || 'badge-cyan'}`}
-                      >
-                        {activeCount > 0 ? `${activeCount} Tournament${activeCount > 1 ? 's' : ''}` : 'Ready to Add'}
-                      </span>
-                    </div>
-
-                    <h3 className="h4 fw-bold text-white mb-2">{sport.name}</h3>
-
-                    <p className="text-secondary small mb-4 flex-grow-1 leading-relaxed">
-                      {sport.description}
-                    </p>
-
-                    <div className="vstack gap-2 mt-auto">
-                      <Link
-                        href={`/auction?sport=${sport.id}`}
-                        className="btn btn-sm btn-outline-info rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center gap-1.5 transition-all"
-                      >
-                        <span>View Tournaments</span>
-                        <span>→</span>
-                      </Link>
-
-                      {/* If tournaments exist for this sport, offer quick 1-click jump to the first one */}
-                      {sportTournaments.length > 0 && (
-                        <Link
-                          href={`/auction/t/${sportTournaments[0].id || sportTournaments[0].slug}`}
-                          className="btn btn-sm btn-primary rounded-pill py-1.5 fw-bold text-xs d-flex align-items-center justify-content-center gap-1"
-                        >
-                          <span>Enter Latest Auction</span>
-                          <span>⚡</span>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
       )}
 
       {/* CREATE TOURNAMENT MODAL (ADMIN) */}

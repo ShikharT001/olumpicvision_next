@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import SportSelector from '@/components/auction/SportSelector';
@@ -8,6 +9,7 @@ import {
   getSports,
   getTournaments,
   getTournamentById,
+  getAuctionTeams,
   getLiveAuctionState,
 } from '@/lib/auction-db';
 import { getSportById } from '@/lib/sports-config';
@@ -23,19 +25,49 @@ export const dynamic = 'force-dynamic';
 export default async function AuctionHubPage(props) {
   const searchParams = await props.searchParams;
   const isAuthed = await isAuctionAuthenticated();
-
-  if (!isAuthed) {
-    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    const sportParam = searchParams?.sport ? `?sport=${searchParams.sport}` : '';
-    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
-    const returnTo = `/auction${sportParam || tournParam}`;
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={returnTo} />;
-  }
-
   const session = await getAuctionSession();
   const role = session.role;
   const isAdmin = session.isAdmin;
   const loggedTeam = session.team;
+
+  // For registered teams, directly load the auction screens for their tournament (teams never get sport/tournament screen)
+  if (isAuthed && role === 'team' && loggedTeam?.id) {
+    const tId = loggedTeam.tournamentId || session.tournamentId;
+    if (tId) {
+      redirect(`/auction/t/${tId}/teams?teamId=${loggedTeam.id}&tab=squads`);
+    } else {
+      redirect('/auction/teams');
+    }
+  }
+
+  if (!isAuthed) {
+    const errorParam = searchParams?.error || '';
+    const sportParam = searchParams?.sport ? `?sport=${searchParams.sport}` : '';
+    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
+    const returnTo = `/auction${sportParam || tournParam}`;
+    const all = await getTournaments();
+    const tournamentsWithTeams = await Promise.all(
+      all.map(async (t) => {
+        const teams = await getAuctionTeams(t.id);
+        return { ...t, teams };
+      })
+    );
+    let tourn = null;
+    let tournTeams = [];
+    if (searchParams?.tournamentId) {
+      tourn = await getTournamentById(searchParams.tournamentId);
+      if (tourn) tournTeams = await getAuctionTeams(tourn.id);
+    }
+    return (
+      <AuctionLoginGate
+        tournament={tourn}
+        tournamentTeams={tournTeams}
+        allTournaments={tournamentsWithTeams}
+        errorMessage={errorParam}
+        returnTo={returnTo}
+      />
+    );
+  }
 
   // Mode 1: A specific tournament is requested via query param (?tournamentId=...)
   if (searchParams?.tournamentId) {

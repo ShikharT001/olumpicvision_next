@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import TeamSquadsDashboard from '@/components/auction/TeamSquadsDashboard';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
@@ -16,17 +17,37 @@ export const dynamic = 'force-dynamic';
 export default async function AuctionTeamsPage(props) {
   const searchParams = await props.searchParams;
   const isAuthed = await isAuctionAuthenticated();
-  if (!isAuthed) {
-    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/teams${tournParam}`} />;
-  }
-
   const session = await getAuctionSession();
   const role = session.role;
   const loggedTeam = session.team;
 
+  // If logged in as a registered team, directly load their tournament auction screen!
+  if (isAuthed && role === 'team' && loggedTeam?.id) {
+    const tId = loggedTeam.tournamentId || session.tournamentId;
+    if (tId) {
+      redirect(`/auction/t/${tId}/teams?teamId=${loggedTeam.id}&tab=squads`);
+    }
+  }
+
   const allTournaments = await getTournaments();
+
+  if (!isAuthed) {
+    const errorParam = searchParams?.error || '';
+    const tournamentsWithTeams = await Promise.all(
+      allTournaments.map(async (t) => {
+        const teams = await getAuctionTeams(t.id);
+        return { ...t, teams };
+      })
+    );
+    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
+    return (
+      <AuctionLoginGate
+        allTournaments={tournamentsWithTeams}
+        errorMessage={errorParam}
+        returnTo={`/auction/teams${tournParam}`}
+      />
+    );
+  }
 
   let tournament = null;
   if (searchParams?.tournamentId) {
@@ -64,7 +85,7 @@ export default async function AuctionTeamsPage(props) {
                     </span>
                   </div>
 
-                  <h3 className="fs-5 fw-extrabold text-white mb-1.5 text-truncate" title={t.tournament_name}>
+                  <h3 className="fs-5 fw-extrabold text-white mb-1">
                     {t.tournament_name}
                   </h3>
                   <p className="text-white-50 text-xs mb-3 flex-grow-1 text-truncate">
@@ -109,7 +130,7 @@ export default async function AuctionTeamsPage(props) {
           initialTab={searchParams?.tab || 'squads'}
           isAdmin={session.isAdmin}
           loggedTeam={loggedTeam}
-          initialTeamId={searchParams?.teamId}
+          initialTeamId={searchParams?.teamId || (role === 'team' ? loggedTeam?.id : null)}
         />
       </main>
     </div>

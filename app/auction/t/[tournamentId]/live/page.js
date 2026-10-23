@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import BigScreenStage from '@/components/auction/BigScreenStage';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
-import { getTournamentById, getLiveAuctionState } from '@/lib/auction-db';
-import { isAuctionAuthenticated } from '../../../actions';
+import { getTournamentById, getLiveAuctionState, getAuctionTeams } from '@/lib/auction-db';
+import { isAuctionAuthenticated, getAuctionSession } from '../../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +23,38 @@ export default async function TournamentBigScreenStagePage(props) {
   const searchParams = await props.searchParams;
   const tournamentId = params.tournamentId;
 
-  const isAuthed = await isAuctionAuthenticated();
-  if (!isAuthed) {
-    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}/live`} />;
-  }
-
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) notFound();
+
+  const tournamentTeams = await getAuctionTeams(tournament.id);
+
+  const isAuthed = await isAuctionAuthenticated();
+  if (!isAuthed) {
+    const errorParam = searchParams?.error || '';
+    return (
+      <AuctionLoginGate
+        tournament={tournament}
+        tournamentTeams={tournamentTeams}
+        errorMessage={errorParam}
+        returnTo={`/auction/t/${tournamentId}/live`}
+      />
+    );
+  }
+
+  const session = await getAuctionSession();
+  if (session.role === 'team' && session.team?.id) {
+    const isRegistered = tournamentTeams.some((t) => String(t.id) === String(session.team.id));
+    if (!isRegistered) {
+      return (
+        <AuctionLoginGate
+          tournament={tournament}
+          tournamentTeams={tournamentTeams}
+          errorMessage={`Your team session (${session.team.name}) is not registered for ${tournament.tournament_name}.`}
+          returnTo={`/auction/t/${tournamentId}/live`}
+        />
+      );
+    }
+  }
 
   const initialData = await getLiveAuctionState(tournament.id);
 

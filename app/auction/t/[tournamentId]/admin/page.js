@@ -3,8 +3,8 @@ import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import AuctioneerConsole from '@/components/auction/AuctioneerConsole';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
-import { getTournamentById, getLiveAuctionState } from '@/lib/auction-db';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../../../actions';
+import { getTournamentById, getLiveAuctionState, getAuctionTeams } from '@/lib/auction-db';
+import { isAuctionAuthenticated, getAuctionSession } from '../../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +24,23 @@ export default async function TournamentAdminPage(props) {
   const searchParams = await props.searchParams;
   const tournamentId = params.tournamentId;
 
+  const tournament = await getTournamentById(tournamentId);
+  if (!tournament) notFound();
+
+  const tournamentTeams = await getAuctionTeams(tournament.id);
+
   const isAuthed = await isAuctionAuthenticated();
   if (!isAuthed) {
-    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}/admin`} />;
+    const errorParam = searchParams?.error || '';
+    return (
+      <AuctionLoginGate
+        tournament={tournament}
+        tournamentTeams={tournamentTeams}
+        errorMessage={errorParam}
+        returnTo={`/auction/t/${tournamentId}/admin`}
+        initialRole="admin"
+      />
+    );
   }
 
   const session = await getAuctionSession();
@@ -35,8 +48,22 @@ export default async function TournamentAdminPage(props) {
   const isAdmin = session.isAdmin;
   const loggedTeam = session.team;
 
-  const tournament = await getTournamentById(tournamentId);
-  if (!tournament) notFound();
+  // STRICT TOURNAMENT VALIDATION FOR REGISTERED TEAMS
+  if (role === 'team' && loggedTeam?.id) {
+    const isRegistered = tournamentTeams.some(
+      (t) => String(t.id) === String(loggedTeam.id)
+    );
+    if (!isRegistered) {
+      return (
+        <AuctionLoginGate
+          tournament={tournament}
+          tournamentTeams={tournamentTeams}
+          errorMessage={`Your active team session (${loggedTeam.name || 'Team'}) is not registered for ${tournament.tournament_name}. Only registered teams for this championship are authorized.`}
+          returnTo={`/auction/t/${tournamentId}/admin`}
+        />
+      );
+    }
+  }
 
   const initialData = await getLiveAuctionState(tournament.id);
 

@@ -24,19 +24,43 @@ export default async function TournamentPoolsPage(props) {
   const searchParams = await props.searchParams;
   const tournamentId = params.tournamentId;
 
+  const tournament = await getTournamentById(tournamentId);
+  if (!tournament) notFound();
+
+  const initialTeams = await getAuctionTeams(tournament.id);
+
   const isAuthed = await isAuctionAuthenticated();
   if (!isAuthed) {
-    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}/pools`} />;
+    const errorParam = searchParams?.error || '';
+    return (
+      <AuctionLoginGate
+        tournament={tournament}
+        tournamentTeams={initialTeams}
+        errorMessage={errorParam}
+        returnTo={`/auction/t/${tournamentId}/pools`}
+      />
+    );
   }
 
   const session = await getAuctionSession();
   const role = session.role;
   const loggedTeam = session.team;
-  const tournament = await getTournamentById(tournamentId);
-  if (!tournament) notFound();
 
-  const initialTeams = await getAuctionTeams(tournament.id);
+  if (role === 'team' && loggedTeam?.id) {
+    const isRegistered = initialTeams.some((t) => String(t.id) === String(loggedTeam.id));
+    if (!isRegistered) {
+      return (
+        <AuctionLoginGate
+          tournament={tournament}
+          tournamentTeams={initialTeams}
+          errorMessage={`Your active team session (${loggedTeam.name || 'Team'}) is not registered for ${tournament.tournament_name}.`}
+          returnTo={`/auction/t/${tournamentId}/pools`}
+        />
+      );
+    }
+  }
+
+  const activeTeamId = searchParams?.teamId || (role === 'team' ? loggedTeam?.id : null);
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column" data-bs-theme="dark">
@@ -49,7 +73,7 @@ export default async function TournamentPoolsPage(props) {
           initialTab="pools"
           isAdmin={session.isAdmin}
           loggedTeam={loggedTeam}
-          initialTeamId={searchParams?.teamId}
+          initialTeamId={activeTeamId}
         />
       </main>
     </div>

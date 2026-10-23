@@ -109,16 +109,39 @@ export default function TeamSquadsDashboard({
             </div>
           </div>
 
-          <div className="d-flex align-items-center gap-2 ms-auto">
-            <Link
-              href="/auction"
-              className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5"
-              title="View all active tournaments and games"
-            >
-              <span>⇄</span>
-              <span>Switch Tournament</span>
-            </Link>
-          </div>
+          {isAdmin ? (
+            <div className="d-flex align-items-center gap-2 ms-auto flex-wrap">
+              <Link
+                href={activeTournamentId ? `/auction/t/${activeTournamentId}/stream` : '/auction/stream'}
+                className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm"
+                title="Watch YouTube Live Stream with real-time auction details"
+              >
+                <span>🎥</span>
+                <span>YouTube Live</span>
+              </Link>
+              <Link
+                href="/auction"
+                className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5"
+                title="View all active tournaments and games"
+              >
+                <span>⇄</span>
+                <span>Switch Tournament</span>
+              </Link>
+            </div>
+          ) : loggedTeam ? (
+            <div className="d-flex align-items-center gap-2 ms-auto">
+              <span
+                className="badge px-3 py-1.5 rounded-pill text-xs fw-extrabold shadow-sm d-inline-flex align-items-center gap-1.5"
+                style={{
+                  backgroundColor: loggedTeam.color || '#06b6d4',
+                  color: '#fff',
+                }}
+              >
+                <span>🛡️</span>
+                <span>{loggedTeam.name || loggedTeam.code}</span>
+              </span>
+            </div>
+          ) : null}
         </div>
       )}
 

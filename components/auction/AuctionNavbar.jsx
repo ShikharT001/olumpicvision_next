@@ -11,57 +11,72 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
   const tournamentId = tournament?.id || tournament?.slug;
   const basePath = tournamentId ? `/auction/t/${tournamentId}` : '/auction';
 
+  const isTeam = role === 'team' || Boolean(team?.id);
+
   const tournamentLinks = tournamentId
-    ? [
-        { href: `${basePath}/admin`, label: isAdmin ? '🔨 Auctioneer Console' : '🔨 Auction Console (Live)', adminOnly: false },
-        { href: `${basePath}/live`, label: '📺 Big-Screen Live', adminOnly: false },
-        ...(team?.id
-          ? [{ href: `${basePath}/teams?teamId=${team.id}`, label: `⭐ My Squad (${team.code || 'Team'})`, adminOnly: false }]
-          : []),
-        { href: `${basePath}/teams`, label: '🛡️ Squads & Purse', adminOnly: false },
-        { href: `${basePath}/pools`, label: '🎡 Pool Draw', adminOnly: false },
-        { href: `${basePath}/players`, label: isAdmin ? '📋 Player Pool & Lots' : '📋 Player Pool (View)', adminOnly: false },
-        { href: `${basePath}/manage-teams`, label: '⚙️ Teams Setup', adminOnly: true },
-      ]
+    ? isAdmin
+      ? [
+          { href: `${basePath}/admin`, label: '🔨 Auctioneer Console' },
+          { href: `${basePath}/stream`, label: '🎥 YouTube Live' },
+          { href: `${basePath}/live`, label: '📺 Big-Screen Live' },
+          { href: `${basePath}/teams`, label: '🛡️ Squads & Purse' },
+          { href: `${basePath}/pools`, label: '🎡 Pool Draw' },
+          { href: `${basePath}/players`, label: '📋 Player Pool & Lots' },
+          { href: `${basePath}/manage-teams`, label: '⚙️ Teams Setup' },
+        ]
+      : [
+          // FOR REGISTERED TEAM LOGINS: Squad & Stage only
+          ...(team?.id
+            ? [{ href: `${basePath}/teams?teamId=${team.id}`, label: `⭐ My Squad (${team.code || 'Team'})` }]
+            : []),
+          { href: `${basePath}/teams`, label: '🛡️ Squads & Purse' },
+          { href: `${basePath}/live`, label: '📺 Big-Screen Stage' },
+        ]
     : [];
 
-  const visibleLinks = tournamentLinks.filter((link) => !link.adminOnly || isAdmin);
+  const visibleLinks = tournamentLinks;
 
   return (
     <header className="border-bottom sticky-top" style={{ borderColor: 'var(--auction-border)', background: 'rgba(8, 16, 34, 0.94)', backdropFilter: 'blur(12px)', zIndex: 1040 }}>
       <div className="container-fluid px-3 px-md-4 py-2 d-flex flex-wrap align-items-center justify-content-between gap-2.5">
         {/* Brand & Breadcrumbs */}
         <div className="d-flex flex-wrap align-items-center gap-2">
-          <Link href="/auction" className="text-decoration-none d-flex align-items-center gap-1.5 me-1">
+          <Link
+            href={isTeam && tournamentId ? `${basePath}/teams` : '/auction'}
+            className="text-decoration-none d-flex align-items-center gap-1.5 me-1"
+          >
             <span className="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-30 px-2 py-0.5 rounded-pill text-xs fw-bold">
               🏆 OV AUCTION
             </span>
             <span className="fw-extrabold text-white tracking-tight d-none d-sm-inline" style={{ fontSize: '0.95rem' }}>
-              MULTI-SPORT HUB
+              {isTeam ? 'FRANCHISE PORTAL' : 'MULTI-SPORT HUB'}
             </span>
           </Link>
 
           {tournament && (
             <>
-              <span className="text-secondary opacity-50 small">/</span>
-              <Link
-                href={`/auction?sport=${tournament.sport_id}`}
-                className="badge rounded-pill text-xs text-decoration-none d-inline-flex align-items-center gap-1 px-2.5 py-1 text-white border border-secondary border-opacity-30 bg-dark hover-opacity-100"
-                title={`Back to all ${tournament.sport_name} tournaments`}
-              >
-                <span>{tournament.sportConfig?.icon || '🏅'}</span>
-                <span>{tournament.sport_name}</span>
-              </Link>
+              {isAdmin && (
+                <>
+                  <span className="text-secondary opacity-50 small">/</span>
+                  <Link
+                    href={`/auction?sport=${tournament.sport_id}`}
+                    className="badge rounded-pill text-xs text-decoration-none d-inline-flex align-items-center gap-1 px-2.5 py-1 text-white border border-secondary border-opacity-30 bg-dark hover-opacity-100"
+                    title={`Back to all ${tournament.sport_name} tournaments`}
+                  >
+                    <span>{tournament.sportConfig?.icon || '🏅'}</span>
+                    <span>{tournament.sport_name}</span>
+                  </Link>
+                </>
+              )}
 
               <span className="text-secondary opacity-50 small">/</span>
-              <Link
-                href={basePath}
-                className="badge badge-gold px-2.5 py-1 rounded-pill text-xs text-decoration-none d-inline-flex align-items-center gap-1 shadow-sm text-truncate"
-                style={{ maxWidth: 220 }}
+              <span
+                className="badge badge-gold px-2.5 py-1 rounded-pill text-xs d-inline-flex align-items-center gap-1 shadow-sm text-truncate"
+                style={{ maxWidth: 240 }}
                 title={tournament.tournament_name}
               >
                 <span className="text-truncate">{tournament.tournament_name}</span>
-              </Link>
+              </span>
             </>
           )}
 
@@ -93,9 +108,10 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
 
         {/* Navigation Tabs & Actions */}
         <nav className="d-flex flex-wrap align-items-center gap-1.5 ms-auto">
-          {tournament && (
+          {/* Switch Tournament button ONLY visible to Admin */}
+          {tournament && isAdmin && (
             <Link
-              href={isAdmin ? `/auction?sport=${tournament.sport_id}` : '/auction'}
+              href={`/auction?sport=${tournament.sport_id}`}
               className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-xs fw-bold me-1 d-inline-flex align-items-center gap-1"
               title="Change tournament or explore other simultaneous championships"
             >
@@ -104,7 +120,7 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
             </Link>
           )}
 
-          {!tournament && (
+          {!tournament && isAdmin && (
             <Link
               href="/auction"
               className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-xs fw-bold me-1 d-inline-flex align-items-center gap-1"

@@ -33,6 +33,17 @@ export default async function SportTournamentsPage(props) {
   const role = session.role;
   const isAdmin = session.isAdmin;
   const loggedTeam = session.team;
+
+  // Registered teams never see sport or tournament screens
+  if (role === 'team' && loggedTeam?.id) {
+    const tId = loggedTeam.tournamentId || session.tournamentId;
+    if (tId) {
+      redirect(`/auction/t/${tId}/teams?teamId=${loggedTeam.id}&tab=squads`);
+    } else {
+      redirect('/auction/teams');
+    }
+  }
+
   const tournaments = await getTournaments(sport.id);
 
   return (

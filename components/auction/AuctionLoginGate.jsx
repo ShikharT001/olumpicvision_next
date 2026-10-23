@@ -1,17 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { authenticateAuction } from '@/app/auction/actions';
 
 export default function AuctionLoginGate({
-  errorMessage,
+  tournament = null,
+  tournamentTeams = [],
+  allTournaments = [],
+  errorMessage = '',
   returnTo = '/auction',
   initialRole = 'team',
 }) {
   const [loginMode, setLoginMode] = useState(initialRole || 'team'); // 'team' | 'admin'
+  const [selectedTournamentId, setSelectedTournamentId] = useState(tournament?.id || '');
+  const [selectedTeamId, setSelectedTeamId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Active tournament object
+  const activeTournament = useMemo(() => {
+    if (tournament) return tournament;
+    if (selectedTournamentId && allTournaments.length > 0) {
+      return allTournaments.find((t) => String(t.id) === String(selectedTournamentId)) || null;
+    }
+    if (allTournaments.length === 1) return allTournaments[0];
+    return null;
+  }, [tournament, selectedTournamentId, allTournaments]);
+
+  // Active registered teams list strictly for the selected tournament
+  const activeTeams = useMemo(() => {
+    if (tournamentTeams && tournamentTeams.length > 0 && (!selectedTournamentId || String(tournament?.id) === String(selectedTournamentId))) {
+      return tournamentTeams;
+    }
+    if (activeTournament?.teams && activeTournament.teams.length > 0) {
+      return activeTournament.teams;
+    }
+    return [];
+  }, [tournamentTeams, tournament, activeTournament, selectedTournamentId]);
+
+  // Currently selected team object
+  const selectedTeam = useMemo(() => {
+    if (!selectedTeamId || activeTeams.length === 0) return null;
+    return activeTeams.find((t) => String(t.id) === String(selectedTeamId)) || null;
+  }, [selectedTeamId, activeTeams]);
+
+  // Human-readable error message translation
+  const friendlyError = useMemo(() => {
+    if (!errorMessage) return '';
+    if (errorMessage.includes('not_registered_team')) {
+      return 'Access Denied: This team is not registered by the admin for this tournament. Only officially registered teams can log in.';
+    }
+    if (errorMessage.includes('team_from_other_tournament')) {
+      return `Access Denied: This team belongs to another tournament. Only teams officially registered by the admin for this championship are authorized.`;
+    }
+    if (errorMessage.includes('invalid_team_passcode')) {
+      return `Access Denied: Incorrect passcode for ${selectedTeam?.team_name || 'the selected team'}. Please verify and try again.`;
+    }
+    if (errorMessage.includes('select_registered_team')) {
+      return 'Please choose your registered team from the list below before entering your passcode.';
+    }
+    if (errorMessage.includes('invalid_team_credentials')) {
+      return 'Access Denied: Only teams registered by the admin for an active tournament are authorized.';
+    }
+    return errorMessage;
+  }, [errorMessage, selectedTeam]);
+
+  // Quick select team handler
+  const handleSelectTeam = (team) => {
+    setSelectedTeamId(team.id);
+    if (team.tournament_id) {
+      setSelectedTournamentId(team.tournament_id);
+    }
+    setPassword(team.team_code || 'team');
+  };
 
   return (
     <div
@@ -21,13 +83,13 @@ export default function AuctionLoginGate({
       <div
         className="auction-card p-4 p-md-5 text-center shadow-2xl position-relative overflow-hidden"
         style={{
-          maxWidth: 480,
+          maxWidth: 540,
           width: '100%',
-          borderColor: loginMode === 'team' ? 'rgba(6, 182, 212, 0.35)' : 'rgba(245, 158, 11, 0.35)',
+          borderColor: loginMode === 'team' ? 'rgba(6, 182, 212, 0.45)' : 'rgba(245, 158, 11, 0.45)',
           background:
             loginMode === 'team'
-              ? 'radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.08) 0%, rgba(11, 18, 33, 0.98) 100%)'
-              : 'radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08) 0%, rgba(11, 18, 33, 0.98) 100%)',
+              ? 'radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.12) 0%, rgba(11, 18, 33, 0.98) 100%)'
+              : 'radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.12) 0%, rgba(11, 18, 33, 0.98) 100%)',
           transition: 'all 0.3s ease',
         }}
       >
@@ -35,14 +97,14 @@ export default function AuctionLoginGate({
         <div
           className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow"
           style={{
-            width: 70,
-            height: 70,
-            backgroundColor: loginMode === 'team' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+            width: 72,
+            height: 72,
+            backgroundColor: loginMode === 'team' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(245, 158, 11, 0.15)',
             border: `2px solid ${loginMode === 'team' ? '#06b6d4' : '#f59e0b'}`,
             boxShadow:
               loginMode === 'team'
-                ? '0 0 20px rgba(6, 182, 212, 0.25)'
-                : '0 0 20px rgba(245, 158, 11, 0.25)',
+                ? '0 0 25px rgba(6, 182, 212, 0.35)'
+                : '0 0 25px rgba(245, 158, 11, 0.35)',
           }}
         >
           <span className="fs-2">{loginMode === 'team' ? '🛡️' : '👑'}</span>
@@ -55,15 +117,18 @@ export default function AuctionLoginGate({
               loginMode === 'team' ? 'badge-cyan' : 'badge-gold'
             }`}
           >
-            {loginMode === 'team' ? '🛡️ FRANCHISE TEAM PORTAL' : '👑 MAIN ADMIN / ORGANIZER'}
+            {loginMode === 'team' ? '🛡️ REGISTERED FRANCHISE TEAMS ONLY' : '👑 MAIN ADMIN / ORGANIZER'}
           </span>
           <h2 className="fs-4 fw-black text-white mt-2 mb-1 tracking-tight">
-            {loginMode === 'team' ? 'Team & Franchise Sign-In' : 'Main Admin Auction Console'}
+            {loginMode === 'team' ? 'Registered Team Sign-In' : 'Main Admin Auction Console'}
           </h2>
-          <p className="text-white-50 text-xs mb-0 leading-relaxed px-sm-2">
+
+          <p className="text-white-50 text-xs mt-2 mb-0 leading-relaxed px-sm-2">
             {loginMode === 'team'
-              ? 'Live view-only access to monitor remaining purse, inspect squads, top bids, and live podium outcomes.'
-              : 'Master administrator credentials to conduct gavel calls, configure tournaments, and register players.'}
+              ? tournament
+                ? `Sign in for ${tournament.tournament_name}`
+                : 'Select tournament first, choose your registered team, and enter passcode.'
+              : 'Sign in to access the master multi-sport auction console.'}
           </p>
         </div>
 
@@ -82,7 +147,7 @@ export default function AuctionLoginGate({
             }}
           >
             <span>🛡️</span>
-            <span>Team Login (View-Only)</span>
+            <span>Registered Team Login</span>
           </button>
           <button
             type="button"
@@ -102,28 +167,170 @@ export default function AuctionLoginGate({
         </div>
 
         {/* Error Notification Alert */}
-        {errorMessage && (
-          <div className="alert alert-danger border-0 py-2.5 px-3 small text-start mb-3 shadow-sm d-flex align-items-center gap-2" role="alert">
-            <span className="fs-5">⚠️</span>
-            <div>
-              <strong>Access Denied:</strong> {errorMessage}
+        {friendlyError && (
+          <div
+            className="alert alert-danger border-0 py-2.5 px-3 small text-start mb-3 shadow-sm d-flex align-items-start gap-2"
+            role="alert"
+          >
+            <span className="fs-5 lh-1">⚠️</span>
+            <div className="flex-grow-1">
+              <strong>Access Denied:</strong> {friendlyError}
             </div>
           </div>
         )}
 
-        {/* AUTHENTICATION FORM (NO DROPDOWN - DIRECT SECURE PASSCODE) */}
+        {/* AUTHENTICATION FORM */}
         <form action={authenticateAuction} className="vstack gap-3 text-start">
-          <input type="hidden" name="returnTo" value={returnTo} />
+          <input
+            type="hidden"
+            name="returnTo"
+            value={
+              returnTo ||
+              (activeTournament?.id
+                ? `/auction/t/${activeTournament.id}/teams`
+                : '/auction')
+            }
+          />
           <input type="hidden" name="loginMode" value={loginMode} />
 
-          {/* PASSCODE PIN INPUT */}
+          {/* Tournament ID hidden field if tournament is fixed via props or in admin mode */}
+          {(tournament || loginMode === 'admin') && (
+            <input
+              type="hidden"
+              name="tournamentId"
+              value={tournament?.id || selectedTournamentId || ''}
+            />
+          )}
+
+          {loginMode === 'team' && (
+            <>
+              {/* 1. TOURNAMENT SELECTOR (COMES FIRST) */}
+              <div>
+                <label className="form-label text-white-50 text-xs mb-1.5 fw-semibold d-flex align-items-center justify-content-between">
+                  <span>1. Championship Tournament</span>
+                  <span className="badge badge-gold text-xs">Step 1</span>
+                </label>
+
+                {tournament ? (
+                  <div className="p-2.5 rounded-3 bg-dark border border-secondary border-opacity-40 text-xs fw-bold text-white d-flex align-items-center justify-content-between shadow-sm">
+                    <span className="text-truncate">{tournament.tournament_name}</span>
+                    <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs">Fixed</span>
+                  </div>
+                ) : (
+                  <select
+                    name="tournamentId"
+                    className="form-select bg-dark text-white border-warning border-opacity-40 text-xs py-2.5 fw-semibold"
+                    value={selectedTournamentId}
+                    onChange={(e) => {
+                      const newTId = e.target.value;
+                      setSelectedTournamentId(newTId);
+                      setSelectedTeamId('');
+                      setPassword('');
+                    }}
+                    required
+                  >
+                    <option value="">-- Choose Tournament First --</option>
+                    {allTournaments.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.tournament_name} {t.season_year ? `(${t.season_year})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* 2. ACTIVE REGISTERED TEAMS (COMES SECOND) */}
+              <div>
+                <label className="form-label text-white-50 text-xs mb-1.5 fw-semibold d-flex align-items-center justify-content-between">
+                  <span>2. Active Registered Team</span>
+                  <span className="badge badge-cyan text-xs">Step 2</span>
+                </label>
+
+                {!selectedTournamentId && !tournament ? (
+                  <div className="p-2.5 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-20 text-white-50 text-xs text-center">
+                    👆 Please choose a tournament above first to load registered teams
+                  </div>
+                ) : activeTeams.length > 0 ? (
+                  <>
+                    <select
+                      name="teamId"
+                      className="form-select bg-dark text-white border-info border-opacity-40 text-xs py-2.5 fw-semibold"
+                      value={selectedTeamId}
+                      onChange={(e) => {
+                        const tId = e.target.value;
+                        setSelectedTeamId(tId);
+                        const tm = activeTeams.find((x) => String(x.id) === String(tId));
+                        if (tm) {
+                          setPassword(tm.team_code || 'team');
+                        }
+                      }}
+                      required
+                    >
+                      <option value="">-- Choose Your Registered Team --</option>
+                      {activeTeams.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.team_code} — {t.team_name} {t.owner_name ? `(${t.owner_name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input type="hidden" name="teamName" value={selectedTeam?.team_name || ''} />
+                    <input type="hidden" name="teamCode" value={selectedTeam?.team_code || ''} />
+                    <input type="hidden" name="teamColor" value={selectedTeam?.primary_color || ''} />
+
+                    {/* Selected Team Card Badge */}
+                    {selectedTeam && (
+                      <div
+                        className="mt-2 p-2.5 rounded-3 d-flex align-items-center justify-content-between shadow-sm border"
+                        style={{
+                          backgroundColor: 'rgba(6, 182, 212, 0.08)',
+                          borderColor: selectedTeam.primary_color || '#06b6d4',
+                        }}
+                      >
+                        <div className="d-flex align-items-center gap-2">
+                          <span
+                            className="rounded-circle d-inline-block shadow"
+                            style={{
+                              width: 14,
+                              height: 14,
+                              backgroundColor: selectedTeam.primary_color || '#06b6d4',
+                            }}
+                          />
+                          <div>
+                            <div className="fw-black text-white text-xs">{selectedTeam.team_name}</div>
+                            <div className="text-white-50 text-xs">
+                              Code: <strong>{selectedTeam.team_code}</strong>
+                              {selectedTeam.owner_name && ` • Owner: ${selectedTeam.owner_name}`}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="badge badge-cyan text-xs">Registered Team</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="alert alert-warning py-2 px-3 small mb-0">
+                    No teams are registered by admin for this tournament yet. Please contact the administrator.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* 3. PASSCODE PIN INPUT (COMES THIRD) */}
           <div>
             <label
               className="form-label text-white-50 text-xs mb-1.5 fw-semibold d-flex align-items-center justify-content-between"
               htmlFor="auction-password"
             >
-              <span>{loginMode === 'team' ? 'Team Access Passcode PIN' : 'Main Admin Passcode PIN'}</span>
-              <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs">Confidential</span>
+              <span>
+                {loginMode === 'team'
+                  ? '3. Team Access Passcode PIN'
+                  : 'Main Admin Passcode PIN'}
+              </span>
+              <span className="badge bg-secondary bg-opacity-30 text-white-50 text-xs">
+                {loginMode === 'team' ? 'Step 3' : 'Confidential'}
+              </span>
             </label>
 
             <div className="input-group">
@@ -134,7 +341,9 @@ export default function AuctionLoginGate({
                 autoComplete="current-password"
                 placeholder={
                   loginMode === 'team'
-                    ? 'Enter team passcode (default: team)'
+                    ? selectedTeam
+                      ? `Enter passcode for ${selectedTeam.team_name} (default: ${selectedTeam.team_code})`
+                      : 'Select team above or enter team code'
                     : 'Enter admin passcode (default: admin)'
                 }
                 value={password}
@@ -153,26 +362,30 @@ export default function AuctionLoginGate({
             </div>
           </div>
 
-          {/* QUICK FILL DEMO CHIPS */}
+          {/* QUICK FILL DEMO CHIPS (SCOPED TO REGISTERED TEAMS) */}
           <div className="d-flex flex-wrap align-items-center gap-1.5">
-            <span className="text-white-50 text-xs me-1">Demo PINs:</span>
+            <span className="text-white-50 text-xs me-1">
+              {loginMode === 'team' ? 'Registered Team PINs:' : 'Demo PINs:'}
+            </span>
             {loginMode === 'team' ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                  onClick={() => setPassword('team')}
-                >
-                  ⚡ 'team'
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                  onClick={() => setPassword('pdvl2026')}
-                >
-                  ⚡ 'pdvl2026'
-                </button>
-              </>
+              activeTeams.length > 0 ? (
+                activeTeams.slice(0, 4).map((team) => (
+                  <button
+                    key={team.id}
+                    type="button"
+                    className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5 text-xs fw-bold d-inline-flex align-items-center gap-1"
+                    onClick={() => handleSelectTeam(team)}
+                    title={`Sign in directly as ${team.team_name}`}
+                  >
+                    <span>⚡</span>
+                    <span>{team.team_code}</span>
+                  </button>
+                ))
+              ) : (
+                <span className="text-white-50 text-xs fst-italic">
+                  Select tournament above to view team PINs
+                </span>
+              )
             ) : (
               <>
                 <button
@@ -185,9 +398,9 @@ export default function AuctionLoginGate({
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                  onClick={() => setPassword('pdvladmin2026')}
+                  onClick={() => setPassword('admin123')}
                 >
-                  ⚡ 'pdvladmin2026'
+                  ⚡ 'admin123'
                 </button>
               </>
             )}
@@ -197,12 +410,12 @@ export default function AuctionLoginGate({
           <button
             type="submit"
             className={`btn rounded-pill py-2.5 fw-extrabold text-sm w-100 shadow mt-1 transition-all ${
-              loginMode === 'team'
-                ? 'btn-info text-dark'
-                : 'btn-warning text-dark'
+              loginMode === 'team' ? 'btn-info text-dark' : 'btn-warning text-dark'
             }`}
           >
-            {loginMode === 'team' ? '🛡️ Unlock Franchise Portal →' : '👑 Unlock Admin Portal →'}
+            {loginMode === 'team'
+              ? '🛡️ Unlock Registered Team Auction Screens →'
+              : '👑 Unlock Admin Portal →'}
           </button>
         </form>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import { formatCategoryLabel, getCategoryBadgeClass, formatCurrency, formatPositionLabel } from '@/lib/sports-config';
 
 // Play synthesized fanfare using standard Web Audio API (no external files)
 function playFanfareSound() {
@@ -99,6 +99,7 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
   const currentTourn = tournament || data?.tournament;
   const backHubUrl = activeTournamentId ? `/auction/t/${activeTournamentId}` : '/auction';
   const consoleUrl = activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin';
+  const streamUrl = activeTournamentId ? `/auction/t/${activeTournamentId}/stream` : '/auction/stream';
 
   return (
     <div className="auction-shell min-vh-100 d-flex flex-column justify-content-between p-3 p-md-4 position-relative overflow-hidden">
@@ -120,6 +121,14 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
         </div>
 
         <div className="d-flex align-items-center gap-2">
+          <Link
+            href={streamUrl}
+            className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm"
+            title="Open YouTube Live Stream & Auction Screen Window"
+          >
+            <span>🎥</span>
+            <span>YouTube Live</span>
+          </Link>
           <button
             type="button"
             className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5"
@@ -176,7 +185,7 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
                 <div className="row g-2 pt-2 border-top border-secondary border-opacity-25 text-start small">
                   <div className="col-6">
                     <span className="text-white-50 text-xs d-block">Position:</span>
-                    <strong className="text-white text-capitalize fs-6">{activePlayer.playing_position?.replace('_', ' ')}</strong>
+                    <strong className="text-white text-capitalize fs-6">{formatPositionLabel(activePlayer.playing_position)}</strong>
                   </div>
                   <div className="col-6">
                     <span className="text-white-50 text-xs d-block">Height:</span>
@@ -188,7 +197,7 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
                   </div>
                   <div className="col-6">
                     <span className="text-white-50 text-xs d-block">Base Price:</span>
-                    <strong className="text-warning fs-6">₹{basePrice.toLocaleString()}</strong>
+                    <strong className="text-warning fs-6" suppressHydrationWarning>₹{formatCurrency(basePrice)}</strong>
                   </div>
                 </div>
               )}
@@ -215,8 +224,8 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
 
               {/* Giant Price */}
               <div className="my-2">
-                <span className="auction-giant-price">
-                  ₹{currentBid.toLocaleString()}
+                <span className="auction-giant-price" suppressHydrationWarning>
+                  ₹{formatCurrency(currentBid)}
                 </span>
               </div>
 
@@ -241,8 +250,8 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
                     </span>
                   </div>
                 ) : (
-                  <div className="p-4 text-white-50 fst-italic">
-                    Waiting for opening paddle raise at base price of ₹{basePrice.toLocaleString()}
+                  <div className="p-4 text-white-50 fst-italic" suppressHydrationWarning>
+                    Waiting for opening paddle raise at base price of ₹{formatCurrency(basePrice)}
                   </div>
                 )}
               </div>
@@ -309,7 +318,7 @@ export default function BigScreenStage({ initialData, tournament = null, tournam
               <h3 className="fs-3 fw-extrabold text-white mb-0 text-break leading-snug">
                 <span className="text-warning">{soldOverlay.playerName}</span> sold to{' '}
                 <span className="text-info">{soldOverlay.teamName}</span> at{' '}
-                <span className="text-warning">₹{Number(soldOverlay.price || 0).toLocaleString()}</span>
+                <span className="text-warning" suppressHydrationWarning>₹{formatCurrency(soldOverlay.price || soldOverlay.amount || 0)}</span>
               </h3>
             </div>
 
