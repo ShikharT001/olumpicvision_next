@@ -1140,10 +1140,36 @@ body:has(.broadcast-shell) {
   margin-bottom: 0 !important;
 }
 
+/* Full Mobile Modal Scroll & Pinned Footer Support */
+.auction-modal-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100dvh - 20px) !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.auction-modal-scrollable-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+}
+
+.auction-modal-pinned-footer {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 10 !important;
+  background: linear-gradient(180deg, rgba(13, 22, 43, 0.98) 0%, rgba(6, 11, 24, 0.99) 100%) !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
 @media (max-width: 767.98px) {
   .modal-dialog {
     margin: 8px auto !important;
     max-width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
   }
 
   .modal-content {

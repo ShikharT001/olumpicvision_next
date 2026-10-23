@@ -87,6 +87,16 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
     setModalMessage('');
     setError('');
     setMessage('');
+
+    if (!formData.team_name?.trim()) {
+      setModalError('Please enter a Franchise / Team Name.');
+      return;
+    }
+    if (!formData.team_code?.trim()) {
+      setModalError('Please enter a Short Code (e.g. PSP).');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -454,29 +464,37 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
           aria-modal="true"
         >
           <div
-            className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable mx-2 mx-sm-auto"
-            style={{ maxWidth: 'min(820px, calc(100vw - 16px))', margin: '8px auto' }}
+            className="modal-dialog modal-lg modal-dialog-centered mx-auto"
+            style={{
+              maxWidth: 'min(820px, calc(100vw - 16px))',
+              width: 'calc(100vw - 16px)',
+              margin: 'auto',
+              maxHeight: 'calc(100dvh - 16px)',
+              display: 'flex',
+            }}
           >
-            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
-              <form onSubmit={handleCreateTeam}>
-                <div className="modal-header border-bottom border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-2">
-                    <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
-                      Setup Franchise
-                    </span>
-                    <h5 className="modal-title fw-extrabold text-white mb-0 fs-6 fs-sm-5">
-                      Add New Tournament Team
-                    </h5>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    onClick={closeAddModal}
-                    aria-label="Close"
-                  ></button>
+            <form
+              onSubmit={handleCreateTeam}
+              className="modal-content auction-card auction-modal-shell border-secondary border-opacity-30 text-white shadow-2xl"
+            >
+              <div className="modal-header flex-shrink-0 border-bottom border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between bg-dark bg-opacity-80">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                    Setup Franchise
+                  </span>
+                  <h5 className="modal-title fw-extrabold text-white mb-0 fs-6 fs-sm-5">
+                    Add New Tournament Team
+                  </h5>
                 </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={closeAddModal}
+                  aria-label="Close"
+                ></button>
+              </div>
 
-                <div className="modal-body p-3 p-sm-4 auction-scroll-area">
+              <div className="modal-body auction-modal-scrollable-body p-3 p-sm-4 auction-scroll-area">
                   {/* In-modal Save Notification Banner */}
                   {modalMessage && (
                     <div className="alert alert-success border-0 bg-success bg-opacity-20 text-success d-flex align-items-center justify-content-between py-2 px-3 rounded-3 small shadow-sm mb-3" role="alert">
@@ -773,7 +791,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                   </div>
                 </div>
 
-                <div className="modal-footer border-top border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex flex-column-reverse flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
+                <div className="modal-footer auction-modal-pinned-footer border-top border-secondary border-opacity-30 px-3 px-sm-4 py-2.5 py-sm-3 d-flex flex-column-reverse flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-2 text-xs w-100 w-sm-auto"
@@ -783,8 +801,9 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-bold text-xs d-inline-flex align-items-center justify-content-center gap-1.5 shadow w-100 w-sm-auto"
-                    disabled={loading || !formData.team_name || !formData.team_code}
+                    className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-extrabold text-xs d-inline-flex align-items-center justify-content-center gap-1.5 shadow-lg w-100 w-sm-auto"
+                    disabled={loading}
+                    style={{ minHeight: '38px' }}
                   >
                     {loading ? (
                       <>
@@ -793,7 +812,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                       </>
                     ) : (
                       <>
-                        <span>✓ Create Team Franchise</span>
+                        <span>✓</span>
+                        <span>Create Team Franchise</span>
                       </>
                     )}
                   </button>
@@ -801,8 +821,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
               </form>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* EDIT TEAM MODAL */}
       {editingTeam && (
@@ -815,11 +834,17 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
           aria-modal="true"
         >
           <div
-            className="modal-dialog modal-md modal-dialog-centered mx-2 mx-sm-auto"
-            style={{ maxWidth: 'min(540px, calc(100vw - 16px))' }}
+            className="modal-dialog modal-md modal-dialog-centered mx-auto"
+            style={{
+              maxWidth: 'min(540px, calc(100vw - 16px))',
+              width: 'calc(100vw - 16px)',
+              margin: 'auto',
+              maxHeight: 'calc(100dvh - 16px)',
+              display: 'flex',
+            }}
           >
-            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
-              <div className="modal-header border-bottom border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between">
+            <div className="modal-content auction-card auction-modal-shell border-secondary border-opacity-30 text-white shadow-2xl">
+              <div className="modal-header flex-shrink-0 border-bottom border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between bg-dark bg-opacity-80">
                 <div className="d-flex align-items-center gap-2">
                   <span
                     className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold"
@@ -839,7 +864,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 ></button>
               </div>
 
-              <div className="modal-body p-3 p-sm-4 vstack gap-3 auction-scroll-area">
+              <div className="modal-body auction-modal-scrollable-body p-3 p-sm-4 vstack gap-3 auction-scroll-area">
                 <div>
                   <label className="form-label text-light small fw-bold mb-1">Team Name</label>
                   <input
@@ -930,7 +955,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 </div>
               </div>
 
-              <div className="modal-footer border-top border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex flex-column-reverse flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
+              <div className="modal-footer auction-modal-pinned-footer border-top border-secondary border-opacity-30 px-3 px-sm-4 py-2.5 py-sm-3 d-flex flex-column-reverse flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-2 text-xs w-100 w-sm-auto"
@@ -940,8 +965,9 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-bold text-xs shadow w-100 w-sm-auto"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-extrabold text-xs shadow-lg w-100 w-sm-auto"
                   onClick={handleUpdateTeam}
+                  style={{ minHeight: '38px' }}
                 >
                   Save Changes
                 </button>
