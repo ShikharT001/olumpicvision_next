@@ -1129,12 +1129,18 @@
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
-/* Mobile Quick Bottom Navigation & Responsive Overrides */
-@media (max-width: 767.98px) {
-  body, .auction-shell {
-    padding-bottom: 74px !important;
-  }
+/* Mobile Responsive Overrides */
+body:has(.auction-shell),
+body:has(.broadcast-shell) {
+  background-color: var(--auction-bg) !important;
+}
 
+.auction-shell footer,
+.broadcast-shell footer {
+  margin-bottom: 0 !important;
+}
+
+@media (max-width: 767.98px) {
   .modal-dialog {
     margin: 8px auto !important;
     max-width: calc(100vw - 16px) !important;
