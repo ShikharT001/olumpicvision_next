@@ -431,7 +431,7 @@ export default function YouTubeLiveAuctionStream({
         background:
           layoutMode === 'obs'
             ? 'transparent'
-            : 'radial-gradient(ellipse at 50% 0%, #0a1128 0%, #030712 100%)',
+            : 'var(--auction-bg-gradient)',
       }}
     >
       {/* ──────────────────────────────────────────────────────────── */}
@@ -441,8 +441,8 @@ export default function YouTubeLiveAuctionStream({
         <header
           className="border-bottom py-2 px-3 px-md-4 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-2xl"
           style={{
-            background: 'rgba(3, 7, 18, 0.96)',
-            backdropFilter: 'blur(16px)',
+            background: 'rgba(9, 14, 26, 0.94)',
+            backdropFilter: 'blur(20px)',
             borderColor: 'rgba(255, 255, 255, 0.12)',
             zIndex: 1040,
           }}

@@ -261,23 +261,23 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
       {/* Overview Stats */}
       <div className="row g-2 g-sm-3 mb-4">
         <div className="col-4">
-          <div className="auction-card p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
-            <span className="text-white-50 text-xs d-block mb-1 text-truncate">Teams</span>
-            <strong className="fs-4 fs-sm-3 fw-bold text-white">{teams.length}</strong>
+          <div className="auction-card stat-card-emerald p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
+            <span className="text-white-50 text-xs d-block mb-1 text-truncate fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Teams</span>
+            <strong className="fs-4 fs-sm-3 fw-black text-white">{teams.length}</strong>
           </div>
         </div>
         <div className="col-4">
-          <div className="auction-card p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
-            <span className="text-white-50 text-xs d-block mb-1 text-truncate">Total Purse</span>
-            <strong className="fs-5 fs-sm-3 fw-bold text-warning font-monospace text-truncate">
+          <div className="auction-card stat-card-gold p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
+            <span className="text-white-50 text-xs d-block mb-1 text-truncate fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Total Purse</span>
+            <strong className="fs-5 fs-sm-3 fw-black text-warning font-monospace text-truncate">
               ₹{(totalPurse / 100000).toFixed(1)}L
             </strong>
           </div>
         </div>
         <div className="col-4">
-          <div className="auction-card p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
-            <span className="text-white-50 text-xs d-block mb-1 text-truncate">Avg Purse</span>
-            <strong className="fs-5 fs-sm-3 fw-bold text-info font-monospace text-truncate">
+          <div className="auction-card stat-card-cyan p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
+            <span className="text-white-50 text-xs d-block mb-1 text-truncate fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Avg Purse</span>
+            <strong className="fs-5 fs-sm-3 fw-black text-info font-monospace text-truncate">
               ₹{teams.length ? `${Math.round((totalPurse / teams.length) / 1000)}k` : '0'}
             </strong>
           </div>
@@ -456,9 +456,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
       {/* ADD TEAM MODAL */}
       {showAddModal && (
         <div
-          className="modal show d-block"
+          className="modal show d-block auction-modal-overlay"
           data-bs-theme="dark"
-          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
@@ -475,9 +474,9 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
           >
             <form
               onSubmit={handleCreateTeam}
-              className="modal-content auction-card auction-modal-shell border-secondary border-opacity-30 text-white shadow-2xl"
+              className="modal-content auction-card auction-modal-shell text-white shadow-2xl"
             >
-              <div className="modal-header flex-shrink-0 border-bottom border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between bg-dark bg-opacity-80">
+              <div className="modal-header flex-shrink-0 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center gap-2">
                   <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
                     Setup Franchise
@@ -736,13 +735,13 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
 
                           {/* Budget & Squad Tag */}
                           <div className="d-flex align-items-center justify-content-center gap-2 mb-2.5">
-                            <div className="bg-dark bg-opacity-75 border border-secondary border-opacity-30 rounded-3 px-2.5 py-1 text-center">
+                            <div className="auction-sub-card px-2.5 py-1 text-center">
                               <span className="text-white-50 text-xs d-block" style={{ fontSize: '0.68rem' }}>PURSE</span>
                               <strong className="text-warning font-monospace text-xs">
                                 ₹{Number(formData.initial_purse || 0).toLocaleString()}
                               </strong>
                             </div>
-                            <div className="bg-dark bg-opacity-75 border border-secondary border-opacity-30 rounded-3 px-2.5 py-1 text-center">
+                            <div className="auction-sub-card px-2.5 py-1 text-center">
                               <span className="text-white-50 text-xs d-block" style={{ fontSize: '0.68rem' }}>SQUAD</span>
                               <strong className="text-info font-monospace text-xs">
                                 0 / {formData.max_squad_size || 12}
@@ -826,9 +825,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
       {/* EDIT TEAM MODAL */}
       {editingTeam && (
         <div
-          className="modal show d-block"
+          className="modal show d-block auction-modal-overlay"
           data-bs-theme="dark"
-          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
@@ -843,8 +841,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
               display: 'flex',
             }}
           >
-            <div className="modal-content auction-card auction-modal-shell border-secondary border-opacity-30 text-white shadow-2xl">
-              <div className="modal-header flex-shrink-0 border-bottom border-secondary border-opacity-25 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between bg-dark bg-opacity-80">
+            <div className="modal-content auction-card auction-modal-shell text-white shadow-2xl">
+              <div className="modal-header flex-shrink-0 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center gap-2">
                   <span
                     className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold"
@@ -1007,7 +1005,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 Successfully enrolled in the official PDVL tournament roster
               </p>
 
-              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+              <div className="auction-sub-card p-3 mb-3 text-start">
                 <div className="d-flex justify-content-between align-items-center mb-1.5">
                   <span className="text-white-50 text-xs">Franchise Name:</span>
                   <strong className="text-white small fw-bold">{teamRegisteredModal.team_name}</strong>

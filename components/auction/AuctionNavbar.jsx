@@ -45,8 +45,8 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
       className="border-bottom sticky-top"
       style={{
         borderColor: 'var(--auction-border)',
-        background: 'rgba(8, 16, 34, 0.96)',
-        backdropFilter: 'blur(16px)',
+        background: 'rgba(9, 14, 26, 0.94)',
+        backdropFilter: 'blur(20px)',
         zIndex: 1040,
       }}
     >
@@ -166,7 +166,7 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
         <div
           className="d-md-none border-top border-secondary border-opacity-25 p-3"
           style={{
-            background: 'linear-gradient(180deg, rgba(8, 16, 34, 0.99) 0%, rgba(5, 10, 22, 0.99) 100%)',
+            background: 'linear-gradient(180deg, rgba(9, 14, 26, 0.98) 0%, rgba(5, 8, 18, 0.99) 100%)',
             boxShadow: '0 12px 28px rgba(0, 0, 0, 0.75)',
             maxHeight: '75vh',
             overflowY: 'auto',
@@ -195,7 +195,7 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
                     className={`btn w-100 text-start p-2.5 rounded-3 d-flex align-items-center gap-2 text-xs fw-bold transition-all ${
                       isActive
                         ? 'btn-info text-dark shadow-sm'
-                        : 'btn-dark border border-secondary border-opacity-30 text-white hover-border-info'
+                        : 'auction-sub-card text-white hover-border-info'
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >

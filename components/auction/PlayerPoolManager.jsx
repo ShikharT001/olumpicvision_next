@@ -560,27 +560,27 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       {/* Overview Stats */}
       <div className="row g-3 mb-4">
         <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block">Total Pool</span>
-            <strong className="fs-4 fw-bold text-white">{totalCount}</strong>
+          <div className="auction-card stat-card-cyan p-3 text-center">
+            <span className="text-white-50 text-xs d-block fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Total Pool</span>
+            <strong className="fs-4 fw-black text-white">{totalCount}</strong>
           </div>
         </div>
         <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block">Queued / Ready</span>
-            <strong className="fs-4 fw-bold text-info">{queuedCount}</strong>
+          <div className="auction-card stat-card-gold p-3 text-center">
+            <span className="text-white-50 text-xs d-block fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Queued / Ready</span>
+            <strong className="fs-4 fw-black text-warning font-monospace">{queuedCount}</strong>
           </div>
         </div>
         <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block">Players Sold</span>
-            <strong className="fs-4 fw-bold text-success">{soldCount}</strong>
+          <div className="auction-card stat-card-emerald p-3 text-center">
+            <span className="text-white-50 text-xs d-block fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Players Sold</span>
+            <strong className="fs-4 fw-black text-success font-monospace">{soldCount}</strong>
           </div>
         </div>
         <div className="col-6 col-md-3">
-          <div className="auction-card p-3 text-center">
-            <span className="text-white-50 text-xs d-block">Unsold (Round 2)</span>
-            <strong className="fs-4 fw-bold text-danger">{unsoldCount}</strong>
+          <div className="auction-card p-3 text-center" style={{ borderTop: '3px solid #ef4444' }}>
+            <span className="text-white-50 text-xs d-block fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Unsold (Round 2)</span>
+            <strong className="fs-4 fw-black text-danger font-monospace">{unsoldCount}</strong>
           </div>
         </div>
       </div>
@@ -784,9 +784,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       {/* EDIT MODAL */}
       {isAdmin && editingPlayer && (
         <div
-          className="modal show d-block"
+          className="modal show d-block auction-modal-overlay"
           data-bs-theme="dark"
-          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
@@ -968,9 +967,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       {/* ADD PLAYER MODAL */}
       {isAdmin && showAddModal && (
         <div
-          className="modal show d-block"
+          className="modal show d-block auction-modal-overlay"
           data-bs-theme="dark"
-          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
@@ -1266,9 +1264,8 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
       {/* IMPORT PLAYERS MODAL (CSV & DATA IMPORT) */}
       {isAdmin && showImportModal && (
         <div
-          className="modal show d-block"
+          className="modal show d-block auction-modal-overlay"
           data-bs-theme="dark"
-          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
@@ -1485,7 +1482,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                   This player will be set as the active podium target for all franchise paddles in the live auction.
                 </p>
 
-                <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 text-start mb-3">
+                <div className="auction-sub-card p-3 text-start mb-3">
                   <div className="d-flex justify-content-between align-items-center mb-1.5">
                     <span className="text-white-50 text-xs">Playing Position:</span>
                     <span className="badge badge-cyan text-xs text-uppercase">{pendingHammerPlayer.playing_position}</span>
@@ -1547,7 +1544,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                 Franchises can now attribute paddle bids for this player
               </p>
 
-              <div className="bg-dark bg-opacity-70 rounded-3 p-3 border border-secondary border-opacity-30 mb-3 text-start">
+              <div className="auction-sub-card p-3 mb-3 text-start">
                 <h4 className="fw-extrabold text-white mb-1 fs-5">
                   {podiumSuccessModal.player.full_name}
                 </h4>
