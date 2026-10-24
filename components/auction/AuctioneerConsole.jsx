@@ -360,6 +360,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     { key: 'icon_player', label: 'Icon / Marquee', shortLabel: 'Icon', icon: '⭐', badgeClass: 'badge-gold' },
     { key: 'open', label: 'Open Category (Senior)', shortLabel: 'Open', icon: '🏐', badgeClass: 'badge-emerald' },
     { key: 'u19', label: 'Under-19 (U19 Youth)', shortLabel: 'U19', icon: '⚡', badgeClass: 'badge-cyan' },
+    { key: 'u18', label: 'Under-18 (U18 Youth)', shortLabel: 'U18', icon: '🔥', badgeClass: 'bg-indigo-600 text-white' },
     { key: 'u14', label: 'Under-14 (U14 Junior)', shortLabel: 'U14', icon: '🌱', badgeClass: 'bg-purple-600 text-white' },
     { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '🛑', badgeClass: 'badge-danger bg-danger text-white' },
   ];
@@ -452,7 +453,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     })
     .sort((a, b) => {
       // Systematic category ordering: icon -> open -> u19 -> u14 -> others
-      const catOrder = { icon_player: 1, open: 2, u19: 3, u14: 4, unsold: 5 };
+      const catOrder = { icon_player: 1, open: 2, u19: 3, u18: 4, u14: 5, unsold: 6 };
       const catA = catOrder[normalizeCategory(a.player_category)] || 9;
       const catB = catOrder[normalizeCategory(b.player_category)] || 9;
       if (catA !== catB) return catA - catB;

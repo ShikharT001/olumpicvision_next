@@ -318,11 +318,11 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
                       </div>
                       <div className="col-3">
                         <span className="text-secondary text-xs d-block">Starting Purse</span>
-                        <strong className="text-warning fw-bold text-xs">₹{Number(t.default_purse || 100000).toLocaleString()}</strong>
+                        <strong className="text-warning fw-bold text-xs" suppressHydrationWarning>₹{formatRupees(t.default_purse || 100000)}</strong>
                       </div>
                       <div className="col-3">
                         <span className="text-secondary text-xs d-block">Bid Step</span>
-                        <strong className="text-success fw-bold text-xs">₹{Number(t.min_bid_increment || 500).toLocaleString()}</strong>
+                        <strong className="text-success fw-bold text-xs" suppressHydrationWarning>₹{formatRupees(t.min_bid_increment || 500)}</strong>
                       </div>
                     </div>
                   </div>

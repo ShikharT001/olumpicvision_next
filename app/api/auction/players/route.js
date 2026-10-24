@@ -6,6 +6,8 @@ import {
   createAuctionPlayer,
   deleteAuctionPlayer,
   setActivePlayer,
+  markSoldPlayerUnsold,
+  changePlayerStatus,
 } from '@/lib/auction-db';
 import { isAuctionAdmin } from '@/app/auction/actions';
 
@@ -17,9 +19,11 @@ export async function GET(request) {
     const status = searchParams.get('status');
     const lot = searchParams.get('lot');
     const position = searchParams.get('position');
+    const category = searchParams.get('category') || searchParams.get('player_category');
+    const sportId = searchParams.get('sportId') || searchParams.get('sport_id');
     const tournamentId = searchParams.get('tournamentId');
 
-    const players = await getAuctionPlayers({ status, lot, position }, tournamentId);
+    const players = await getAuctionPlayers({ status, lot, position, category, sportId }, tournamentId);
     return NextResponse.json({ players });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Failed to fetch players' }, { status: 500 });
@@ -87,6 +91,20 @@ export async function POST(request) {
       if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
       const res = await updateAuctionPlayer(playerId, data);
       return NextResponse.json({ success: true, player: res });
+    }
+
+    // Mark a sold player unsold and refund team purse
+    if (action === 'mark_unsold') {
+      if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
+      const res = await markSoldPlayerUnsold(playerId);
+      return NextResponse.json(res);
+    }
+
+    // Change player auction status / edit sold outcome
+    if (action === 'change_status') {
+      if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
+      const res = await changePlayerStatus(playerId, data?.status || data?.newStatus, data);
+      return NextResponse.json(res);
     }
 
     // Delete a player

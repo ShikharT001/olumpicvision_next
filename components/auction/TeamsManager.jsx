@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { formatRupees, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
 
 const PRESET_COLORS = [
   { name: 'Royal Blue', hex: '#2563eb' },
@@ -19,11 +20,13 @@ const QUICK_PURSES = [
   { label: '₹1.0 Lakh', value: 100000 },
   { label: '₹1.5 Lakh', value: 150000 },
   { label: '₹2.0 Lakh', value: 200000 },
+  { label: '₹5.0 Lakh', value: 500000 },
 ];
 
 export default function TeamsManager({ initialTeams, tournament = null, tournamentId: propTournamentId }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
   const [teams, setTeams] = useState(initialTeams || []);
+  const [selectedTeamId, setSelectedTeamId] = useState(null); // null = "All Teams"
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -35,6 +38,13 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
 
+  // Status Change Modal State for acquired players
+  const [statusModalPlayer, setStatusModalPlayer] = useState(null);
+  const [statusFormData, setStatusFormData] = useState({
+    status: 'unsold',
+    sold_price: 0,
+  });
+
   const defaultPurse = tournament?.default_purse ? Number(tournament.default_purse) : 100000;
   const defaultMinSquad = tournament?.min_squad_size ? Number(tournament.min_squad_size) : 8;
   const defaultMaxSquad = tournament?.max_squad_size ? Number(tournament.max_squad_size) : 12;
@@ -42,12 +52,14 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
   const [formData, setFormData] = useState({
     team_name: '',
     team_code: '',
+    logo_url: '',
     owner_name: '',
     coach_name: '',
     initial_purse: defaultPurse,
     min_squad_size: defaultMinSquad,
     max_squad_size: defaultMaxSquad,
     primary_color: '#0d6efd',
+    pool_group: '',
   });
 
   const fetchTeams = useCallback(async () => {
@@ -117,38 +129,32 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
       const savedCode = formData.team_code;
       const savedPurse = Number(formData.initial_purse || defaultPurse).toLocaleString();
       const savedColor = formData.primary_color || '#0d6efd';
-      const savedOwner = formData.owner_name;
-      const savedCoach = formData.coach_name;
-      const savedMinSquad = formData.min_squad_size || defaultMinSquad;
-      const savedMaxSquad = formData.max_squad_size || defaultMaxSquad;
 
-      // In-modal notification
       setModalMessage(`✓ Team "${savedName}" (${savedCode}) registered successfully with purse ₹${savedPurse}!`);
-      // Outer page notification
       setMessage(`Team "${savedName}" (${savedCode}) added to tournament roster.`);
 
-      // Open Team Registered Action Modal
       setTeamRegisteredModal({
         team_name: savedName,
         team_code: savedCode,
         initial_purse: savedPurse,
         primary_color: savedColor,
-        owner_name: savedOwner,
-        coach_name: savedCoach,
-        min_squad_size: savedMinSquad,
-        max_squad_size: savedMaxSquad,
+        owner_name: formData.owner_name,
+        coach_name: formData.coach_name,
+        min_squad_size: formData.min_squad_size || defaultMinSquad,
+        max_squad_size: formData.max_squad_size || defaultMaxSquad,
       });
 
-      // Clear add team form completely
       setFormData({
         team_name: '',
         team_code: '',
+        logo_url: '',
         owner_name: '',
         coach_name: '',
         initial_purse: defaultPurse,
         min_squad_size: defaultMinSquad,
         max_squad_size: defaultMaxSquad,
         primary_color: '#0d6efd',
+        pool_group: '',
       });
       fetchTeams();
     } catch (err) {
@@ -205,26 +211,134 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
       if (!res.ok) throw new Error(data.error || 'Failed to remove team');
 
       setMessage(`Team "${teamName}" removed successfully.`);
+      if (selectedTeamId === teamId) setSelectedTeamId(null);
       fetchTeams();
     } catch (err) {
       setError(err.message);
     }
   };
 
+  // Seed default teams for this tournament
+  const handleSeedDefaultTeams = async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await fetch('/api/auction/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'seed_defaults', tournamentId: activeTournamentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to seed default teams');
+
+      setMessage(`Successfully initialized ${data.teams?.length || 4} standard franchise teams for this tournament.`);
+      fetchTeams();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // MARK A SOLD PLAYER AS UNSOLD (REFUNDS TEAM PURSE)
+  const handleMarkPlayerUnsold = async (player, team) => {
+    const soldPrice = Number(player.sold_price || 0);
+    const confirmMsg = `Move "${player.full_name}" to the unsold pool?\n\n₹${soldPrice.toLocaleString()} will be automatically refunded back to ${team.team_name}'s remaining purse.`;
+    if (!confirm(confirmMsg)) return;
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await fetch('/api/auction/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'mark_unsold',
+          playerId: player.id,
+          tournamentId: activeTournamentId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to mark player unsold');
+
+      setMessage(`✓ ${player.full_name} moved to unsold pool. ₹${soldPrice.toLocaleString()} refunded to ${team.team_name}.`);
+      fetchTeams();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OPEN STATUS CHANGE MODAL
+  const openStatusModal = (player) => {
+    setStatusModalPlayer(player);
+    setStatusFormData({
+      status: player.auction_status || 'unsold',
+      sold_price: player.sold_price || player.base_price || 1000,
+    });
+  };
+
+  // EXECUTE STATUS CHANGE
+  const handleExecuteStatusChange = async (e) => {
+    e.preventDefault();
+    if (!statusModalPlayer) return;
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await fetch('/api/auction/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change_status',
+          playerId: statusModalPlayer.id,
+          tournamentId: activeTournamentId,
+          data: {
+            status: statusFormData.status,
+            sold_price: Number(statusFormData.sold_price) || 0,
+            sold_to_team_id: selectedTeamId,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to change player status');
+
+      setMessage(`✓ Updated status of ${statusModalPlayer.full_name} to "${statusFormData.status.toUpperCase()}".`);
+      setStatusModalPlayer(null);
+      fetchTeams();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Aggregate league numbers
   const totalPurse = teams.reduce((acc, t) => acc + Number(t.initial_purse || 0), 0);
+  const totalRemaining = teams.reduce((acc, t) => acc + Number(t.remaining_purse || 0), 0);
+  const totalSpent = Math.max(0, totalPurse - totalRemaining);
+  const allSoldPlayers = teams.flatMap((t) => (t.squad || []).filter((p) => p.auction_status === 'sold'));
+
+  // Currently focused team from aside navigation
+  const focusedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : null;
+  const focusedSquad = focusedTeam ? (focusedTeam.squad || []).filter((p) => p.auction_status === 'sold') : [];
 
   return (
     <div className="container-fluid px-3 px-md-4 py-4">
       {/* Alert Notices */}
       {message && (
-        <div className="alert alert-success alert-dismissible fade show border-0 py-2 px-3 small d-flex align-items-center justify-content-between mb-3" role="alert">
+        <div className="alert alert-success alert-dismissible fade show border-0 py-2.5 px-3 small d-flex align-items-center justify-content-between mb-3 shadow-sm" role="alert">
           <span><strong>Success:</strong> {message}</span>
           <button type="button" className="btn-close py-2" onClick={() => setMessage('')} aria-label="Close"></button>
         </div>
       )}
 
       {error && (
-        <div className="alert alert-danger alert-dismissible fade show border-0 py-2 px-3 small d-flex align-items-center justify-content-between mb-3" role="alert">
+        <div className="alert alert-danger alert-dismissible fade show border-0 py-2.5 px-3 small d-flex align-items-center justify-content-between mb-3 shadow-sm" role="alert">
           <span><strong>Error:</strong> {error}</span>
           <button type="button" className="btn-close py-2" onClick={() => setError('')} aria-label="Close"></button>
         </div>
@@ -233,66 +347,183 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
       {/* Header Bar */}
       <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 border-bottom border-secondary border-opacity-25 pb-3 mb-4">
         <div>
-          <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase mb-1">
-            Tournament Roster Setup
-          </span>
-          <h2 className="fs-4 fs-sm-3 fw-extrabold text-white mb-0 tracking-tight">
-            Participating Teams &amp; Budget Configuration
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-bold text-uppercase">
+              {tournament?.sportConfig?.icon || '🏆'} {tournament?.sport_name || 'Tournament'}
+            </span>
+            <span className="badge bg-secondary bg-opacity-30 text-white-50 px-2 py-0.5 rounded-pill text-xs">
+              {tournament?.season_year || '2026/27'}
+            </span>
+            {tournament?.venue && (
+              <span className="text-white-50 text-xs d-none d-md-inline">
+                📍 {tournament.venue}
+              </span>
+            )}
+          </div>
+          <h2 className="h3 fw-extrabold text-white mb-0 tracking-tight">
+            {tournament ? `${tournament.tournament_name} — Teams & Squads` : 'Franchise Teams & Roster Management'}
           </h2>
         </div>
 
-        <div className="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-between justify-content-sm-end">
+        <div className="d-flex align-items-center gap-2">
           <button
             type="button"
-            className="btn btn-sm btn-primary rounded-pill px-3.5 py-2 fw-bold text-xs d-inline-flex align-items-center justify-content-center gap-1.5 shadow flex-fill flex-sm-grow-0"
+            className="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-xs d-inline-flex align-items-center gap-1.5 shadow-sm"
             onClick={openAddModal}
           >
             <span>➕ Add New Team</span>
           </button>
           <Link
-            href="/auction/admin"
-            className="btn btn-sm btn-outline-info rounded-pill px-3 py-2 fw-bold text-xs flex-fill flex-sm-grow-0 text-center"
+            href={activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin'}
+            className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 fw-bold text-xs"
           >
             Open Podium ↗
           </Link>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="row g-2 g-sm-3 mb-4">
-        <div className="col-4">
-          <div className="auction-card stat-card-emerald p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
-            <span className="text-white-50 text-xs d-block mb-1 text-truncate fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Teams</span>
-            <strong className="fs-4 fs-sm-3 fw-black text-white">{teams.length}</strong>
-          </div>
-        </div>
-        <div className="col-4">
-          <div className="auction-card stat-card-gold p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
-            <span className="text-white-50 text-xs d-block mb-1 text-truncate fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Total Purse</span>
-            <strong className="fs-5 fs-sm-3 fw-black text-warning font-monospace text-truncate">
-              ₹{(totalPurse / 100000).toFixed(1)}L
-            </strong>
-          </div>
-        </div>
-        <div className="col-4">
-          <div className="auction-card stat-card-cyan p-2 p-sm-3 text-center h-100 d-flex flex-column justify-content-center">
-            <span className="text-white-50 text-xs d-block mb-1 text-truncate fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>Avg Purse</span>
-            <strong className="fs-5 fs-sm-3 fw-black text-info font-monospace text-truncate">
-              ₹{teams.length ? `${Math.round((totalPurse / teams.length) / 1000)}k` : '0'}
-            </strong>
-          </div>
-        </div>
-      </div>
+      {/* TWO-COLUMN LAYOUT: ASIDE LINKS (LEFT) + MAIN ROSTER VIEW (RIGHT) */}
+      <div className="row g-4">
+        {/* ========================================================================= */}
+        {/* ASIDE NAVIGATION: TOURNAMENT TEAMS LOGO LINKS (1st ITEM: ALL TEAMS)       */}
+        {/* ========================================================================= */}
+        <aside className="col-12 col-lg-3 col-xl-2">
+          <div
+            className="auction-card p-2.5 p-md-3 shadow-lg position-sticky"
+            style={{ top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}
+          >
+            <div className="d-flex align-items-center justify-content-between px-2 pb-2 mb-2 border-bottom border-secondary border-opacity-25">
+              <span className="text-white-50 text-xs fw-extrabold text-uppercase tracking-wider">
+                Franchise Teams
+              </span>
+              <span className="badge bg-secondary bg-opacity-40 text-light px-2 py-0.5 rounded-pill text-xs">
+                {teams.length}
+              </span>
+            </div>
 
-      {/* Desktop Teams Table (>= 768px) */}
-      <div className="auction-card overflow-hidden d-none d-md-block">
+            <div className="vstack gap-1.5">
+              {/* 1st ITEM: ALL TEAMS OVERVIEW LINK */}
+              <button
+                type="button"
+                className={`btn btn-sm text-start w-100 p-2.5 rounded-3 d-flex align-items-center justify-content-between transition-all border ${
+                  selectedTeamId === null
+                    ? 'btn-primary border-primary shadow text-white fw-extrabold'
+                    : 'bg-dark bg-opacity-50 text-white-50 border-secondary border-opacity-25 hover-bg-secondary'
+                }`}
+                onClick={() => setSelectedTeamId(null)}
+              >
+                <div className="d-flex align-items-center gap-2.5">
+                  <span
+                    className="rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      backgroundColor: selectedTeamId === null ? '#ffffff22' : 'rgba(245, 158, 11, 0.2)',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    🌟
+                  </span>
+                  <div>
+                    <strong className="d-block text-white text-xs lh-sm">All Teams</strong>
+                    <span className="text-white-50 text-xs" style={{ fontSize: '0.72rem' }}>
+                      Overview &amp; Budgets
+                    </span>
+                  </div>
+                </div>
+                <span className="badge bg-black bg-opacity-40 text-light rounded-pill px-2 py-0.5 text-xs">
+                  {teams.length}
+                </span>
+              </button>
+
+              <div className="border-top border-secondary border-opacity-20 my-1"></div>
+
+              {/* LIST OF TEAMS WITH LOGO / EMBLEM & REMAINING PURSE */}
+              {teams.length === 0 ? (
+                <div className="p-3 text-center text-white-50 text-xs">
+                  <span>No teams created yet. Click &quot;+ Add New Team&quot; above.</span>
+                </div>
+              ) : (
+                teams.map((t) => {
+                  const isSelected = selectedTeamId === t.id;
+                  const squadCount = (t.squad || []).filter((p) => p.auction_status === 'sold').length;
+                  const teamColor = t.primary_color || '#0d6efd';
+
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`btn btn-sm text-start w-100 p-2 rounded-3 d-flex align-items-center justify-content-between transition-all border ${
+                        isSelected
+                          ? 'border-2 text-white fw-bold shadow-md'
+                          : 'bg-dark bg-opacity-40 text-white-50 border-secondary border-opacity-20 hover-bg-secondary'
+                      }`}
+                      style={{
+                        borderColor: isSelected ? teamColor : undefined,
+                        backgroundColor: isSelected ? `${teamColor}22` : undefined,
+                      }}
+                      onClick={() => setSelectedTeamId(t.id)}
+                    >
+                      <div className="d-flex align-items-center gap-2 min-w-0">
+                        {/* TEAM LOGO / EMBLEM */}
+                        {t.logo_url ? (
+                          <img
+                            src={t.logo_url}
+                            alt={t.team_code}
+                            className="rounded-circle flex-shrink-0 border border-secondary border-opacity-40 shadow-sm"
+                            style={{ width: 32, height: 32, objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <span
+                            className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow-sm flex-shrink-0"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              backgroundColor: teamColor,
+                              fontSize: '0.75rem',
+                              letterSpacing: '0.02em',
+                            }}
+                          >
+                            {t.team_code}
+                          </span>
+                        )}
+
+                        <div className="text-truncate">
+                          <strong className="d-block text-white text-xs text-truncate lh-sm" title={t.team_name}>
+                            {t.team_name}
+                          </strong>
+                          <span className="text-white-50 font-monospace text-xs" style={{ fontSize: '0.70rem' }}>
+                            ₹{Number(t.remaining_purse || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* SQUAD COUNT BADGE */}
+                      <span
+                        className={`badge rounded-pill px-1.5 py-0.5 text-xs flex-shrink-0 ${
+                          squadCount > 0 ? 'bg-success text-white' : 'bg-secondary bg-opacity-30 text-white-50'
+                        }`}
+                        title={`${squadCount} players purchased`}
+                        style={{ fontSize: '0.70rem' }}
+                      >
+                        {squadCount}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+      {/* Teams Table */}
+      <div className="auction-card overflow-hidden">
         <div className="table-responsive">
           <table className="table table-dark table-hover mb-0 align-middle small">
             <thead className="table-dark text-white-50 text-uppercase text-xs border-secondary border-opacity-25">
               <tr>
                 <th scope="col" style={{ width: 60 }}>Code</th>
                 <th scope="col">Team Name</th>
-                <th scope="col">Owner &amp; Coach</th>
+                <th scope="col">Owner & Coach</th>
                 <th scope="col">Allocated Purse</th>
                 <th scope="col">Remaining Purse</th>
                 <th scope="col">Squad Capacity</th>
@@ -363,97 +594,128 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
         </div>
       </div>
 
-      {/* Mobile Team Cards View (< 768px) */}
-      <div className="d-md-none vstack gap-2.5">
-        {teams.length === 0 ? (
-          <div className="auction-card p-4 text-center text-white-50">
-            No teams configured yet. Tap &quot;➕ Add New Team&quot; above to create your first franchise.
-          </div>
-        ) : (
-          teams.map((team) => {
-            const initialP = Number(team.initial_purse || 100000);
-            const remainingP = Number(team.remaining_purse || 0);
-            const percentRemaining = initialP > 0 ? Math.max(0, Math.min(100, Math.round((remainingP / initialP) * 100))) : 0;
-
-            return (
-              <div
-                key={team.id}
-                className="auction-card p-3 position-relative overflow-hidden shadow-sm"
-                style={{
-                  borderLeft: `4px solid ${team.primary_color || '#0d6efd'}`,
-                }}
-              >
-                {/* Header: Logo, Name, Code, Edit */}
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <div className="d-flex align-items-center gap-2 min-w-0">
-                    <span
-                      className="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold font-monospace shadow-sm"
-                      style={{
-                        width: 34,
-                        height: 34,
-                        backgroundColor: team.primary_color || '#0d6efd',
-                        fontSize: '0.78rem',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {team.team_code}
+      {/* ADD TEAM MODAL */}
+      {showAddModal && (
+        <div
+          className="modal show d-block"
+          data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1055 }}
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              <form onSubmit={handleExecuteStatusChange}>
+                <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge badge-cyan px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                      Status Control
                     </span>
-                    <div className="min-w-0">
-                      <strong className="text-white text-sm d-block text-truncate">
-                        {team.team_name}
-                      </strong>
+                    <h5 className="modal-title fw-extrabold text-white mb-0 fs-6">
+                      Modify Player Status
+                    </h5>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setStatusModalPlayer(null)}
+                    aria-label="Close"
+                  ></button>
+                </div>
+
+                <div className="modal-body p-4">
+                  <div className="p-3 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-25 mb-3 d-flex align-items-center gap-3">
+                    <div
+                      className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center flex-shrink-0 border border-secondary"
+                      style={{ width: 44, height: 44 }}
+                    >
+                      {statusModalPlayer.photo_url ? (
+                        <img
+                          src={statusModalPlayer.photo_url}
+                          alt={statusModalPlayer.full_name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span>👤</span>
+                      )}
+                    </div>
+                    <div>
+                      <strong className="text-white d-block">{statusModalPlayer.full_name}</strong>
                       <span className="text-white-50 text-xs">
-                        {team.owner_name ? `Owner: ${team.owner_name}` : 'Franchise'}
-                        {team.coach_name && ` • Coach: ${team.coach_name}`}
+                        Current Hammer Price: ₹{Number(statusModalPlayer.sold_price || statusModalPlayer.base_price).toLocaleString()}
                       </span>
                     </div>
                   </div>
 
+                  <div className="mb-3">
+                    <label className="form-label text-light small fw-bold mb-1">
+                      New Auction Status <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      className="form-select form-select-sm bg-dark text-white border-secondary"
+                      value={statusFormData.status}
+                      onChange={(e) => setStatusFormData((prev) => ({ ...prev, status: e.target.value }))}
+                      required
+                    >
+                      <option value="unsold">🛑 Unsold Pool (Round 2 — Refunds Team Purse)</option>
+                      <option value="queued">⏳ Queued (Back to Initial Bidding Queue — Refunds Purse)</option>
+                      <option value="on_hammer">🔨 On Hammer (Directly onto Auction Podium)</option>
+                      <option value="sold">✓ Sold (Keep Sold / Adjust Sold Price)</option>
+                    </select>
+                  </div>
+
+                  {statusFormData.status === 'sold' && (
+                    <div className="mb-3">
+                      <label className="form-label text-light small fw-bold mb-1">
+                        Adjust Sold / Hammer Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        step="500"
+                        min="500"
+                        className="form-control form-control-sm bg-dark text-white border-secondary font-monospace"
+                        value={statusFormData.sold_price}
+                        onChange={(e) => setStatusFormData((prev) => ({ ...prev, sold_price: e.target.value }))}
+                        required
+                      />
+                      <span className="text-white-50 text-xs d-block mt-1">
+                        The team&apos;s remaining purse will automatically adjust for any difference.
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="p-2.5 rounded-3 bg-secondary bg-opacity-10 text-white-50 text-xs border border-secondary border-opacity-15">
+                    ℹ️ Changing status to &quot;Unsold&quot; or &quot;Queued&quot; will instantly restore ₹
+                    {Number(statusModalPlayer.sold_price || 0).toLocaleString()} back to the team&apos;s bidding budget.
+                  </div>
+                </div>
+
+                <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-2.5 d-flex align-items-center justify-content-end gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-xs fw-bold ms-2 flex-shrink-0"
-                    onClick={() => setEditingTeam({ ...team })}
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs"
+                    onClick={() => setStatusModalPlayer(null)}
                   >
-                    ✏️ Edit
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 text-xs fw-bold shadow-sm"
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : 'Apply Status Change'}
                   </button>
                 </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
-                {/* Purse Progress Bar & Info */}
-                <div className="p-2 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-20 mb-2">
-                  <div className="d-flex align-items-center justify-content-between text-xs mb-1">
-                    <span className="text-white-50">Purse Remaining:</span>
-                    <strong className={`font-monospace fw-bold ${remainingP < 10000 ? 'text-danger' : 'text-success'}`}>
-                      ₹{remainingP.toLocaleString()} <span className="text-white-50 fw-normal">/ ₹{initialP.toLocaleString()}</span>
-                    </strong>
-                  </div>
-                  <div className="progress" style={{ height: 5, backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                    <div
-                      className={`progress-bar ${remainingP < 10000 ? 'bg-danger' : 'bg-warning'}`}
-                      role="progressbar"
-                      style={{ width: `${percentRemaining}%` }}
-                      aria-valuenow={percentRemaining}
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    />
-                  </div>
-                </div>
-
-                {/* Squad Count & Color */}
-                <div className="d-flex align-items-center justify-content-between text-xs text-white-50">
-                  <span>
-                    Squad Capacity: <strong className="text-info">{team.squad_count || 0} / {team.max_squad_size || 12} Players</strong>
-                  </span>
-                  <span className="badge bg-secondary bg-opacity-30 text-white-50 font-monospace">
-                    {team.primary_color}
-                  </span>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* ADD TEAM MODAL */}
+      {/* ========================================================================= */}
+      {/* MODAL: ADD TEAM                                                           */}
+      {/* ========================================================================= */}
       {showAddModal && (
         <div
           className="modal show d-block auction-modal-overlay"
@@ -493,8 +755,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 ></button>
               </div>
 
-              <div className="modal-body auction-modal-scrollable-body p-3 p-sm-4 auction-scroll-area">
-                  {/* In-modal Save Notification Banner */}
+                <div className="modal-body p-4 auction-scroll-area">
                   {modalMessage && (
                     <div className="alert alert-success border-0 bg-success bg-opacity-20 text-success d-flex align-items-center justify-content-between py-2 px-3 rounded-3 small shadow-sm mb-3" role="alert">
                       <div className="d-flex align-items-center gap-2">
@@ -525,10 +786,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                     </div>
                   )}
 
-                  <div className="row g-3 g-lg-4">
-                    {/* Left Column: Form Fields */}
-                    <div className="col-12 col-lg-7 border-end-lg border-secondary border-opacity-20 pe-lg-4">
-                      {/* Team Name & Short Code */}
+                  <div className="row g-4">
+                    <div className="col-12 col-md-7 border-end-md border-secondary border-opacity-20 pe-md-4">
                       <div className="row g-2 mb-3">
                         <div className="col-12 col-sm-8">
                           <label className="form-label text-light small fw-bold mb-1">
@@ -536,8 +795,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                           </label>
                           <input
                             type="text"
-                            className="form-control text-sm py-2"
-                            placeholder="e.g. Palghar Spikers"
+                            className="form-control"
+                            placeholder="e.g. Coastal Strikers FC"
                             required
                             value={formData.team_name}
                             onChange={(e) => setFormData((prev) => ({ ...prev, team_name: e.target.value }))}
@@ -550,14 +809,27 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                           <input
                             type="text"
                             maxLength={5}
-                            className="form-control text-uppercase font-monospace fw-bold text-sm py-2"
-                            placeholder="PSP"
+                            className="form-control text-uppercase font-monospace fw-bold"
+                            placeholder="CSF"
                             required
                             value={formData.team_code}
                             onChange={(e) => setFormData((prev) => ({ ...prev, team_code: e.target.value.toUpperCase() }))}
                           />
-                          <span className="text-white-50 text-xs d-block mt-0.5">3-4 letters</span>
                         </div>
+                      </div>
+
+                      {/* Logo URL */}
+                      <div className="mb-3">
+                        <label className="form-label text-light small fw-bold mb-1">
+                          Team Logo URL
+                        </label>
+                        <input
+                          type="url"
+                          className="form-control"
+                          placeholder="https://.../logo.png (optional)"
+                          value={formData.logo_url}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, logo_url: e.target.value }))}
+                        />
                       </div>
 
                       {/* Primary Franchise Color Swatches */}
@@ -568,261 +840,172 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                             {formData.primary_color}
                           </span>
                         </label>
-                        <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
-                          {PRESET_COLORS.map((c) => {
-                            const isSelected = formData.primary_color.toLowerCase() === c.hex.toLowerCase();
-                            return (
-                              <button
-                                key={c.hex}
-                                type="button"
-                                title={c.name}
-                                className={`swatch-pill ${isSelected ? 'is-selected' : ''}`}
-                                style={{ backgroundColor: c.hex, width: 34, height: 34 }}
-                                onClick={() => setFormData((prev) => ({ ...prev, primary_color: c.hex }))}
-                              >
-                                {isSelected && <span style={{ fontSize: '12px', color: '#fff', fontWeight: 'bold' }}>✓</span>}
-                              </button>
-                            );
-                          })}
-                          {/* Custom Color Input */}
-                          <div className="d-flex align-items-center gap-1.5 ms-1">
-                            <input
-                              type="color"
-                              className="form-control form-control-color p-0.5 border-0 rounded-circle shadow-sm"
-                              style={{ width: 34, height: 34, cursor: 'pointer' }}
-                              value={formData.primary_color}
-                              onChange={(e) => setFormData((prev) => ({ ...prev, primary_color: e.target.value }))}
-                              title="Custom Color"
-                            />
-                            <span className="text-white-50 text-xs">Custom</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Starting Purse */}
-                      <div className="mb-3">
-                        <label className="form-label text-light small fw-bold mb-1.5 d-flex align-items-center justify-content-between">
-                          <span>Starting Auction Purse (₹) <span className="text-danger">*</span></span>
-                          <span className="text-warning fw-bold font-monospace small">
-                            ₹{Number(formData.initial_purse || 0).toLocaleString()}
-                          </span>
-                        </label>
-                        {/* Quick Purse Chips */}
-                        <div className="d-flex flex-wrap gap-1.5 mb-2">
-                          {QUICK_PURSES.map((qp) => (
+                        <div className="d-flex flex-wrap gap-2 mb-2">
+                          {PRESET_COLORS.map((c) => (
                             <button
-                              key={qp.value}
+                              key={c.hex}
                               type="button"
-                              className={`purse-chip ${Number(formData.initial_purse) === qp.value ? 'is-active' : ''}`}
-                              onClick={() => setFormData((prev) => ({ ...prev, initial_purse: qp.value }))}
-                            >
-                              {qp.label}
-                            </button>
+                              className={`rounded-circle border-0 transition-all ${
+                                formData.primary_color === c.hex ? 'ring-2 ring-white scale-110' : 'opacity-80 hover-opacity-100'
+                              }`}
+                              style={{ width: 28, height: 28, backgroundColor: c.hex }}
+                              onClick={() => setFormData((prev) => ({ ...prev, primary_color: c.hex }))}
+                              title={c.name}
+                            />
                           ))}
-                        </div>
-                        <div className="input-group">
-                          <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
-                          <input
-                            type="number"
-                            step="1000"
-                            min="1000"
-                            className="form-control font-monospace fw-bold py-2"
-                            placeholder="100000"
-                            required
-                            value={formData.initial_purse}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, initial_purse: e.target.value }))}
-                          />
                         </div>
                       </div>
 
                       {/* Owner & Coach */}
                       <div className="row g-2 mb-3">
-                        <div className="col-12 col-sm-6">
-                          <label className="form-label text-light small fw-bold mb-1">Owner Name</label>
+                        <div className="col-6">
+                          <label className="form-label text-light small fw-bold mb-1">Franchise Owner</label>
                           <input
                             type="text"
-                            className="form-control text-sm py-2"
-                            placeholder="e.g. Mahesh Patil"
+                            className="form-control"
+                            placeholder="Owner name"
                             value={formData.owner_name}
                             onChange={(e) => setFormData((prev) => ({ ...prev, owner_name: e.target.value }))}
                           />
                         </div>
-                        <div className="col-12 col-sm-6">
-                          <label className="form-label text-light small fw-bold mb-1">Coach Name</label>
+                        <div className="col-6">
+                          <label className="form-label text-light small fw-bold mb-1">Head Coach</label>
                           <input
                             type="text"
-                            className="form-control text-sm py-2"
-                            placeholder="e.g. Vikram Joshi"
+                            className="form-control"
+                            placeholder="Coach name"
                             value={formData.coach_name}
                             onChange={(e) => setFormData((prev) => ({ ...prev, coach_name: e.target.value }))}
                           />
                         </div>
                       </div>
 
-                      {/* Squad Size Limits */}
-                      <div className="row g-2">
+                      {/* Pool Group */}
+                      <div className="mb-3">
+                        <label className="form-label text-light small fw-bold mb-1">Tournament Pool / Group</label>
+                        <select
+                          className="form-select form-select-sm bg-dark text-white border-secondary"
+                          value={formData.pool_group}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, pool_group: e.target.value }))}
+                        >
+                          <option value="">Unassigned (Open)</option>
+                          <option value="Pool A">Pool A</option>
+                          <option value="Pool B">Pool B</option>
+                          <option value="Pool C">Pool C</option>
+                          <option value="Pool D">Pool D</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Financial Setup */}
+                    <div className="col-12 col-md-5 ps-md-3">
+                      <div className="mb-3">
+                        <label className="form-label text-light small fw-bold mb-1">
+                          Starting Purse / Budget (₹) <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="1000"
+                          min="10000"
+                          className="form-control text-warning font-monospace fw-bold fs-5"
+                          required
+                          value={formData.initial_purse}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, initial_purse: e.target.value }))}
+                        />
+                        <div className="d-flex flex-wrap gap-1.5 mt-2">
+                          {QUICK_PURSES.map((qp) => (
+                            <button
+                              key={qp.value}
+                              type="button"
+                              className="btn btn-xs btn-outline-secondary rounded-pill py-0.5 px-2 text-xs"
+                              onClick={() => setFormData((prev) => ({ ...prev, initial_purse: qp.value }))}
+                            >
+                              {qp.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Squad Size Bounds */}
+                      <div className="row g-2 mb-3">
                         <div className="col-6">
                           <label className="form-label text-light small fw-bold mb-1">Min Squad</label>
                           <input
                             type="number"
-                            min="1"
-                            max="20"
-                            className="form-control font-monospace py-2"
+                            min="4"
+                            max="25"
+                            className="form-control"
                             value={formData.min_squad_size}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, min_squad_size: Number(e.target.value) }))}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, min_squad_size: e.target.value }))}
                           />
                         </div>
                         <div className="col-6">
                           <label className="form-label text-light small fw-bold mb-1">Max Squad</label>
                           <input
                             type="number"
-                            min="1"
+                            min="4"
                             max="25"
-                            className="form-control font-monospace py-2"
+                            className="form-control"
                             value={formData.max_squad_size}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, max_squad_size: Number(e.target.value) }))}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, max_squad_size: e.target.value }))}
                           />
                         </div>
                       </div>
-                    </div>
 
-                    {/* Right Column: Live Interactive Franchise Preview */}
-                    <div className="col-12 col-lg-5 mt-2 mt-lg-0 d-flex flex-column justify-content-between">
-                      {/* Mobile Preview Toggle */}
-                      <div className="d-lg-none mb-2">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-info rounded-pill py-1.5 px-3 text-xs fw-bold w-100 d-flex align-items-center justify-content-center gap-1.5"
-                          onClick={() => setShowMobilePreview(!showMobilePreview)}
-                        >
-                          <span>{showMobilePreview ? '🙈 Hide Live Preview' : '👁️ View Live Console Preview'}</span>
-                        </button>
-                      </div>
-
-                      <div className={`preview-wrapper ${showMobilePreview ? 'd-block' : 'd-none d-lg-block'}`}>
-                        <div className="d-flex align-items-center justify-content-between mb-2">
-                          <span className="text-white-50 text-xs fw-bold text-uppercase tracking-wider">
-                            Live Console Preview
-                          </span>
-                          <span className="badge badge-cyan px-2 py-0.5 text-xs">Real-Time</span>
-                        </div>
-
-                        {/* Preview Box */}
-                        <div className="team-preview-box text-center p-3 p-sm-4" style={{ borderTop: `4px solid ${formData.primary_color || '#0d6efd'}` }}>
-                          {/* Circular Logo Emblem */}
-                          <div
-                            className="rounded-circle mx-auto d-flex align-items-center justify-content-center shadow-lg mb-2"
+                      {/* Live Card Preview */}
+                      <div className="p-3 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-20 text-center mt-3">
+                        <span className="text-white-50 text-xs text-uppercase d-block mb-2">Team Emblem Preview</span>
+                        <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+                          <span
+                            className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow"
                             style={{
-                              width: 58,
-                              height: 58,
-                              background: `linear-gradient(135deg, ${formData.primary_color || '#0d6efd'}, #081124)`,
-                              border: '2px solid rgba(255,255,255,0.4)',
+                              width: 52,
+                              height: 52,
+                              backgroundColor: formData.primary_color || '#0d6efd',
+                              fontSize: '1.1rem',
                             }}
                           >
-                            <span className="fw-black fs-4 text-white font-monospace">
-                              {formData.team_code || 'PSP'}
-                            </span>
-                          </div>
-
-                          <h4 className="fw-extrabold text-white mb-0.5 fs-6 fs-sm-5 text-truncate">
-                            {formData.team_name || 'Franchise Name'}
-                          </h4>
-
-                          <p className="text-white-50 text-xs mb-2.5 text-truncate">
-                            Owner: <strong className="text-light">{formData.owner_name || 'Management'}</strong>
-                            {formData.coach_name && <> • Coach: <strong className="text-light">{formData.coach_name}</strong></>}
-                          </p>
-
-                          {/* Budget & Squad Tag */}
-                          <div className="d-flex align-items-center justify-content-center gap-2 mb-2.5">
-                            <div className="auction-sub-card px-2.5 py-1 text-center">
-                              <span className="text-white-50 text-xs d-block" style={{ fontSize: '0.68rem' }}>PURSE</span>
-                              <strong className="text-warning font-monospace text-xs">
-                                ₹{Number(formData.initial_purse || 0).toLocaleString()}
-                              </strong>
-                            </div>
-                            <div className="auction-sub-card px-2.5 py-1 text-center">
-                              <span className="text-white-50 text-xs d-block" style={{ fontSize: '0.68rem' }}>SQUAD</span>
-                              <strong className="text-info font-monospace text-xs">
-                                0 / {formData.max_squad_size || 12}
-                              </strong>
-                            </div>
-                          </div>
-
-                          {/* Auction Paddle Button Preview */}
-                          <div className="text-start">
-                            <span className="text-white-50 text-xs d-block mb-1" style={{ fontSize: '0.7rem' }}>
-                              AUCTIONEER PADDLE APPEARANCE:
-                            </span>
-                            <div
-                              className="team-paddle-btn py-2 px-2.5"
-                              style={{ '--team-color': formData.primary_color || '#0d6efd', pointerEvents: 'none' }}
-                            >
-                              <div className="d-flex align-items-center justify-content-between mb-1">
-                                <span
-                                  className="badge px-2 py-0.5 rounded-pill text-xs fw-extrabold"
-                                  style={{ backgroundColor: formData.primary_color || '#0d6efd', color: '#fff' }}
-                                >
-                                  {formData.team_code || 'CODE'}
-                                </span>
-                                <span className="text-warning font-monospace text-xs fw-bold">
-                                  ₹{Number(formData.initial_purse || 0).toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="fw-bold text-white small text-truncate">
-                                {formData.team_name || 'Team Name'}
-                              </div>
-                              <div className="text-white-50 text-xs mt-0.5" style={{ fontSize: '0.7rem' }}>
-                                Click to attribute bid on live podium
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-secondary bg-opacity-10 rounded-3 p-2.5 mt-2.5 border border-secondary border-opacity-15">
-                          <span className="text-info text-xs fw-bold d-block mb-0.5">ℹ️ Tournament Tip</span>
-                          <span className="text-white-50 text-xs" style={{ fontSize: '0.73rem' }}>
-                            Teams can immediately bid once created. The initial purse is automatically set as remaining purse.
+                            {formData.team_code || '???'}
                           </span>
                         </div>
+                        <strong className="text-white d-block">{formData.team_name || 'Team Name'}</strong>
+                        <span className="text-warning font-monospace text-xs">
+                          ₹{Number(formData.initial_purse || defaultPurse).toLocaleString()} Purse
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="modal-footer auction-modal-pinned-footer border-top border-secondary border-opacity-30 px-3 px-sm-4 py-2.5 py-sm-3 d-flex flex-column-reverse flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-2 text-xs w-100 w-sm-auto"
-                    onClick={closeAddModal}
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-extrabold text-xs d-inline-flex align-items-center justify-content-center gap-1.5 shadow-lg w-100 w-sm-auto"
-                    disabled={loading}
-                    style={{ minHeight: '38px' }}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm" role="status"></span>
-                        <span>Saving Franchise...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>✓</span>
-                        <span>Create Team Franchise</span>
-                      </>
-                    )}
-                  </button>
+                <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                  <span className="text-white-50 text-xs">
+                    Tournament ID: <strong className="text-light">{activeTournamentId}</strong>
+                  </span>
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs"
+                      onClick={closeAddModal}
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 text-xs fw-bold shadow-sm"
+                      disabled={loading}
+                    >
+                      {loading ? 'Creating Team...' : '+ Confirm Add Team'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-      {/* EDIT TEAM MODAL */}
+      {/* ========================================================================= */}
+      {/* MODAL: EDIT TEAM PURSE & DETAILS                                          */}
+      {/* ========================================================================= */}
       {editingTeam && (
         <div
           className="modal show d-block auction-modal-overlay"
@@ -831,27 +1014,18 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="modal-dialog modal-md modal-dialog-centered mx-auto"
-            style={{
-              maxWidth: 'min(540px, calc(100vw - 16px))',
-              width: 'calc(100vw - 16px)',
-              margin: 'auto',
-              maxHeight: 'calc(100dvh - 16px)',
-              display: 'flex',
-            }}
-          >
-            <div className="modal-content auction-card auction-modal-shell text-white shadow-2xl">
-              <div className="modal-header flex-shrink-0 px-3 px-sm-4 py-2.5 py-sm-3 d-flex align-items-center justify-content-between">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white shadow-2xl">
+              <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
                 <div className="d-flex align-items-center gap-2">
                   <span
-                    className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold"
-                    style={{ backgroundColor: editingTeam.primary_color || '#0d6efd', color: '#fff' }}
+                    className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm"
+                    style={{ width: 28, height: 28, backgroundColor: editingTeam.primary_color || '#0d6efd', fontSize: '0.75rem' }}
                   >
                     {editingTeam.team_code}
                   </span>
-                  <h5 className="modal-title fw-bold text-white mb-0 fs-6 text-truncate" style={{ maxWidth: '240px' }}>
-                    Edit: {editingTeam.team_name}
+                  <h5 className="modal-title fw-extrabold text-white mb-0 fs-6">
+                    Edit {editingTeam.team_name}
                   </h5>
                 </div>
                 <button
@@ -862,9 +1036,9 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 ></button>
               </div>
 
-              <div className="modal-body auction-modal-scrollable-body p-3 p-sm-4 vstack gap-3 auction-scroll-area">
-                <div>
-                  <label className="form-label text-light small fw-bold mb-1">Team Name</label>
+              <div className="modal-body p-4">
+                <div className="mb-3">
+                  <label className="form-label text-light small fw-bold mb-1">Franchise Name</label>
                   <input
                     type="text"
                     className="form-control"
@@ -873,9 +1047,19 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                   />
                 </div>
 
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label text-light small fw-bold mb-1">Owner Name</label>
+                <div className="mb-3">
+                  <label className="form-label text-light small fw-bold mb-1">Team Logo URL</label>
+                  <input
+                    type="url"
+                    className="form-control"
+                    value={editingTeam.logo_url || ''}
+                    onChange={(e) => setEditingTeam((prev) => ({ ...prev, logo_url: e.target.value }))}
+                  />
+                </div>
+
+                <div className="row g-2 mb-3">
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Owner</label>
                     <input
                       type="text"
                       className="form-control"
@@ -883,8 +1067,8 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                       onChange={(e) => setEditingTeam((prev) => ({ ...prev, owner_name: e.target.value }))}
                     />
                   </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label text-light small fw-bold mb-1">Coach Name</label>
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Coach</label>
                     <input
                       type="text"
                       className="form-control"
@@ -894,76 +1078,58 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                   </div>
                 </div>
 
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label text-light small fw-bold mb-1">
-                      Initial Purse (₹)
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-dark text-warning border-secondary border-opacity-30 fw-bold">₹</span>
-                      <input
-                        type="number"
-                        className="form-control font-monospace"
-                        value={editingTeam.initial_purse}
-                        onChange={(e) => setEditingTeam((prev) => ({ ...prev, initial_purse: Number(e.target.value) }))}
-                      />
-                    </div>
+                <div className="row g-2 mb-3">
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Initial Purse (₹)</label>
+                    <input
+                      type="number"
+                      step="1000"
+                      className="form-control font-monospace"
+                      value={editingTeam.initial_purse || 0}
+                      onChange={(e) => setEditingTeam((prev) => ({ ...prev, initial_purse: e.target.value }))}
+                    />
                   </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label text-light small fw-bold mb-1">
-                      Remaining Purse (₹)
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-dark text-success border-secondary border-opacity-30 fw-bold">₹</span>
-                      <input
-                        type="number"
-                        className="form-control font-monospace"
-                        value={editingTeam.remaining_purse}
-                        onChange={(e) => setEditingTeam((prev) => ({ ...prev, remaining_purse: Number(e.target.value) }))}
-                      />
-                    </div>
+                  <div className="col-6">
+                    <label className="form-label text-light small fw-bold mb-1">Remaining Purse (₹)</label>
+                    <input
+                      type="number"
+                      step="1000"
+                      className="form-control font-monospace text-success fw-bold"
+                      value={editingTeam.remaining_purse || 0}
+                      onChange={(e) => setEditingTeam((prev) => ({ ...prev, remaining_purse: e.target.value }))}
+                    />
                   </div>
                 </div>
 
-                {/* Color and Squad Limit Edit */}
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label text-light small fw-bold mb-1">Max Squad Size</label>
-                    <input
-                      type="number"
-                      min="1"
-                      className="form-control font-monospace"
-                      value={editingTeam.max_squad_size || 12}
-                      onChange={(e) => setEditingTeam((prev) => ({ ...prev, max_squad_size: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label text-light small fw-bold mb-1">Franchise Color</label>
-                    <div className="d-flex align-items-center gap-2">
-                      <input
-                        type="color"
-                        className="form-control form-control-color p-0.5 border-0 rounded-circle"
-                        style={{ width: 34, height: 34, cursor: 'pointer' }}
-                        value={editingTeam.primary_color || '#0d6efd'}
-                        onChange={(e) => setEditingTeam((prev) => ({ ...prev, primary_color: e.target.value }))}
+                <div className="mb-3">
+                  <label className="form-label text-light small fw-bold mb-1">Franchise Color</label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {PRESET_COLORS.map((c) => (
+                      <button
+                        key={c.hex}
+                        type="button"
+                        className={`rounded-circle border-0 transition-all ${
+                          editingTeam.primary_color === c.hex ? 'ring-2 ring-white scale-110' : 'opacity-80 hover-opacity-100'
+                        }`}
+                        style={{ width: 28, height: 28, backgroundColor: c.hex }}
+                        onClick={() => setEditingTeam((prev) => ({ ...prev, primary_color: c.hex }))}
                       />
-                      <span className="text-white-50 font-monospace text-xs">{editingTeam.primary_color || '#0d6efd'}</span>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="modal-footer auction-modal-pinned-footer border-top border-secondary border-opacity-30 px-3 px-sm-4 py-2.5 py-sm-3 d-flex flex-column-reverse flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
+              <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-2.5 d-flex align-items-center justify-content-end gap-2">
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-2 text-xs w-100 w-sm-auto"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs"
                   onClick={() => setEditingTeam(null)}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-extrabold text-xs shadow-lg w-100 w-sm-auto"
+                  className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 text-xs fw-bold shadow-sm"
                   onClick={handleUpdateTeam}
                   style={{ minHeight: '38px' }}
                 >
@@ -975,116 +1141,73 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
         </div>
       )}
 
-      {/* TEAM REGISTERED CELEBRATION MODAL */}
+      {/* ========================================================================= */}
+      {/* CELEBRATION MODAL: TEAM REGISTERED                                        */}
+      {/* ========================================================================= */}
       {teamRegisteredModal && (
         <div
-          className="modal show d-block auction-modal-overlay"
+          className="modal show d-block"
           data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1060 }}
           tabIndex="-1"
           role="dialog"
-          aria-modal="true"
         >
-          <div
-            className="modal-dialog modal-md modal-dialog-centered auction-modal-pop mx-2 mx-sm-auto"
-            style={{ maxWidth: 'min(480px, calc(100vw - 16px))' }}
-          >
-            <div className="modal-content auction-card modal-success-card text-white text-center p-3.5 p-sm-4 shadow-2xl">
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 440 }}>
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white text-center p-4 shadow-2xl">
               <div
-                className="modal-action-avatar text-white shadow"
-                style={{ background: teamRegisteredModal.primary_color || '#0d6efd' }}
+                className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow mx-auto mb-3"
+                style={{
+                  width: 64,
+                  height: 64,
+                  backgroundColor: teamRegisteredModal.primary_color || '#0d6efd',
+                  fontSize: '1.4rem',
+                }}
               >
                 {teamRegisteredModal.team_code}
               </div>
-              <span className="badge badge-emerald px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
-                Franchise Registered
+              <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase mx-auto mb-2">
+                Franchise Confirmed
               </span>
-              <h2 className="fs-4 fw-black text-white mb-1">
-                TEAM CREATED!
-              </h2>
+              <h4 className="fw-black text-white mb-1">{teamRegisteredModal.team_name}</h4>
               <p className="text-white-50 text-xs mb-3">
-                Successfully enrolled in the official PDVL tournament roster
+                Team added to tournament roster with allocated purse ₹{teamRegisteredModal.initial_purse}.
               </p>
-
-              <div className="auction-sub-card p-3 mb-3 text-start">
-                <div className="d-flex justify-content-between align-items-center mb-1.5">
-                  <span className="text-white-50 text-xs">Franchise Name:</span>
-                  <strong className="text-white small fw-bold">{teamRegisteredModal.team_name}</strong>
-                </div>
-                <div className="d-flex justify-content-between align-items-center mb-1.5">
-                  <span className="text-white-50 text-xs">Team Code:</span>
-                  <span className="badge bg-secondary font-monospace text-xs">{teamRegisteredModal.team_code}</span>
-                </div>
-                {teamRegisteredModal.owner_name && (
-                  <div className="d-flex justify-content-between align-items-center mb-1.5">
-                    <span className="text-white-50 text-xs">Owner:</span>
-                    <strong className="text-light small">{teamRegisteredModal.owner_name}</strong>
-                  </div>
-                )}
-                {teamRegisteredModal.coach_name && (
-                  <div className="d-flex justify-content-between align-items-center mb-1.5">
-                    <span className="text-white-50 text-xs">Coach:</span>
-                    <strong className="text-light small">{teamRegisteredModal.coach_name}</strong>
-                  </div>
-                )}
-                <div className="d-flex justify-content-between align-items-center mb-1.5">
-                  <span className="text-white-50 text-xs">Allocated Purse:</span>
-                  <strong className="text-warning font-monospace fs-6 fw-bold">₹{teamRegisteredModal.initial_purse?.toLocaleString?.() || teamRegisteredModal.initial_purse}</strong>
-                </div>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="text-white-50 text-xs">Squad Limit:</span>
-                  <span className="text-info font-monospace text-xs">{teamRegisteredModal.min_squad_size} - {teamRegisteredModal.max_squad_size} Players</span>
-                </div>
-              </div>
-
-              <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-light rounded-pill px-3.5 py-2.5 fw-semibold text-xs flex-fill"
-                  onClick={() => setTeamRegisteredModal(null)}
-                >
-                  View Teams Table
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary rounded-pill px-4 py-2.5 fw-bold text-xs flex-fill shadow"
-                  onClick={() => {
-                    setTeamRegisteredModal(null);
-                    openAddModal();
-                  }}
-                >
-                  + Add Another Team
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary rounded-pill px-4 py-2 text-xs fw-bold mx-auto shadow-sm"
+                onClick={() => setTeamRegisteredModal(null)}
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* TEAM UPDATED MODAL */}
+      {/* ========================================================================= */}
+      {/* CELEBRATION MODAL: TEAM UPDATED                                           */}
+      {/* ========================================================================= */}
       {teamUpdatedModal && (
         <div
-          className="modal show d-block auction-modal-overlay"
+          className="modal show d-block"
           data-bs-theme="dark"
+          style={{ backgroundColor: 'rgba(2, 6, 16, 0.88)', backdropFilter: 'blur(10px)', zIndex: 1060 }}
           tabIndex="-1"
           role="dialog"
-          aria-modal="true"
         >
-          <div
-            className="modal-dialog modal-sm modal-dialog-centered auction-modal-pop mx-2 mx-sm-auto"
-            style={{ maxWidth: 'min(380px, calc(100vw - 16px))' }}
-          >
-            <div className="modal-content auction-card modal-confirm-card text-white p-3.5 p-sm-4 text-center shadow-2xl">
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+            <div className="modal-content auction-card border-secondary border-opacity-30 text-white text-center p-4 shadow-2xl">
               <div className="fs-1 mb-2">✓</div>
-              <h5 className="fw-bold text-white mb-1 fs-6">Team Updated!</h5>
+              <h5 className="fw-black text-white mb-1">Team Details Updated</h5>
               <p className="text-white-50 text-xs mb-3">
-                <strong>{teamUpdatedModal.team_name}</strong> details & remaining purse of <strong>₹{teamUpdatedModal.remaining_purse?.toLocaleString?.() || teamUpdatedModal.remaining_purse}</strong> saved.
+                Updated {teamUpdatedModal.team_name} ({teamUpdatedModal.team_code}). Current remaining purse is ₹{teamUpdatedModal.remaining_purse}.
               </p>
               <button
                 type="button"
-                className="btn btn-sm btn-primary rounded-pill px-4 py-2 fw-bold text-xs w-100"
+                className="btn btn-sm btn-primary rounded-pill px-4 py-1.5 text-xs fw-bold mx-auto shadow-sm"
                 onClick={() => setTeamUpdatedModal(null)}
               >
-                Done
+                Close
               </button>
             </div>
           </div>

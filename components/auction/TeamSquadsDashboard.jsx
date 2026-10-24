@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import { formatRupees, normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
 import TopBidsLeaderboard from './TopBidsLeaderboard';
 import TeamsPoolingWheel from './TeamsPoolingWheel';
 
@@ -367,7 +367,7 @@ export default function TeamSquadsDashboard({
                 <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
                   Total League Purse
                 </span>
-                <strong className="fs-4 fw-extrabold text-warning">₹{totalPurse.toLocaleString()}</strong>
+                <strong className="fs-4 fw-extrabold text-warning" suppressHydrationWarning>₹{formatRupees(totalPurse)}</strong>
                 <span className="text-white-50 text-xs mt-1">{teams.length} Franchises</span>
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function TeamSquadsDashboard({
                 <span className="text-white-50 text-xs d-block mb-1 text-uppercase fw-semibold" style={{ letterSpacing: '0.04em' }}>
                   Spent in Live Bids
                 </span>
-                <strong className="fs-4 fw-extrabold text-info">₹{totalSpent.toLocaleString()}</strong>
+                <strong className="fs-4 fw-extrabold text-info" suppressHydrationWarning>₹{formatRupees(totalSpent)}</strong>
                 <span className="text-white-50 text-xs mt-1">
                   {totalPurse > 0 ? `${Math.round((totalSpent / totalPurse) * 100)}% Utilized` : '0%'}
                 </span>
