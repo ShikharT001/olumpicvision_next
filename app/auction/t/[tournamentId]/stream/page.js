@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import YouTubeLiveAuctionStream from '@/components/auction/YouTubeLiveAuctionStream';
 import '@/app/auction/auction.css';
 import { getTournamentById, getLiveAuctionState, getAuctionTeams } from '@/lib/auction-db';
-import { getAuctionSession } from '../../../actions';
+import { getAuctionSession } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 

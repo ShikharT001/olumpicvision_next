@@ -4,7 +4,7 @@ import TeamSquadsDashboard from '@/components/auction/TeamSquadsDashboard';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getTournamentById, getAuctionTeams } from '@/lib/auction-db';
-import { isAuctionAuthenticated, getAuctionSession } from '../../../actions';
+import { isAuctionAuthenticated, getAuctionSession } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 

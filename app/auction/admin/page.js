@@ -3,7 +3,7 @@ import AuctioneerConsole from '@/components/auction/AuctioneerConsole';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getLiveAuctionState, getTournamentById, getTournaments } from '@/lib/auction-db';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '@/app/auction/actions';
 
 export const metadata = {
   title: 'Auctioneer Control Console | Multi-Sport Live Auction',
