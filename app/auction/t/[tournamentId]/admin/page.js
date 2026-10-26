@@ -30,8 +30,17 @@ export default async function TournamentAdminPage(props) {
   const tournamentTeams = await getAuctionTeams(tournament.id);
 
   const isAuthed = await isAuctionAuthenticated();
-  if (!isAuthed) {
-    const errorParam = searchParams?.error || '';
+  const session = await getAuctionSession();
+  const role = session.role;
+  const isAdmin = session.isAdmin;
+  const loggedTeam = session.team;
+
+  if (!isAuthed || !isAdmin) {
+    const errorParam = searchParams?.error === 'invalid'
+      ? 'Incorrect admin passcode. Please verify and try again.'
+      : !isAdmin && isAuthed
+      ? 'Admin authorization required. The Auctioneer Console can only be operated by tournament administrators.'
+      : (searchParams?.error || '');
     return (
       <AuctionLoginGate
         tournament={tournament}
@@ -41,28 +50,6 @@ export default async function TournamentAdminPage(props) {
         initialRole="admin"
       />
     );
-  }
-
-  const session = await getAuctionSession();
-  const role = session.role;
-  const isAdmin = session.isAdmin;
-  const loggedTeam = session.team;
-
-  // STRICT TOURNAMENT VALIDATION FOR REGISTERED TEAMS
-  if (role === 'team' && loggedTeam?.id) {
-    const isRegistered = tournamentTeams.some(
-      (t) => String(t.id) === String(loggedTeam.id)
-    );
-    if (!isRegistered) {
-      return (
-        <AuctionLoginGate
-          tournament={tournament}
-          tournamentTeams={tournamentTeams}
-          errorMessage={`Your active team session (${loggedTeam.name || 'Team'}) is not registered for ${tournament.tournament_name}. Only registered teams for this championship are authorized.`}
-          returnTo={`/auction/t/${tournamentId}/admin`}
-        />
-      );
-    }
   }
 
   const initialData = await getLiveAuctionState(tournament.id);

@@ -12,7 +12,8 @@ export default function AuctionLoginGate({
   returnTo = '/auction',
   initialRole = 'team',
 }) {
-  const [loginMode, setLoginMode] = useState(initialRole || 'team'); // 'team' | 'admin'
+  const determinedInitialRole = initialRole === 'admin' || (returnTo && returnTo.includes('/admin')) ? 'admin' : (initialRole || 'team');
+  const [loginMode, setLoginMode] = useState(determinedInitialRole);
   const defaultTourn = tournament || (allTournaments.length === 1 ? allTournaments[0] : null);
   const [selectedTournamentId, setSelectedTournamentId] = useState(defaultTourn?.id || '');
   const [selectedTeamId, setSelectedTeamId] = useState('');

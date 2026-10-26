@@ -76,7 +76,7 @@ export async function POST(request) {
     }
 
     // Put a player on the live hammer podium
-    if (action === 'select') {
+    if (action === 'select' || action === 'select_player') {
       if (!playerId) return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
       const res = await setActivePlayer(playerId, tournamentId);
       return NextResponse.json(res);

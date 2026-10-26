@@ -15,16 +15,26 @@ export const dynamic = 'force-dynamic';
 export default async function AuctionAdminPage(props) {
   const searchParams = await props.searchParams;
   const isAuthed = await isAuctionAuthenticated();
-  if (!isAuthed) {
-    const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/admin${tournParam}`} />;
-  }
-
   const session = await getAuctionSession();
   const role = session.role;
   const isAdmin = session.isAdmin;
   const loggedTeam = session.team;
+
+  if (!isAuthed || !isAdmin) {
+    const errorMessage = searchParams?.error === 'invalid'
+      ? 'Incorrect admin passcode. Please verify and try again.'
+      : !isAdmin && isAuthed
+      ? 'Admin authorization required. The Auctioneer Console can only be operated by tournament administrators.'
+      : '';
+    const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
+    return (
+      <AuctionLoginGate
+        errorMessage={errorMessage}
+        returnTo={`/auction/admin${tournParam}`}
+        initialRole="admin"
+      />
+    );
+  }
 
   let tournament = null;
   if (searchParams?.tournamentId) {

@@ -20,7 +20,7 @@ export async function POST(request) {
       return NextResponse.json(result);
     }
 
-    if (action === 'sold') {
+    if (action === 'sold' || action === 'finalize') {
       const result = await finalizeSale(tournamentId);
       return NextResponse.json(result);
     }

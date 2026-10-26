@@ -29,9 +29,23 @@ function playFanfareSound() {
   }
 }
 
+// Systematic Category Definitions in canonical auction progression order
+const SYSTEMATIC_CATEGORIES = [
+  { key: 'icon_player', label: 'Icon / Marquee', shortLabel: 'Icon', icon: '⭐', badgeClass: 'badge-gold' },
+  { key: 'open', label: 'Open Category (Senior)', shortLabel: 'Open', icon: '🏐', badgeClass: 'badge-emerald' },
+  { key: 'u19', label: 'Under-19 (U19 Youth)', shortLabel: 'U19', icon: '⚡', badgeClass: 'badge-cyan' },
+  { key: 'u14', label: 'Under-14 (U14 Junior)', shortLabel: 'U14', icon: '🌱', badgeClass: 'bg-purple-600 text-white' },
+  { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '🛑', badgeClass: 'badge-danger bg-danger text-white' },
+];
+
 export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin: propIsAdmin, tournament = null, tournamentId: propTournamentId, loggedTeam = null }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
-  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : role === 'admin';
+  const [isAdminState, setIsAdminState] = useState(propIsAdmin !== undefined ? propIsAdmin : role === 'admin');
+  const isAdmin = isAdminState;
+  const [unlockModalOpen, setUnlockModalOpen] = useState(false);
+  const [unlockPasscode, setUnlockPasscode] = useState('');
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [unlockError, setUnlockError] = useState('');
   const [data, setData] = useState(initialData || {});
   const [liveNotification, setLiveNotification] = useState(initialData?.lastNotification || null);
   const [soldModalData, setSoldModalData] = useState(null);
@@ -46,11 +60,37 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   const [error, setError] = useState('');
   const [playerDrawerOpen, setPlayerDrawerOpen] = useState(false);
   const [allPlayers, setAllPlayers] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('open');
+  const [activeCategory, setActiveCategory] = useState('icon_player');
   const [playerFilter, setPlayerFilter] = useState({ lot: '', status: '', search: '', position: '', category: '' });
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const lastNotifIdRef = useRef(initialData?.lastNotification?.id || null);
   const [, startTransition] = useTransition();
+
+  // Instant admin passcode unlock handler
+  const handleUnlockAdmin = async (e) => {
+    if (e) e.preventDefault();
+    setUnlockError('');
+    setUnlockLoading(true);
+    try {
+      const res = await fetch('/api/auction/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: unlockPasscode }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Incorrect admin passcode');
+      setIsAdminState(true);
+      setUnlockModalOpen(false);
+      setUnlockPasscode('');
+      setActionMessage('✓ Admin podium controls unlocked successfully!');
+      fetchState();
+      fetchPlayersList();
+    } catch (err) {
+      setUnlockError(err.message);
+    } finally {
+      setUnlockLoading(false);
+    }
+  };
 
   const fetchState = useCallback(async () => {
     try {
@@ -101,7 +141,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Handle Paddle Click (Bid placed for team)
   const handleTeamPaddleClick = async (team) => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     if (!activePlayer) {
       setError('Please select a player to put on the hammer first.');
       return;
@@ -114,9 +157,16 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     try {
       const res = await fetch('/api/auction/bid', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({ teamId: team.id, bidAmount: bidToPlace, tournamentId: activeTournamentId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        setUnlockModalOpen(true);
+        throw new Error('Admin authorization required. Please verify admin passcode.');
+      }
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Failed to place bid');
 
@@ -132,15 +182,25 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Hammer Stage Control
   const handleHammerAdvance = async (stage) => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     setError('');
     setActionLoading(true);
     try {
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({ action: 'stage', stage, tournamentId: activeTournamentId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        setUnlockModalOpen(true);
+        throw new Error('Admin authorization required. Please verify admin passcode.');
+      }
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Hammer update failed');
       fetchState();
@@ -153,7 +213,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Finalize Sale — Request Modal
   const requestFinalizeSale = () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     if (!activePlayer || !highestTeam || currentBid <= 0) {
       setError('Cannot mark as Sold without an active high bidder.');
       return;
@@ -167,15 +230,25 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Finalize Sale — Execute
   const executeFinalizeSale = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     setError('');
     setActionLoading(true);
     try {
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({ action: 'sold', tournamentId: activeTournamentId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        setUnlockModalOpen(true);
+        throw new Error('Admin authorization required. Please verify admin passcode.');
+      }
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Sale finalization failed');
 
@@ -215,7 +288,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Mark Unsold — Request Modal
   const requestMarkUnsold = () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     if (!activePlayer) return;
     setConfirmUnsoldModal({
       player: activePlayer,
@@ -225,15 +301,25 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Mark Unsold — Execute
   const executeMarkUnsold = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     setError('');
     setActionLoading(true);
     try {
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({ action: 'unsold', tournamentId: activeTournamentId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        setUnlockModalOpen(true);
+        throw new Error('Admin authorization required. Please verify admin passcode.');
+      }
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Failed to mark unsold');
 
@@ -264,21 +350,34 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Undo Last Action — Request Modal
   const requestUndo = () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     setConfirmUndoModal(true);
   };
 
   // Undo Last Action — Execute
   const executeUndo = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     setError('');
     setActionLoading(true);
     try {
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({ action: 'undo', tournamentId: activeTournamentId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        setUnlockModalOpen(true);
+        throw new Error('Admin authorization required. Please verify admin passcode.');
+      }
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Undo failed');
 
@@ -301,7 +400,20 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
-        setAllPlayers(json.players || []);
+        const players = json.players || [];
+        setAllPlayers(players);
+        // Automatically ensure activeCategory focuses on first category that has queued players
+        setActiveCategory((currentCat) => {
+          const currentPool = players.filter((p) => normalizeCategory(p.player_category) === currentCat && p.auction_status === 'queued');
+          if (currentPool.length > 0) return currentCat;
+          const firstReady = SYSTEMATIC_CATEGORIES.find((cat) => {
+            if (cat.key === 'unsold') {
+              return players.some((p) => p.auction_status === 'unsold');
+            }
+            return players.some((p) => normalizeCategory(p.player_category) === cat.key && p.auction_status === 'queued');
+          });
+          return firstReady ? firstReady.key : currentCat;
+        });
       }
     } catch {
       // Ignore
@@ -327,15 +439,25 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   };
 
   const handleSelectPlayerToHammer = async (player) => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     setError('');
     setActionLoading(true);
     try {
       const res = await fetch('/api/auction/players', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({ action: 'select', playerId: player.id, tournamentId: activeTournamentId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        setUnlockModalOpen(true);
+        throw new Error('Admin authorization required. Please verify admin passcode.');
+      }
       let resData = {};
       try {
         resData = await res.json();
@@ -354,15 +476,6 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       setActionLoading(false);
     }
   };
-
-  // Systematic Category Definitions in canonical auction progression order
-  const SYSTEMATIC_CATEGORIES = [
-    { key: 'icon_player', label: 'Icon / Marquee', shortLabel: 'Icon', icon: '⭐', badgeClass: 'badge-gold' },
-    { key: 'open', label: 'Open Category (Senior)', shortLabel: 'Open', icon: '🏐', badgeClass: 'badge-emerald' },
-    { key: 'u19', label: 'Under-19 (U19 Youth)', shortLabel: 'U19', icon: '⚡', badgeClass: 'badge-cyan' },
-    { key: 'u14', label: 'Under-14 (U14 Junior)', shortLabel: 'U14', icon: '🌱', badgeClass: 'bg-purple-600 text-white' },
-    { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '🛑', badgeClass: 'badge-danger bg-danger text-white' },
-  ];
 
   // Compute category statistics and next sequential player per category
   const categoryStats = SYSTEMATIC_CATEGORIES.map((catDef) => {
@@ -400,7 +513,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     };
   });
 
-  const currentCategoryInfo = categoryStats.find((c) => c.key === activeCategory) || categoryStats[1];
+  const currentCategoryInfo = categoryStats.find((c) => c.key === activeCategory) || categoryStats[0];
   const nextPlayerInActiveCategory = currentCategoryInfo?.nextPlayer;
   const currentCategoryIndex = SYSTEMATIC_CATEGORIES.findIndex((c) => c.key === activeCategory);
   const nextCategoryInSequence = SYSTEMATIC_CATEGORIES.slice(currentCategoryIndex + 1).find((c) => {
@@ -410,11 +523,18 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   // Action to bring the next player in the systematic category queue to podium
   const handleCallNextCategoryPlayer = async (playerOverride) => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      setUnlockModalOpen(true);
+      return;
+    }
     const targetPlayer = playerOverride || nextPlayerInActiveCategory;
     if (!targetPlayer) {
       if (nextCategoryInSequence) {
         setActiveCategory(nextCategoryInSequence.key);
+        const nextCat = categoryStats.find((st) => st.key === nextCategoryInSequence.key);
+        if (nextCat?.nextPlayer) {
+          await handleSelectPlayerToHammer(nextCat.nextPlayer);
+        }
       }
       return;
     }
@@ -472,20 +592,28 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     <div className="container-fluid px-3 px-md-4 py-3">
       {/* Team View-Only Live Spectator Banner */}
       {!isAdmin && (
-        <div className="alert border border-info border-opacity-30 bg-info bg-opacity-10 d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 px-3 rounded-3 mb-3 shadow-sm">
+        <div className="alert border border-warning border-opacity-40 bg-warning bg-opacity-10 d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 px-3 rounded-3 mb-3 shadow-sm">
           <div className="d-flex align-items-center gap-2">
-            <span className="badge bg-info text-dark rounded-pill px-2.5 py-1 text-xs fw-extrabold">
-              🛡️ TEAM SPECTATOR VIEW
+            <span className="badge bg-warning text-dark rounded-pill px-2.5 py-1 text-xs fw-extrabold">
+              🛡️ SPECTATOR VIEW
             </span>
             <span className="text-white small">
-              You are watching the live Auctioneer Console in real time. All bidding paddles and gavel actions are exclusively operated by the official Tournament Admin.
+              Live podium view mode. If you are the official Tournament Admin / Auctioneer, unlock controls below to operate the hammer and paddles.
             </span>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <span className="badge bg-black bg-opacity-50 text-info border border-info border-opacity-25 px-2.5 py-1 rounded-pill text-xs font-monospace">
+            <button
+              type="button"
+              className="btn btn-sm btn-warning rounded-pill px-3 py-1 text-xs fw-extrabold shadow-sm d-inline-flex align-items-center gap-1.5"
+              onClick={() => setUnlockModalOpen(true)}
+            >
+              <span>👑</span>
+              <span>Unlock Admin Controls</span>
+            </button>
+            <span className="badge bg-black bg-opacity-50 text-warning border border-warning border-opacity-25 px-2.5 py-1 rounded-pill text-xs font-monospace">
               ● LIVE SYNC (1.5s)
             </span>
-            <Link href="/auction/live" className="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-0.5 text-xs fw-bold">
+            <Link href="/auction/live" className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5 text-xs fw-bold">
               Stage Projector ↗
             </Link>
           </div>
@@ -752,14 +880,33 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   )}
                 </p>
                 <div className="d-flex flex-wrap justify-content-center gap-2">
-                  {isAdmin && nextPlayerInActiveCategory && (
+                  {isAdmin ? (
+                    nextPlayerInActiveCategory ? (
+                      <button
+                        type="button"
+                        className="btn btn-warning rounded-pill px-4 py-2 fw-black text-dark text-sm shadow"
+                        onClick={() => handleCallNextCategoryPlayer()}
+                        disabled={actionLoading}
+                      >
+                        ⚡ Bring {nextPlayerInActiveCategory.full_name} to Podium Now
+                      </button>
+                    ) : nextCategoryInSequence ? (
+                      <button
+                        type="button"
+                        className="btn btn-warning rounded-pill px-4 py-2 fw-black text-dark text-sm shadow"
+                        onClick={() => handleCallNextCategoryPlayer()}
+                        disabled={actionLoading}
+                      >
+                        ⚡ Advance to {nextCategoryInSequence.shortLabel} & Call Player
+                      </button>
+                    ) : null
+                  ) : (
                     <button
                       type="button"
-                      className="btn btn-warning rounded-pill px-4 py-2 fw-black text-dark text-sm shadow"
-                      onClick={() => handleCallNextCategoryPlayer()}
-                      disabled={actionLoading}
+                      className="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark text-sm shadow"
+                      onClick={() => setUnlockModalOpen(true)}
                     >
-                      ⚡ Bring {nextPlayerInActiveCategory.full_name} to Podium Now
+                      👑 Unlock Admin to Call Players
                     </button>
                   )}
                   <button
@@ -816,18 +963,22 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   {isAdmin ? 'Gavel Stage Controls' : 'Live Gavel Status (Admin Controlled)'}
                 </span>
                 {!isAdmin && (
-                  <span className="badge bg-secondary bg-opacity-25 text-white-50 text-xs fw-normal">
-                    👁️ Spectator Mode
-                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-outline-warning btn-xs rounded-pill px-2.5 py-0.5 text-xs fw-bold"
+                    onClick={() => setUnlockModalOpen(true)}
+                  >
+                    👑 Unlock Admin
+                  </button>
                 )}
               </div>
               <div className="d-flex flex-wrap align-items-center gap-2">
                 <button
                   type="button"
                   className={`btn btn-sm rounded-3 px-3 py-2 fw-bold text-xs flex-fill ${state.hammer_stage === 1 ? 'btn-warning text-dark' : 'btn-outline-warning'}`}
-                  onClick={() => isAdmin && handleHammerAdvance(1)}
-                  disabled={!isAdmin || !activePlayer || currentBid === 0 || actionLoading}
-                  title={!isAdmin ? 'Operated by official auctioneer only' : 'Going once call'}
+                  onClick={() => handleHammerAdvance(1)}
+                  disabled={isAdmin && (!activePlayer || currentBid === 0 || actionLoading)}
+                  title={!isAdmin ? 'Click to unlock admin controls' : 'Going once call'}
                 >
                   ⚡ Going 1
                 </button>
@@ -835,9 +986,9 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 <button
                   type="button"
                   className={`btn btn-sm rounded-3 px-3 py-2 fw-bold text-xs flex-fill ${state.hammer_stage === 2 ? 'btn-warning text-dark' : 'btn-outline-warning'}`}
-                  onClick={() => isAdmin && handleHammerAdvance(2)}
-                  disabled={!isAdmin || !activePlayer || currentBid === 0 || actionLoading}
-                  title={!isAdmin ? 'Operated by official auctioneer only' : 'Going twice call'}
+                  onClick={() => handleHammerAdvance(2)}
+                  disabled={isAdmin && (!activePlayer || currentBid === 0 || actionLoading)}
+                  title={!isAdmin ? 'Click to unlock admin controls' : 'Going twice call'}
                 >
                   ⚡⚡ Going 2
                 </button>
@@ -845,14 +996,14 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 <button
                   type="button"
                   className={`btn btn-sm rounded-3 px-4 py-2 fw-bold text-xs flex-fill shadow-sm ${state.hammer_stage === 3 ? 'btn-success text-white' : 'btn-outline-success'}`}
-                  onClick={() => isAdmin && requestFinalizeSale()}
-                  disabled={!isAdmin || !activePlayer || !highestTeam || currentBid <= 0 || actionLoading}
-                  title={!isAdmin ? 'Operated by official auctioneer only' : 'Confirm player sale'}
+                  onClick={() => requestFinalizeSale()}
+                  disabled={isAdmin && (!activePlayer || !highestTeam || currentBid <= 0 || actionLoading)}
+                  title={!isAdmin ? 'Click to unlock admin controls' : 'Confirm player sale'}
                 >
                   🔨 SOLD!
                 </button>
 
-                {isAdmin && (
+                {isAdmin ? (
                   <>
                     <button
                       type="button"
@@ -873,12 +1024,30 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                       ↺ Undo
                     </button>
                   </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger rounded-3 px-3 py-2 fw-bold text-xs"
+                    onClick={() => setUnlockModalOpen(true)}
+                    title="Click to unlock admin controls"
+                  >
+                    ✕ Unsold
+                  </button>
                 )}
               </div>
               {!isAdmin && (
-                <span className="text-secondary d-block mt-2" style={{ fontSize: '0.74rem' }}>
-                  🔒 Gavel calls & hammer awards are exclusively operated by the main auctioneer.
-                </span>
+                <div className="d-flex align-items-center justify-content-between mt-2 pt-1 border-top border-secondary border-opacity-15">
+                  <span className="text-secondary text-xs">
+                    🔒 Gavel calls & hammer awards are locked in spectator mode.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-link text-warning p-0 text-xs text-decoration-none fw-bold"
+                    onClick={() => setUnlockModalOpen(true)}
+                  >
+                    Enter Passcode →
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -965,7 +1134,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                         className={`team-paddle-btn w-100 ${!isAdmin ? 'is-view-only' : ''} ${isHigh ? 'is-highest-bidder' : ''}`}
                         style={{
                           '--team-color': team.primary_color || '#0d6efd',
-                          cursor: !isAdmin ? 'default' : undefined,
+                          cursor: !isAdmin ? 'pointer' : undefined,
                           ...(isMyTeam
                             ? {
                                 border: '2px solid #06b6d4',
@@ -973,9 +1142,19 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                               }
                             : {}),
                         }}
-                        onClick={isAdmin ? () => handleTeamPaddleClick(team) : undefined}
+                        onClick={() => handleTeamPaddleClick(team)}
                         disabled={isAdmin && !canBid}
-                        aria-disabled={!isAdmin}
+                        title={
+                          !isAdmin
+                            ? 'Click to unlock admin bidding controls'
+                            : !activePlayer
+                            ? 'Bring a player to the podium first'
+                            : !hasPurse
+                            ? 'Team purse insufficient for this bid'
+                            : isFull
+                            ? 'Squad limit reached'
+                            : `Place ₹${bidAmountToPlace.toLocaleString()} bid for ${team.team_name}`
+                        }
                       >
                         <div className="d-flex align-items-center justify-content-between mb-1.5">
                           <div className="d-flex align-items-center gap-1">
@@ -1394,7 +1573,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                                     </button>
                                   )}
                                 </div>
-                              ) : isAdmin ? (
+                              ) : (
                                 <button
                                   type="button"
                                   className={`btn btn-sm w-100 rounded-pill py-1.5 text-xs fw-extrabold d-flex align-items-center justify-content-center gap-1.5 shadow ${
@@ -1404,15 +1583,10 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                                   }`}
                                   onClick={() => handleSelectPlayerToHammer(p)}
                                   disabled={actionLoading}
+                                  title={!isAdmin ? 'Click to unlock admin permissions' : 'Put player on hammer'}
                                 >
                                   <span>{isUnsold ? '⚡ Bring Back to Hammer (Round 2) →' : '⚡ Put on Hammer Now →'}</span>
                                 </button>
-                              ) : (
-                                <div className={`badge w-100 rounded-pill py-1.5 text-xs fw-semibold ${
-                                  isUnsold ? 'bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30' : 'bg-secondary bg-opacity-25 text-white-50'
-                                }`}>
-                                  {isUnsold ? '⚠️ In Unsold Pool (Round 2)' : `⭐ Queued in Lot #${p.lot_number || 1}`}
-                                </div>
                               )}
                             </div>
                           </div>
@@ -1863,6 +2037,88 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               >
                 Acknowledge & Next Player ➔
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK ADMIN UNLOCK MODAL */}
+      {unlockModalOpen && (
+        <div
+          className="modal show d-block auction-modal-overlay"
+          data-bs-theme="dark"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 1060 }}
+        >
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 440 }}>
+            <div className="modal-content auction-card text-white p-4 shadow-2xl border border-warning border-opacity-40">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="fs-3">👑</span>
+                  <div>
+                    <h5 className="fw-black text-white mb-0">Auctioneer Admin Control</h5>
+                    <span className="text-white-50 text-xs">Unlock gavel, podium & paddle permissions</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  aria-label="Close"
+                  onClick={() => {
+                    setUnlockModalOpen(false);
+                    setUnlockError('');
+                  }}
+                />
+              </div>
+
+              <p className="text-secondary small mb-3">
+                Enter the master administrative passcode to enable gavel progression, paddle bidding attribution, and player queue switching.
+              </p>
+
+              {unlockError && (
+                <div className="alert alert-danger py-2 px-3 text-xs rounded-3 mb-3 border-0">
+                  ⚠️ {unlockError}
+                </div>
+              )}
+
+              <form onSubmit={handleUnlockAdmin}>
+                <div className="mb-3">
+                  <label className="form-label text-xs fw-bold text-uppercase text-white-50">
+                    Admin Passcode
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control bg-black text-white border-secondary border-opacity-50 py-2.5 px-3 rounded-3 font-monospace"
+                    placeholder="Enter admin passcode (e.g. pdvladmin2026)"
+                    value={unlockPasscode}
+                    onChange={(e) => setUnlockPasscode(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary rounded-pill px-3 py-2 text-xs flex-fill"
+                    onClick={() => {
+                      setUnlockModalOpen(false);
+                      setUnlockError('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-warning rounded-pill px-4 py-2 text-xs fw-bold text-dark flex-fill shadow"
+                    disabled={unlockLoading || !unlockPasscode.trim()}
+                  >
+                    {unlockLoading ? 'Authenticating...' : '⚡ Unlock Controls'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

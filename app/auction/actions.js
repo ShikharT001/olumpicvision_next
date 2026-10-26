@@ -60,7 +60,9 @@ export async function authenticateAuction(formData) {
   let role = null;
   let matchedTeam = null;
 
-  if (loginMode === 'team') {
+  if (isMatchAdmin && (loginMode === 'admin' || returnTo.includes('/admin') || !teamId)) {
+    role = 'admin';
+  } else if (loginMode === 'team') {
     // -------------------------------------------------------------
     // REGISTERED TEAM LOGIN FOR A SPECIFIC TOURNAMENT
     // -------------------------------------------------------------
@@ -192,7 +194,8 @@ export async function authenticateAuction(formData) {
       cookieStore.set(AUCTION_TOURNAMENT_ID_COOKIE, String(tournamentId), cookieOpts);
     }
   } else {
-    // If admin, clear team credentials
+    // If admin, clear team credentials and set olumpicvision_admin cookie
+    cookieStore.set('olumpicvision_admin', 'true', cookieOpts);
     cookieStore.delete(AUCTION_TEAM_ID_COOKIE);
     cookieStore.delete(AUCTION_TEAM_NAME_COOKIE);
     cookieStore.delete(AUCTION_TEAM_CODE_COOKIE);
@@ -201,20 +204,24 @@ export async function authenticateAuction(formData) {
   }
 
   // Determine post-login redirect path:
-  // Admin after login MUST direct to the list of sports (/auction)
-  // Team directly loads the auction screens for their registered tournament!
-  let target = '/auction';
+  // If returnTo is valid, respect returnTo so admin lands directly back on their target console/page!
+  let target = returnTo && returnTo.startsWith('/auction') ? returnTo : '/auction';
 
   if (role === 'team' && matchedTeam) {
     const tId = tournamentId || matchedTeam.tournament_id;
-    if (tId) {
+    if (returnTo && returnTo.startsWith('/auction') && !returnTo.includes('/admin')) {
+      target = returnTo;
+    } else if (tId) {
       target = `/auction/t/${tId}/teams?teamId=${matchedTeam.id}&tab=squads`;
     } else {
       target = '/auction/teams';
     }
   } else if (role === 'admin') {
-    // Admin after login directs to list of sports
-    target = '/auction';
+    if (returnTo && returnTo.startsWith('/auction')) {
+      target = returnTo;
+    } else {
+      target = '/auction';
+    }
   }
 
   redirect(target);
@@ -224,6 +231,7 @@ export async function logoutAuction() {
   const cookieStore = await cookies();
   cookieStore.delete(AUCTION_COOKIE);
   cookieStore.delete(AUCTION_ROLE_COOKIE);
+  cookieStore.delete('olumpicvision_admin');
   cookieStore.delete(AUCTION_TEAM_ID_COOKIE);
   cookieStore.delete(AUCTION_TEAM_NAME_COOKIE);
   cookieStore.delete(AUCTION_TEAM_CODE_COOKIE);
