@@ -22,12 +22,7 @@ export async function generateMetadata(props) {
 export default async function TournamentAdminPage(props) {
   const params = await props.params;
   const searchParams = await props.searchParams;
-  const tournamentId = params.tournamentId;
-
-  const tournament = await getTournamentById(tournamentId);
-  if (!tournament) notFound();
-
-  const tournamentTeams = await getAuctionTeams(tournament.id);
+  const tournamentId = params?.tournamentId;
 
   const isAuthed = await isAuctionAuthenticated();
   const session = await getAuctionSession();

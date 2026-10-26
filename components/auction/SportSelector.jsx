@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatCurrency } from '@/lib/sports-config';
+import { formatRupees } from '@/lib/sports-config';
 
 export default function SportSelector({ sports = [], tournaments = [], role = 'team', isAdmin = false }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -290,7 +290,7 @@ export default function SportSelector({ sports = [], tournaments = [], role = 't
 
                     <div className="d-flex align-items-center justify-content-between py-2 border-top border-secondary border-opacity-20 text-xs text-white-50 mb-3">
                       <span>Teams: <strong className="text-white">{t.teams_count || 8}</strong></span>
-                      <span suppressHydrationWarning>Purse: <strong className="text-warning font-monospace">₹{formatCurrency(t.default_purse || 100000)}</strong></span>
+                      <span>Purse: <strong className="text-warning font-monospace" suppressHydrationWarning>₹{formatRupees(t.default_purse || 100000)}</strong></span>
                       <span>Players: <strong className="text-white">{t.players_count || 48}</strong></span>
                     </div>
 

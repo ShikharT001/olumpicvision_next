@@ -14,7 +14,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState({ status: '', lot: '', position: '', search: '' });
+  const [filter, setFilter] = useState({ status: '', lot: '', position: '', category: '', search: '' });
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [editForm, setEditForm] = useState({
     base_price: '',
@@ -472,6 +472,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
     if (filter.status && p.auction_status !== filter.status) return false;
     if (filter.lot && p.lot_number !== Number(filter.lot)) return false;
     if (filter.position && p.playing_position !== filter.position) return false;
+    if (filter.category && p.player_category !== filter.category) return false;
     if (filter.search) {
       const term = filter.search.toLowerCase();
       return (
@@ -625,6 +626,20 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
           <div className="col-6 col-sm-3 col-md-2">
             <select
               className="form-select form-select-sm bg-dark text-white border-secondary"
+              value={filter.category}
+              onChange={(e) => setFilter((prev) => ({ ...prev, category: e.target.value }))}
+            >
+              <option value="">All Categories</option>
+              {availableCategories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-6 col-sm-3 col-md-2">
+            <select
+              className="form-select form-select-sm bg-dark text-white border-secondary"
               value={filter.position}
               onChange={(e) => setFilter((prev) => ({ ...prev, position: e.target.value }))}
             >
@@ -640,7 +655,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-xs"
-              onClick={() => setFilter({ status: '', lot: '', position: '', search: '' })}
+              onClick={() => setFilter({ status: '', lot: '', position: '', category: '', search: '' })}
             >
               Reset Filters
             </button>

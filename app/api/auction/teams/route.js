@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuctionTeams, createAuctionTeam, updateAuctionTeam, deleteAuctionTeam, updateTournamentPools } from '@/lib/auction-db';
+import { getAuctionTeams, createAuctionTeam, updateAuctionTeam, deleteAuctionTeam, updateTournamentPools, seedTournamentDefaultTeams } from '@/lib/auction-db';
 import { isAuctionAdmin } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +27,12 @@ export async function POST(request) {
 
     const body = await request.json();
     const { action, tournamentId, teamId, ...teamData } = body;
+
+    // Seed default franchise teams for tournament
+    if (action === 'seed_defaults') {
+      const seeded = await seedTournamentDefaultTeams(tournamentId);
+      return NextResponse.json({ success: true, teams: seeded });
+    }
 
     // Bulk update tournament pools
     if (action === 'update_pools') {
