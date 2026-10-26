@@ -24,6 +24,10 @@ export default async function TournamentAdminPage(props) {
   const searchParams = await props.searchParams;
   const tournamentId = params?.tournamentId;
 
+  const tournament = await getTournamentById(tournamentId);
+  if (!tournament) notFound();
+  const tournamentTeams = await getAuctionTeams(tournament.id);
+
   const isAuthed = await isAuctionAuthenticated();
   const session = await getAuctionSession();
   const role = session.role;

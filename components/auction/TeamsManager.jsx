@@ -514,88 +514,268 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                 })
               )}
             </div>
+          </div>
+        </aside>
 
-      {/* Teams Table */}
-      <div className="auction-card overflow-hidden">
-        <div className="table-responsive">
-          <table className="table table-dark table-hover mb-0 align-middle small">
-            <thead className="table-dark text-white-50 text-uppercase text-xs border-secondary border-opacity-25">
-              <tr>
-                <th scope="col" style={{ width: 60 }}>Code</th>
-                <th scope="col">Team Name</th>
-                <th scope="col">Owner & Coach</th>
-                <th scope="col">Allocated Purse</th>
-                <th scope="col">Remaining Purse</th>
-                <th scope="col">Squad Capacity</th>
-                <th scope="col">Color</th>
-                <th scope="col" className="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teams.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-4 text-white-50">
-                    No teams configured yet. Click &quot;Add New Team&quot; above to create the first team.
-                  </td>
-                </tr>
+        {/* MAIN ROSTER & TEAMS VIEW (RIGHT COLUMN) */}
+        <div className="col-12 col-lg-9 col-xl-10">
+          {selectedTeamId && focusedTeam ? (
+            /* Focused Team Squad Card & Table */
+            <div className="auction-card p-4">
+              <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom border-secondary border-opacity-25 flex-wrap gap-3">
+                <div className="d-flex align-items-center gap-3">
+                  {focusedTeam.logo_url ? (
+                    <img
+                      src={focusedTeam.logo_url}
+                      alt={focusedTeam.team_code}
+                      className="rounded-circle border border-secondary border-opacity-40 shadow"
+                      style={{ width: 56, height: 56, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span
+                      className="rounded-circle d-flex align-items-center justify-content-center text-white fw-black shadow"
+                      style={{ width: 56, height: 56, backgroundColor: focusedTeam.primary_color || '#0d6efd', fontSize: '1.25rem' }}
+                    >
+                      {focusedTeam.team_code}
+                    </span>
+                  )}
+                  <div>
+                    <h3 className="h4 fw-black text-white mb-0">{focusedTeam.team_name}</h3>
+                    <div className="d-flex align-items-center gap-3 text-white-50 text-xs mt-1">
+                      <span>Owner: <strong className="text-light">{focusedTeam.owner_name || 'N/A'}</strong></span>
+                      {focusedTeam.coach_name && <span>Coach: <strong className="text-light">{focusedTeam.coach_name}</strong></span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs text-white"
+                    onClick={() => setSelectedTeamId(null)}
+                  >
+                    ← All Teams
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 text-xs"
+                    onClick={() => setEditingTeam({ ...focusedTeam })}
+                  >
+                    ✏️ Edit Purse
+                  </button>
+                </div>
+              </div>
+
+              {/* Purse & Squad Stats */}
+              <div className="row g-3 mb-4">
+                <div className="col-6 col-md-3">
+                  <div className="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                    <span className="text-white-50 text-xs d-block mb-1">Allocated Purse</span>
+                    <strong className="text-warning font-monospace fs-6">
+                      ₹{formatRupees(focusedTeam.initial_purse || 0)}
+                    </strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                    <span className="text-white-50 text-xs d-block mb-1">Remaining Purse</span>
+                    <strong className={`font-monospace fs-6 ${Number(focusedTeam.remaining_purse) < 10000 ? 'text-danger' : 'text-success'}`}>
+                      ₹{formatRupees(focusedTeam.remaining_purse || 0)}
+                    </strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                    <span className="text-white-50 text-xs d-block mb-1">Squad Acquired</span>
+                    <strong className="text-white fs-6">
+                      {focusedSquad.length} / {focusedTeam.max_squad_size || 12}
+                    </strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
+                    <span className="text-white-50 text-xs d-block mb-1">Total Spent</span>
+                    <strong className="text-info font-monospace fs-6">
+                      ₹{formatRupees(Math.max(0, Number(focusedTeam.initial_purse || 0) - Number(focusedTeam.remaining_purse || 0)))}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Squad Players Table */}
+              <h5 className="text-white fw-bold mb-3 fs-6">Acquired Roster ({focusedSquad.length} Players)</h5>
+              {focusedSquad.length === 0 ? (
+                <div className="p-4 rounded-3 bg-dark bg-opacity-40 text-center text-white-50 text-xs border border-secondary border-opacity-20">
+                  No players acquired yet by {focusedTeam.team_name}.
+                </div>
               ) : (
-                teams.map((team) => (
-                  <tr key={team.id} className="border-secondary border-opacity-20">
-                    <td>
-                      <span
-                        className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold"
-                        style={{ backgroundColor: team.primary_color || '#0d6efd', color: '#fff' }}
-                      >
-                        {team.team_code}
-                      </span>
-                    </td>
-                    <td>
-                      <strong className="text-white d-block">{team.team_name}</strong>
-                    </td>
-                    <td>
-                      <span className="text-white d-block">{team.owner_name || 'Management'}</span>
-                      {team.coach_name && <span className="text-white-50 text-xs">Coach: {team.coach_name}</span>}
-                    </td>
-                    <td>
-                      <strong className="text-warning font-monospace">
-                        ₹{Number(team.initial_purse || 0).toLocaleString()}
-                      </strong>
-                    </td>
-                    <td>
-                      <strong className={`font-monospace ${Number(team.remaining_purse) < 10000 ? 'text-danger' : 'text-success'}`}>
-                        ₹{Number(team.remaining_purse || 0).toLocaleString()}
-                      </strong>
-                    </td>
-                    <td>
-                      <span className="badge bg-secondary bg-opacity-25 text-light px-2 py-1 rounded-pill">
-                        {team.squad_count || 0} / {team.max_squad_size || 12}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className="d-inline-block rounded-circle border border-white"
-                        style={{ width: 18, height: 18, backgroundColor: team.primary_color || '#0d6efd' }}
-                      ></span>
-                    </td>
-                    <td className="text-end">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-xs"
-                        onClick={() => setEditingTeam({ ...team })}
-                      >
-                        ✏️ Edit Purse
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                <div className="table-responsive">
+                  <table className="table table-dark table-hover mb-0 align-middle small">
+                    <thead className="table-dark text-white-50 text-uppercase text-xs border-secondary border-opacity-25">
+                      <tr>
+                        <th scope="col">Player</th>
+                        <th scope="col">Position</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Sold Price</th>
+                        <th scope="col" className="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {focusedSquad.map((player) => (
+                        <tr key={player.id} className="border-secondary border-opacity-20">
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              {player.photo_url ? (
+                                <img
+                                  src={player.photo_url}
+                                  alt={player.full_name}
+                                  className="rounded-circle border border-secondary border-opacity-50"
+                                  style={{ width: 32, height: 32, objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <span
+                                  className="rounded-circle bg-secondary bg-opacity-50 d-flex align-items-center justify-content-center text-white"
+                                  style={{ width: 32, height: 32, fontSize: '0.75rem' }}
+                                >
+                                  👤
+                                </span>
+                              )}
+                              <div>
+                                <strong className="text-white d-block">{player.full_name}</strong>
+                                <span className="text-white-50 text-xs">{player.chest_number ? `#${player.chest_number}` : ''}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="text-light">{player.playing_position || 'Player'}</span>
+                          </td>
+                          <td>
+                            <span className={`badge ${getCategoryBadgeClass(player.category)} px-2 py-0.5 rounded-pill text-xs`}>
+                              {formatCategoryLabel(player.category)}
+                            </span>
+                          </td>
+                          <td>
+                            <strong className="text-warning font-monospace">
+                              ₹{formatRupees(player.sold_price || 0)}
+                            </strong>
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex align-items-center justify-content-end gap-1.5">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-xs"
+                                onClick={() => openStatusModal(player)}
+                              >
+                                Modify
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 text-xs"
+                                onClick={() => handleMarkPlayerUnsold(player, focusedTeam)}
+                              >
+                                Move Unsold
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            /* Teams Table */
+            <div className="auction-card overflow-hidden">
+              <div className="table-responsive">
+                <table className="table table-dark table-hover mb-0 align-middle small">
+                  <thead className="table-dark text-white-50 text-uppercase text-xs border-secondary border-opacity-25">
+                    <tr>
+                      <th scope="col" style={{ width: 60 }}>Code</th>
+                      <th scope="col">Team Name</th>
+                      <th scope="col">Owner & Coach</th>
+                      <th scope="col">Allocated Purse</th>
+                      <th scope="col">Remaining Purse</th>
+                      <th scope="col">Squad Capacity</th>
+                      <th scope="col">Color</th>
+                      <th scope="col" className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="text-center py-4 text-white-50">
+                          No teams configured yet. Click &quot;Add New Team&quot; above to create the first team.
+                        </td>
+                      </tr>
+                    ) : (
+                      teams.map((team) => (
+                        <tr key={team.id} className="border-secondary border-opacity-20">
+                          <td>
+                            <span
+                              className="badge px-2.5 py-1 rounded-pill text-xs fw-extrabold"
+                              style={{ backgroundColor: team.primary_color || '#0d6efd', color: '#fff', cursor: 'pointer' }}
+                              onClick={() => setSelectedTeamId(team.id)}
+                            >
+                              {team.team_code}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-link p-0 text-decoration-none text-start"
+                              onClick={() => setSelectedTeamId(team.id)}
+                            >
+                              <strong className="text-white d-block">{team.team_name}</strong>
+                            </button>
+                          </td>
+                          <td>
+                            <span className="text-white d-block">{team.owner_name || 'Management'}</span>
+                            {team.coach_name && <span className="text-white-50 text-xs">Coach: {team.coach_name}</span>}
+                          </td>
+                          <td>
+                            <strong className="text-warning font-monospace">
+                              ₹{formatRupees(team.initial_purse || 0)}
+                            </strong>
+                          </td>
+                          <td>
+                            <strong className={`font-monospace ${Number(team.remaining_purse) < 10000 ? 'text-danger' : 'text-success'}`}>
+                              ₹{formatRupees(team.remaining_purse || 0)}
+                            </strong>
+                          </td>
+                          <td>
+                            <span className="badge bg-secondary bg-opacity-25 text-light px-2 py-1 rounded-pill">
+                              {team.squad_count || 0} / {team.max_squad_size || 12}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className="d-inline-block rounded-circle border border-white"
+                              style={{ width: 18, height: 18, backgroundColor: team.primary_color || '#0d6efd' }}
+                            ></span>
+                          </td>
+                          <td className="text-end">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-xs"
+                              onClick={() => setEditingTeam({ ...team })}
+                            >
+                              ✏️ Edit Purse
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ADD TEAM MODAL */}
-      {showAddModal && (
+      {/* STATUS CHANGE MODAL */}
+      {statusModalPlayer && (
         <div
           className="modal show d-block"
           data-bs-theme="dark"
