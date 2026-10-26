@@ -37,6 +37,11 @@ export async function POST(request) {
     cookieStore.set(AUCTION_COOKIE, 'true', cookieOpts);
     cookieStore.set(AUCTION_ROLE_COOKIE, 'admin', cookieOpts);
     cookieStore.set('olumpicvision_admin', 'true', cookieOpts);
+    cookieStore.delete('pdvl_auction_team_id');
+    cookieStore.delete('pdvl_auction_team_name');
+    cookieStore.delete('pdvl_auction_team_code');
+    cookieStore.delete('pdvl_auction_team_color');
+    cookieStore.delete('pdvl_auction_tournament_id');
 
     return NextResponse.json({ success: true, role: 'admin' });
   } catch (err) {
