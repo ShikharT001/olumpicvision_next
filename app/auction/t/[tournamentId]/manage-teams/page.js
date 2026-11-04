@@ -5,7 +5,7 @@ import TeamsManager from '@/components/auction/TeamsManager';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getTournamentById, getAuctionTeams } from '@/lib/auction-db';
-import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '@/app/auction/actions';
+import { isAuctionAuthenticated, isAuctionAdmin, getAuctionRole, getAuctionSession } from '../../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,19 +25,28 @@ export default async function TournamentManageTeamsPage(props) {
   const searchParams = await props.searchParams;
   const tournamentId = params.tournamentId;
 
+  // Always fetch tournament first so it's available for the login gate
+  const tournament = await getTournamentById(tournamentId);
+  if (!tournament) notFound();
+
   const isAuthed = await isAuctionAuthenticated();
   if (!isAuthed) {
+    const initialTeams = await getAuctionTeams(tournament.id);
     const errorMessage = searchParams?.error === 'invalid' ? 'Incorrect passcode. Please verify and try again.' : '';
-    return <AuctionLoginGate errorMessage={errorMessage} returnTo={`/auction/t/${tournamentId}/manage-teams`} />;
+    return (
+      <AuctionLoginGate
+        tournament={tournament}
+        tournamentTeams={initialTeams}
+        errorMessage={errorMessage}
+        returnTo={`/auction/t/${tournamentId}/manage-teams`}
+      />
+    );
   }
 
   const session = await getAuctionSession();
   const role = session.role;
   const isAdmin = session.isAdmin;
   const loggedTeam = session.team;
-
-  const tournament = await getTournamentById(tournamentId);
-  if (!tournament) notFound();
 
   if (!isAdmin) {
     return (

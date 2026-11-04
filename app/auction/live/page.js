@@ -2,7 +2,7 @@ import BigScreenStage from '@/components/auction/BigScreenStage';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getLiveAuctionState, getTournamentById, getTournaments } from '@/lib/auction-db';
-import { isAuctionAuthenticated } from '../actions';
+import { isAuctionAuthenticated } from '@/app/auction/actions';
 
 export const metadata = {
   title: 'Stage Live Display | Multi-Sport Live Auction',

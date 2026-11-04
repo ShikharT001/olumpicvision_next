@@ -4,7 +4,7 @@ import AuctioneerConsole from '@/components/auction/AuctioneerConsole';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import '@/app/auction/auction.css';
 import { getTournamentById, getLiveAuctionState, getAuctionTeams } from '@/lib/auction-db';
-import { isAuctionAuthenticated, getAuctionSession } from '../../../actions';
+import { isAuctionAuthenticated, getAuctionSession } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +24,10 @@ export default async function TournamentAdminPage(props) {
   const searchParams = await props.searchParams;
   const tournamentId = params?.tournamentId;
 
+  // Fetch tournament and teams first so they are always available for the login gate
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) notFound();
+
   const tournamentTeams = await getAuctionTeams(tournament.id);
 
   const isAuthed = await isAuctionAuthenticated();
