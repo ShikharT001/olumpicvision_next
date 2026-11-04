@@ -377,7 +377,31 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
             href={activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin'}
             className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 fw-bold text-xs"
           >
-            Open Podium ↗
+            Open Live Desk ↗
+          </Link>
+        </div>
+      </div>
+
+      {/* Non-IT Friendly Setup Guide Banner */}
+      <div className="auction-card p-3 mb-4 border border-info border-opacity-30 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-sm" style={{ background: 'linear-gradient(90deg, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0.95) 100%)' }}>
+        <div className="d-flex align-items-center gap-3">
+          <span className="fs-3">⚙️</span>
+          <div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge bg-primary text-white rounded-pill px-2 py-0.5 text-xs fw-bold">Step 1 of 5</span>
+              <strong className="text-white small">Setup Participating Franchise Teams &amp; Budgets</strong>
+            </div>
+            <p className="text-white-50 small mb-0 mt-0.5">
+              Click &quot;➕ Add New Team&quot; to add franchises, assign team colors, and specify starting purse budgets (e.g. ₹1,00,000). Once teams are ready, proceed to <strong>Step 2: Player Lots</strong>.
+            </p>
+          </div>
+        </div>
+        <div className="d-flex align-items-center gap-2 ms-auto">
+          <Link
+            href={activeTournamentId ? `/auction/t/${activeTournamentId}/players` : '/auction/players'}
+            className="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1"
+          >
+            <span>Next: 2. Player Lots →</span>
           </Link>
         </div>
       </div>

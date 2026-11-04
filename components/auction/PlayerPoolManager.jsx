@@ -551,7 +551,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                 href={activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin'}
                 className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 fw-bold text-xs"
               >
-                Open Podium ↗
+                Open Live Desk ↗
               </Link>
             </>
           ) : (
@@ -559,6 +559,30 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
               👁️ View-Only Registered Player Roster
             </span>
           )}
+        </div>
+      </div>
+
+      {/* Non-IT Friendly Setup Guide Banner */}
+      <div className="auction-card p-3 mb-4 border border-indigo border-opacity-30 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-sm" style={{ background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0.95) 100%)' }}>
+        <div className="d-flex align-items-center gap-3">
+          <span className="fs-3">📋</span>
+          <div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge bg-indigo text-white rounded-pill px-2 py-0.5 text-xs fw-bold" style={{ backgroundColor: '#6366f1' }}>Step 2 of 5</span>
+              <strong className="text-white small">Register Players, Assign Chest Numbers &amp; Base Prices</strong>
+            </div>
+            <p className="text-white-50 small mb-0 mt-0.5">
+              Add players individually or click <strong>&quot;📥 Import Players&quot;</strong> to upload an Excel/CSV file. When ready, go to <strong>Step 3: Live Auction Desk</strong> to start the live bidding!
+            </p>
+          </div>
+        </div>
+        <div className="d-flex align-items-center gap-2 ms-auto">
+          <Link
+            href={activeTournamentId ? `/auction/t/${activeTournamentId}/admin` : '/auction/admin'}
+            className="btn btn-sm btn-warning text-dark rounded-pill px-3 py-1.5 text-xs fw-black d-inline-flex align-items-center gap-1 shadow-sm"
+          >
+            <span>Launch 3. Live Auction Desk ➔</span>
+          </Link>
         </div>
       </div>
 

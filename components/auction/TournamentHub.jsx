@@ -52,11 +52,11 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
       </div>
 
       {/* Hero Banner */}
-      <div className="text-center mx-auto mb-5" style={{ maxWidth: 840 }}>
+      <div className="text-center mx-auto mb-5" style={{ maxWidth: 880 }}>
         <div className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-warning-subtle text-warning border border-warning-subtle mb-3">
           <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
           <span className="small fw-bold text-uppercase" style={{ letterSpacing: '0.08em' }}>
-            {isAdmin ? 'Main Admin Auction Command Stage' : 'Franchise Live Updates Hub'}
+            {isAdmin ? 'Tournament Command Center' : 'Franchise Portal Hub'}
           </span>
         </div>
 
@@ -75,8 +75,8 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
 
         <p className="text-secondary fs-5 mb-4 leading-relaxed">
           {isAdmin
-            ? `Welcome to the ${tournament.sport_name} Live Auction Command Center. Manage bidding podiums, stream live big-screen stage graphics, and track team purses in real time.`
-            : `Welcome Team Managers and Franchise Representatives for ${tournament.tournament_name}. Track real-time bids, live sold outcomes, and remaining budgets.`}
+            ? `Welcome to the ${tournament.sport_name} Live Auction Control Center. Follow the numbered steps below to setup teams, register players, and conduct real-time bidding with projector displays.`
+            : `Welcome Team Managers and Franchise Representatives. Track real-time bids, live sold outcomes, and remaining budgets.`}
         </p>
 
         {liveState.lastNotification && (
@@ -108,113 +108,224 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
           </div>
         )}
 
-        {/* Quick Nav Cards: Filtered by role (Teams never see YouTube Live or Player Pool) */}
-        <div className="row g-3 justify-content-center">
-          {isAdmin && (
-            <div className="col-12 col-sm-6 col-lg">
-              <Link
-                href={`${basePath}/stream`}
-                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-                style={{
-                  borderColor: 'rgba(239, 68, 68, 0.55)',
-                  background: 'radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.1) 0%, rgba(11, 18, 33, 0.95) 100%)',
-                }}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="fs-1">🎥</span>
-                  <span className="broadcast-pill-live px-2 py-0.5 rounded-pill text-xs">
-                    <span className="broadcast-live-dot" />
-                    <span>LIVE</span>
+        {/* STEP-BY-STEP QUICK WORKFLOW CARDS FOR NON-IT ORGANIZERS */}
+        {isAdmin ? (
+          <div className="text-start mb-4">
+            <div className="d-flex align-items-center justify-content-between mb-3 px-1">
+              <span className="text-warning text-xs fw-bold text-uppercase tracking-wider">
+                🎯 TOURNAMENT ORGANIZER WORKFLOW
+              </span>
+              <span className="text-white-50 text-xs">
+                Click any step to begin or manage
+              </span>
+            </div>
+
+            <div className="row g-3">
+              {/* Step 1: Teams Setup */}
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Link
+                  href={`${basePath}/manage-teams`}
+                  className="card h-100 p-3.5 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(59, 130, 246, 0.45)' }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="badge bg-primary text-white rounded-pill px-2.5 py-1 text-xs fw-bold">
+                      Step 1
+                    </span>
+                    <span className="fs-3">⚙️</span>
+                  </div>
+                  <h5 className="fw-bold text-white mb-1">Teams &amp; Purses</h5>
+                  <p className="text-secondary small mb-3">
+                    Add franchise teams, team codes, jersey colors, and set starting budgets (e.g. ₹1 Lakh).
+                  </p>
+                  <span className="text-primary small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    Manage Teams ({teams.length}) →
                   </span>
-                </div>
-                <h4 className="fw-bold text-white mb-1">YouTube Live</h4>
-                <p className="text-secondary small mb-3">
-                  Watch the real physical live auction shooting camera with real-time bidding details on screen.
-                </p>
-                <span className="text-danger small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                  Watch Live Stream →
-                </span>
-              </Link>
+                </Link>
+              </div>
+
+              {/* Step 2: Player Lots */}
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Link
+                  href={`${basePath}/players`}
+                  className="card h-100 p-3.5 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(99, 102, 241, 0.45)' }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="badge bg-indigo text-white rounded-pill px-2.5 py-1 text-xs fw-bold" style={{ backgroundColor: '#6366f1' }}>
+                      Step 2
+                    </span>
+                    <span className="fs-3">📋</span>
+                  </div>
+                  <h5 className="fw-bold text-white mb-1">Player Pool &amp; Lots</h5>
+                  <p className="text-secondary small mb-3">
+                    Add players or upload Excel list. Set base prices, positions, and arrange auction lots.
+                  </p>
+                  <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    Manage Players Pool →
+                  </span>
+                </Link>
+              </div>
+
+              {/* Step 3: Live Auction Desk (HERO CARD) */}
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Link
+                  href={`${basePath}/admin`}
+                  className="card h-100 p-3.5 text-start text-decoration-none auction-card transition-all"
+                  style={{
+                    borderColor: 'rgba(245, 158, 11, 0.7)',
+                    background: 'radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.18) 0%, rgba(15, 23, 42, 0.96) 100%)',
+                    boxShadow: '0 0 25px rgba(245, 158, 11, 0.25)',
+                  }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="badge bg-warning text-dark rounded-pill px-2.5 py-1 text-xs fw-black">
+                      Step 3 • LIVE
+                    </span>
+                    <span className="fs-3">🔨</span>
+                  </div>
+                  <h5 className="fw-black text-warning mb-1">Live Auction Desk</h5>
+                  <p className="text-secondary small mb-3">
+                    The bidding console. Call players to the stage, record team paddle bids, and hammer &quot;SOLD&quot;!
+                  </p>
+                  <span className="text-warning small fw-black d-inline-flex align-items-center gap-1 mt-auto">
+                    Launch Auction Desk ➔
+                  </span>
+                </Link>
+              </div>
+
+              {/* Step 4: Big Screen TV */}
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Link
+                  href={`${basePath}/live`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card h-100 p-3.5 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(14, 165, 233, 0.45)' }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="badge bg-info text-dark rounded-pill px-2.5 py-1 text-xs fw-bold">
+                      Step 4 • TV
+                    </span>
+                    <span className="fs-3">📺</span>
+                  </div>
+                  <h5 className="fw-bold text-white mb-1">Big Screen (TV / Projector)</h5>
+                  <p className="text-secondary small mb-3">
+                    Fullscreen 16:9 display for venue TV or projector with live price, player photos &amp; fanfare.
+                  </p>
+                  <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    Open Projector Window ↗
+                  </span>
+                </Link>
+              </div>
+
+              {/* Step 5: Squads & Purses */}
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Link
+                  href={`${basePath}/teams`}
+                  className="card h-100 p-3.5 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(16, 185, 129, 0.45)' }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="badge bg-success text-white rounded-pill px-2.5 py-1 text-xs fw-bold">
+                      Step 5
+                    </span>
+                    <span className="fs-3">🛡️</span>
+                  </div>
+                  <h5 className="fw-bold text-white mb-1">Squads &amp; Purses</h5>
+                  <p className="text-secondary small mb-3">
+                    View bought rosters for each franchise, remaining budget bars, and the Top 10 Bids table.
+                  </p>
+                  <span className="text-success small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    View Rosters &amp; Budgets →
+                  </span>
+                </Link>
+              </div>
+
+              {/* Step 6: Pool Draw & Broadcast */}
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Link
+                  href={`${basePath}/pools`}
+                  className="card h-100 p-3.5 text-start text-decoration-none auction-card transition-all"
+                  style={{ borderColor: 'rgba(236, 72, 153, 0.45)' }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="badge bg-danger text-white rounded-pill px-2.5 py-1 text-xs fw-bold">
+                      Step 6
+                    </span>
+                    <span className="fs-3">🎡</span>
+                  </div>
+                  <h5 className="fw-bold text-white mb-1">Pool Draw Wheel</h5>
+                  <p className="text-secondary small mb-3">
+                    Conduct the group stage draw! Spin the live wheel to assign teams into Pool A, Pool B, etc.
+                  </p>
+                  <span className="text-danger small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                    Open Spin Wheel →
+                  </span>
+                </Link>
+              </div>
             </div>
-          )}
-
-          <div className="col-12 col-sm-6 col-lg">
-            <Link
-              href={`${basePath}/admin`}
-              className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-              style={{ borderColor: 'rgba(6, 182, 212, 0.4)' }}
-            >
-              <div className="fs-1 mb-2">🔨</div>
-              <h4 className="fw-bold text-white mb-1">
-                {isAdmin ? 'Auctioneer Console' : 'Live Auction Console'}
-              </h4>
-              <p className="text-secondary small mb-3">
-                {isAdmin
-                  ? 'Admin podium to control active bids, physical paddle attribution, and hammer gavel.'
-                  : 'Watch the live auctioneer podium in real time. Track current bids, increments, and gavel stages.'}
-              </p>
-              <span className="text-cyan small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                {isAdmin ? 'Launch Console →' : 'Watch Live Console →'}
-              </span>
-            </Link>
           </div>
-
-          <div className="col-12 col-sm-6 col-lg">
-            <Link
-              href={`${basePath}/teams`}
-              className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-              style={{ borderColor: 'rgba(16, 185, 129, 0.4)' }}
-            >
-              <div className="fs-1 mb-2">🛡️</div>
-              <h4 className="fw-bold text-white mb-1">Squads &amp; Purse</h4>
-              <p className="text-secondary small mb-3">
-                Inspect all teams, remaining budget charts, purchased rosters, and positional balance.
-              </p>
-              <span className="text-success small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                View Team Rosters →
-              </span>
-            </Link>
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg">
-            <Link
-              href={`${basePath}/live`}
-              className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-              style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}
-            >
-              <div className="fs-1 mb-2">📺</div>
-              <h4 className="fw-bold text-white mb-1">Big-Screen Stage</h4>
-              <p className="text-secondary small mb-3">
-                16:9 fullscreen display designed for venue TVs and projectors with celebratory fanfare.
-              </p>
-              <span className="text-warning small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                Open Projector View →
-              </span>
-            </Link>
-          </div>
-
-          {isAdmin && (
-            <div className="col-12 col-sm-6 col-lg">
+        ) : (
+          /* Spectator / Team Quick Cards */
+          <div className="row g-3 justify-content-center mb-4">
+            <div className="col-12 col-sm-6 col-lg-4">
               <Link
-                href={`${basePath}/players`}
+                href={`${basePath}/teams`}
                 className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
-                style={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
+                style={{ borderColor: 'rgba(16, 185, 129, 0.45)' }}
               >
-                <div className="fs-1 mb-2">📋</div>
-                <h4 className="fw-bold text-white mb-1">Player Pool &amp; Lots</h4>
+                <div className="fs-1 mb-2">🛡️</div>
+                <h4 className="fw-bold text-white mb-1">Squads &amp; Purse</h4>
                 <p className="text-secondary small mb-3">
-                  Browse registered players, playing positions for {tournament.sport_name}, base prices, and lot order.
+                  Inspect all teams, remaining budget charts, purchased rosters, and positional balance.
                 </p>
-                <span className="text-info small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
-                  Manage Players →
+                <span className="text-success small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  View Team Rosters →
                 </span>
               </Link>
             </div>
-          )}
-        </div>
+
+            <div className="col-12 col-sm-6 col-lg-4">
+              <Link
+                href={`${basePath}/live`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                style={{ borderColor: 'rgba(245, 158, 11, 0.45)' }}
+              >
+                <div className="fs-1 mb-2">📺</div>
+                <h4 className="fw-bold text-white mb-1">Big-Screen Stage</h4>
+                <p className="text-secondary small mb-3">
+                  Watch live bids in 16:9 fullscreen display designed for venue TVs and projectors.
+                </p>
+                <span className="text-warning small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  Open Projector View ↗
+                </span>
+              </Link>
+            </div>
+
+            <div className="col-12 col-sm-6 col-lg-4">
+              <Link
+                href={`${basePath}/admin`}
+                className="card h-100 p-4 text-start text-decoration-none auction-card transition-all"
+                style={{ borderColor: 'rgba(6, 182, 212, 0.45)' }}
+              >
+                <div className="fs-1 mb-2">🔨</div>
+                <h4 className="fw-bold text-white mb-1">Live Auction Desk</h4>
+                <p className="text-secondary small mb-3">
+                  Watch the live podium in real time. Track current bids, increments, and gavel stages.
+                </p>
+                <span className="text-cyan small fw-bold d-inline-flex align-items-center gap-1 mt-auto">
+                  Watch Live Console →
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Live Overview Stats */}
+      {/* Live Financial & Tournament Overview Stats */}
       <div className="auction-card p-4 mx-auto" style={{ maxWidth: 940 }}>
         <div className="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3 border-secondary border-opacity-25">
           <h5 className="fw-bold text-white mb-0 d-flex align-items-center gap-2">
@@ -226,7 +337,7 @@ export default function TournamentHub({ tournament, liveState = {}, role = 'team
                 href={`${basePath}/manage-teams`}
                 className="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 text-xs fw-bold"
               >
-                ⚙️ Manage Teams &amp; Purses
+                ⚙️ Adjust Purses
               </Link>
             )}
             <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill small fw-bold">

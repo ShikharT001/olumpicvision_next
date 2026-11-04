@@ -52,6 +52,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
   const [editPlayerNoModal, setEditPlayerNoModal] = useState(null);
   const [editPlayerNoInput, setEditPlayerNoInput] = useState('');
+  const [showOperatorTips, setShowOperatorTips] = useState(true);
 
   const handleSetStageView = async (view) => {
     // Instant optimistic update for maximum responsiveness
@@ -1025,17 +1026,61 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         </div>
       )}
 
-            {/* ADMIN STAGE DISPLAY CONTROLS & TOP 10 LEADERBOARD TRIGGER */}
+      {/* NON-IT AUCTIONEER 3-STEP QUICK GUIDE BANNER (COLLAPSIBLE) */}
+      <div className="auction-card p-3 mb-3 border border-warning border-opacity-35 shadow-sm" style={{ background: 'linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)' }}>
+        <div className="d-flex align-items-center justify-content-between mb-2">
+          <div className="d-flex align-items-center gap-2">
+            <span className="badge bg-warning text-dark px-2.5 py-1 rounded-pill text-xs fw-black">
+              💡 OPERATOR CHEATSHEET
+            </span>
+            <span className="text-white small fw-bold">
+              How to Conduct Live Bidding (3 Easy Steps for Non-IT Auctioneers)
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-link text-warning p-0 text-xs text-decoration-none fw-bold"
+            onClick={() => setShowOperatorTips(!showOperatorTips)}
+          >
+            {showOperatorTips ? 'Hide Tips ▲' : 'Show Tips ▼'}
+          </button>
+        </div>
+
+        {showOperatorTips && (
+          <div className="row g-2 pt-1 text-xs text-white-50">
+            <div className="col-12 col-md-4">
+              <div className="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 h-100">
+                <strong className="text-warning d-block mb-1">1. Pick Player to Auction:</strong>
+                <span>Click <strong className="text-white">&quot;⚡ Call Next Player&quot;</strong> or type a Chest/Lot number in the box below to bring them to the podium.</span>
+              </div>
+            </div>
+            <div className="col-12 col-md-4">
+              <div className="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 h-100">
+                <strong className="text-info d-block mb-1">2. Record Team Bids:</strong>
+                <span>When a team raises their paddle, click that <strong className="text-white">Team&apos;s Card on the right</strong> (+₹500 / +₹1,000). The current bid updates automatically!</span>
+              </div>
+            </div>
+            <div className="col-12 col-md-4">
+              <div className="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 h-100">
+                <strong className="text-success d-block mb-1">3. Gavel &amp; Award Player:</strong>
+                <span>Call <strong className="text-white">&quot;Going 1&quot;</strong>, <strong className="text-white">&quot;Going 2&quot;</strong>, then tap <strong className="text-success">&quot;🔨 SOLD!&quot;</strong> to confirm. No bids? Tap <strong className="text-danger">&quot;✕ Unsold&quot;</strong>.</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ADMIN STAGE DISPLAY CONTROLS & TOP 10 LEADERBOARD TRIGGER */}
       <div
         className="auction-card p-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-lg border border-warning border-opacity-40"
         style={{ background: 'linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.95) 50%, rgba(20,20,35,0.98) 100%)' }}
       >
         <div className="d-flex flex-wrap align-items-center gap-2.5">
           <span className="badge bg-warning text-dark px-2.5 py-1.5 rounded-pill text-xs fw-black tracking-wide shadow-sm">
-            📺 LIVE PROJECTOR STAGE CONTROL
+            📺 VENUE PROJECTOR / TV CONTROL
           </span>
           <span className="text-white small fw-semibold d-none d-md-inline">
-            Direct Big-Screen Broadcast:
+            Screen Display:
           </span>
           <span className={`badge px-2.5 py-1 rounded-pill text-xs font-monospace border ${
             (data?.state?.stage_view || 'podium') === 'top10'
@@ -1044,7 +1089,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               ? 'bg-info text-dark border-info fw-black'
               : 'bg-dark text-info border-info border-opacity-40'
           }`}>
-            {((data?.state?.stage_view || 'podium') === 'top10' ? '🏆 LIVE NOW: CH 2 - TOP 10 TABLE' : (data?.state?.stage_view === 'pools' ? '🎰 LIVE NOW: CH 4 - POOL DRAW' : (data?.state?.stage_view === 'split' ? '⚡ LIVE NOW: CH 3 - SPLIT SCREEN' : '🎯 LIVE NOW: CH 1 - ACTIVE PLAYER')))}
+            {((data?.state?.stage_view || 'podium') === 'top10' ? '🏆 LIVE ON TV: TOP 10 LEADERBOARD' : (data?.state?.stage_view === 'pools' ? '🎰 LIVE ON TV: POOL DRAW WHEEL' : (data?.state?.stage_view === 'split' ? '⚡ LIVE ON TV: SPLIT SCREEN' : '🎯 LIVE ON TV: ACTIVE PLAYER')))}
           </span>
         </div>
 
@@ -1059,12 +1104,12 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               border: '2px solid #fef08a',
             }}
             onClick={() => setStageRemoteModalOpen(true)}
-            title="Open Big Screen Remote Controller to switch Projector display (Top 10 / Podium)"
+            title="Open TV Projector Display Remote (Change what audience sees)"
           >
             <span className="fs-6">📺</span>
-            <span>BIG SCREEN REMOTE CONTROLLER</span>
+            <span>DISPLAY REMOTE</span>
             <span className="badge bg-black text-warning rounded-pill px-2 py-0.5" style={{ fontSize: '0.72rem' }}>
-              {(data?.state?.stage_view || 'podium') === 'top10' ? '🏆 CH 2' : (data?.state?.stage_view === 'pools' ? '🎰 CH 4' : (data?.state?.stage_view === 'split' ? '⚡ CH 3' : '🎯 CH 1'))}
+              {(data?.state?.stage_view || 'podium') === 'top10' ? '🏆 Top 10' : (data?.state?.stage_view === 'pools' ? '🎰 Pool Draw' : (data?.state?.stage_view === 'split' ? '⚡ Split' : '🎯 Player'))}
             </span>
           </button>
 
@@ -1091,7 +1136,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               onClick={() => handleSetStageView('top10')}
               title="Broadcast Top 10 Highest Price Players Table on live big screen"
             >
-              🏆 Top 10 Table
+              🏆 Top 10 Bids
             </button>
             <button
               type="button"
@@ -1115,7 +1160,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               onClick={() => handleSetStageView('pools')}
               title="Show Tournament Pool Draw & Wheel on live stage"
             >
-              🎰 Pool Draw
+              🎰 Pool Draw Wheel
             </button>
           </div>
 
@@ -1126,7 +1171,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
             title="Open projector screen in new window"
           >
             <span>📺</span>
-            <span>Open Stage ↗</span>
+            <span>Open TV Screen ↗</span>
           </Link>
         </div>
       </div>
@@ -1159,9 +1204,9 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   title="Open Big Screen Remote Controller to switch Projector display (Top 10 / Podium)"
                 >
                   <span className="fs-6">📺</span>
-                  <span>{data?.state?.stage_view === 'top10' ? 'Big Screen: Top 10 🏆' : 'Big Screen Remote 📺'}</span>
+                  <span>{data?.state?.stage_view === 'top10' ? 'TV: Top 10 Bids 🏆' : 'TV Remote 📺'}</span>
                   <span className="badge bg-black text-warning rounded-pill px-1.5 py-0.5" style={{ fontSize: '0.7rem' }}>
-                    {data?.state?.stage_view === 'top10' ? 'CH 2' : 'CH 1'}
+                    {data?.state?.stage_view === 'top10' ? 'Top 10' : 'Player'}
                   </span>
                 </button>
                 <Link

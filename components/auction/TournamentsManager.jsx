@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { formatRupees } from '@/lib/sports-config';
 
 export default function TournamentsManager({ sport, initialTournaments = [], role = 'team', isAdmin = false }) {
   const [tournaments, setTournaments] = useState(initialTournaments || []);

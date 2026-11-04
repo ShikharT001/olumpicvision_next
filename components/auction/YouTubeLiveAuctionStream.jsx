@@ -250,8 +250,8 @@ export default function YouTubeLiveAuctionStream({
   const basePrice = Number(activePlayer?.base_price || 1000);
   const minIncrement = Number(currentTourn?.min_bid_increment || 500);
   const nextMinBid = currentBid > 0 ? currentBid + minIncrement : basePrice;
-  const teams = data?.teams || [];
-  const recentBids = data?.recentBids || [];
+  const teams = useMemo(() => data?.teams || [], [data?.teams]);
+  const recentBids = useMemo(() => data?.recentBids || [], [data?.recentBids]);
   const hammerStage = state.hammer_stage || 0;
 
   // Auto-select first team for admin quick-bidding if none selected
@@ -270,7 +270,10 @@ export default function YouTubeLiveAuctionStream({
     try {
       const res = await fetch('/api/auction/bid', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify({
           teamId: targetTeamId,
           bidAmount: nextMinBid,
@@ -306,7 +309,10 @@ export default function YouTubeLiveAuctionStream({
       }
       const res = await fetch('/api/auction/hammer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'pdvladmin2026',
+        },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -889,35 +895,57 @@ export default function YouTubeLiveAuctionStream({
                       {activePlayer ? (
                         <>
                           <div>
-                            {/* Player Photo Card with Glowing Halo */}
-                            <div className="d-flex flex-column align-items-center text-center p-3 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-30 mb-2.5">
-                              {renderPlayerAvatar(
-                                activePlayer.photo_url,
-                                activePlayer.full_name,
-                                115,
-                                highestTeam?.primary_color || '#06b6d4'
-                              )}
+                            {/* Player Photo Card — Premium ID-card style with accent strip */}
+                            <div
+                              className="d-flex flex-column align-items-center text-center rounded-3 mb-3 overflow-hidden"
+                              style={{
+                                background: 'linear-gradient(180deg, rgba(6,182,212,0.08) 0%, rgba(8,14,28,0.98) 100%)',
+                                border: `2px solid ${highestTeam?.primary_color || '#06b6d4'}55`,
+                                boxShadow: `0 0 40px ${highestTeam?.primary_color || '#06b6d4'}22`,
+                              }}
+                            >
+                              {/* Accent colour top-strip */}
+                              <div
+                                className="w-100"
+                                style={{
+                                  height: 5,
+                                  background: `linear-gradient(90deg, ${highestTeam?.primary_color || '#06b6d4'}, #f59e0b, ${highestTeam?.primary_color || '#06b6d4'})`,
+                                }}
+                              />
+                              <div className="pt-3 pb-1 px-3 w-100 d-flex flex-column align-items-center">
+                                {/* LOT badge above photo */}
+                                <span className="badge bg-secondary bg-opacity-40 text-white-50 text-xs mb-2 px-3 py-1 rounded-pill fw-bold tracking-wider">
+                                  🎫 PLAYER #{activePlayer.playerno || activePlayer.lot_number || 1}
+                                </span>
 
-                              <div className="mt-2.5">
-                                <div className="d-flex align-items-center justify-content-center gap-1.5 mb-1">
-                                  <span className="badge badge-gold px-2.5 py-0.5 rounded-pill text-xs fw-extrabold text-uppercase">
-                                    {activePlayer.player_grade || 'Grade A'}
-                                  </span>
-                                  <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer.player_category)}`}>
-                                    {formatCategoryLabel(activePlayer.player_category)}
-                                  </span>
-                                  <span className="badge bg-secondary bg-opacity-40 text-white-50 text-xs">
-                                    PLAYER #{activePlayer.playerno || activePlayer.lot_number || 1}
+                                {renderPlayerAvatar(
+                                  activePlayer.photo_url,
+                                  activePlayer.full_name,
+                                  160,
+                                  highestTeam?.primary_color || '#06b6d4'
+                                )}
+
+                                <div className="mt-3 w-100">
+                                  <div className="d-flex align-items-center justify-content-center gap-1.5 mb-2 flex-wrap">
+                                    <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                                      {activePlayer.player_grade || 'Grade A'}
+                                    </span>
+                                    <span className={`badge px-2.5 py-1 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer.player_category)}`}>
+                                      {formatCategoryLabel(activePlayer.player_category)}
+                                    </span>
+                                  </div>
+
+                                  <h2 className="fw-black text-white mb-0 tracking-tight" style={{ fontSize: '1.4rem', lineHeight: 1.15 }}>
+                                    {activePlayer.full_name}
+                                  </h2>
+
+                                  <span
+                                    className="fw-bold d-block mt-1 mb-2"
+                                    style={{ color: highestTeam?.primary_color || '#06b6d4', fontSize: '0.85rem' }}
+                                  >
+                                    {formatPositionLabel(activePlayer.playing_position)}
                                   </span>
                                 </div>
-
-                                <h4 className="fw-black text-white mb-0 tracking-tight fs-5">
-                                  {activePlayer.full_name}
-                                </h4>
-
-                                <span className="text-info fw-bold text-xs d-block mt-0.5">
-                                  {formatPositionLabel(activePlayer.playing_position)}
-                                </span>
                               </div>
                             </div>
 
