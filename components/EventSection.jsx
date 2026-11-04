@@ -2,69 +2,68 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-export default function EventsAndHighlights({ openModal }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-// Replace the eventsData array inside EventsAndHighlights.jsx with this:
 
-const eventsData = [
-  {
-    id: 7,
-    title: 'Boisar Varsha Marathon 2026',
-    tag: 'MARATHON',
-    bgImage: '/images/marathon_2026/WhatsApp Image 2026-09-22 at 11.27.09 PM (11).jpeg',
-    desc: 'Relive the finish-line excitement and celebrate the runners and award winners of Boisar Varsha Marathon 2026.',
-    href: '/events/boisar-varsha-marathon-2026',
-  },
-  {
-    id: 1,
-    title: 'Boisar Varsha Marathon 2025',
-    tag: 'MARATHON',
-    bgImage: '/images/boisar_marathon/event1.jpeg',
-    desc: 'An exhilarating monsoon run uniting thousands of passionate athletes to promote fitness and community spirit.',
-    href: '/events/boisar-varsha-marathon-2025',
-  },
-  {
-    id: 2,
-    title: 'Saphale Lions Hill Marathon 2024',
-    tag: 'MARATHON',
-    bgImage: '/images/saphale_marathon/image1.jpeg',
-    desc: 'A challenging scenic run testing endurance and grit against beautiful rolling hill landscapes.',
-    href: '/events/saphale-lions-hill-marathon-2024',
-  },
-  {
-    id: 3,
-    title: 'Adhivasi Jawar Marathon 2024 & 2025',
-    tag: 'MARATHON',
-    bgImage: '/images/jawar_marathon/image6.jpeg',
-    desc: 'An impactful cultural run celebrating local heritage and empowering tribal communities through running.',
-    href: '/events/adhivasi-jawar-marathon-2024-2025',
-  },
-  {
-    id: 4,
-    title: 'Atheletes Camp Dahanu',
-    tag: 'TRAINING CAMP',
-    bgImage: '/images/camp/image5.jpeg',
-    desc: 'An intensive high-performance residential camp providing elite coaching and structured training regimens for young prospects.',
-    href: '/events/athletes-camp-dahanu',
-  },
-  {
-    id: 5,
-    title: 'PALGHAR DISTRICT VOLLEYBALL LEAGUE (PDVL) 2026',
-    tag: 'CHAMPIONSHIP',
-    bgImage: '/images/volleyball/image4.jpeg',
-    desc: 'Player registrations are now open for PDVL 2026/27. Complete your undertaking online in three simple steps.',
-    href: '/pdvl-registration',
-  },
-  {
-    id: 6,
-    title: 'Cricket Tournament',
-    tag: 'CHAMPIONSHIP',
-    bgImage: '/images/cricket/image3.jpeg',
-    desc: 'A thrilling regional tournament capturing intense rivalries, strategic play, and premium local talent under the pressure of the chase.',
-    href: '/events/cricket-tournament',
-  },
-];
+export default function EventsAndHighlights() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const eventsData = [
+    {
+      id: 5,
+      title: 'PALGHAR DISTRICT VOLLEYBALL LEAGUE (PDVL) 2026',
+      tag: 'CHAMPIONSHIP',
+      bgImage: '/images/volleyball/image4.jpeg',
+      desc: 'Official Palghar District Volleyball League 2026/27. Follow live player auctions, franchise team squads, and tournament standings.',
+      href: '/auction',
+    },
+    {
+      id: 7,
+      title: 'Boisar Varsha Marathon 2026',
+      tag: 'MARATHON',
+      bgImage: '/images/marathon_2026/WhatsApp Image 2026-09-22 at 11.27.09 PM (11).jpeg',
+      desc: 'Relive the finish-line excitement and celebrate the runners and award winners of Boisar Varsha Marathon 2026.',
+      href: '/events/boisar-varsha-marathon-2026',
+    },
+    {
+      id: 1,
+      title: 'Boisar Varsha Marathon 2025',
+      tag: 'MARATHON',
+      bgImage: '/images/boisar_marathon/event1.jpeg',
+      desc: 'An exhilarating monsoon run uniting thousands of passionate athletes to promote fitness and community spirit.',
+      href: '/events/boisar-varsha-marathon-2025',
+    },
+    {
+      id: 2,
+      title: 'Saphale Lions Hill Marathon 2024',
+      tag: 'MARATHON',
+      bgImage: '/images/saphale_marathon/image1.jpeg',
+      desc: 'A challenging scenic run testing endurance and grit against beautiful rolling hill landscapes.',
+      href: '/events/saphale-lions-hill-marathon-2024',
+    },
+    {
+      id: 3,
+      title: 'Adhivasi Jawar Marathon 2024 & 2025',
+      tag: 'MARATHON',
+      bgImage: '/images/jawar_marathon/image6.jpeg',
+      desc: 'An impactful cultural run celebrating local heritage and empowering tribal communities through running.',
+      href: '/events/adhivasi-jawar-marathon-2024-2025',
+    },
+    {
+      id: 4,
+      title: 'Atheletes Camp Dahanu',
+      tag: 'TRAINING CAMP',
+      bgImage: '/images/camp/image5.jpeg',
+      desc: 'An intensive high-performance residential camp providing elite coaching and structured training regimens for young prospects.',
+      href: '/events/athletes-camp-dahanu',
+    },
+    {
+      id: 6,
+      title: 'Cricket Tournament',
+      tag: 'CHAMPIONSHIP',
+      bgImage: '/images/cricket/image3.jpeg',
+      desc: 'A thrilling regional tournament capturing intense rivalries, strategic play, and premium local talent under the pressure of the chase.',
+      href: '/events/cricket-tournament',
+    },
+  ];
 
   useEffect(() => {
     const autoSlideTimer = setInterval(() => {
@@ -138,7 +137,7 @@ const eventsData = [
                           href={event.href}
                           className="btn bg-white fw-semibold px-4 d-inline-flex align-items-center gap-2 highlight-explore-btn"
                         >
-                          {event.id === 5 ? 'Register now' : 'Explore Event'} <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                          {event.id === 5 ? 'Live Auction Hub' : 'Explore Event'} <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
                         </Link>
                       ) : (
                         <button
@@ -168,61 +167,55 @@ const eventsData = [
 
           <div className="col-12 col-lg-3 d-flex mt-5 mt-lg-0">
             <div className="announcements-card border rounded-4 shadow-sm d-flex flex-column w-100 bg-white overflow-hidden">
-              <div className="announcements-header p-4 border-bottom" style={{ height:'60px' }}>
+              <div className="announcements-header p-4 border-bottom" style={{ height: '60px' }}>
                 <h3 className="h4 fw-bold mb-0" style={{ color: '#0A3D7A' }}>Announcements</h3>
               </div>
 
-          <div className="announcements-body flex-grow-1 p-0 color-anim-list">
-  <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
-    <li className="announcement-item">
-      <Link
-        href="/marathon-portal"
-        className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
-      >
-        <div className="announcement-content p-3">
-          <h4 className="h5 fw-bold mb-1">Download your e-Certificate</h4>
-          <p className="mb-0 text-muted">
-            Get your official e-Certificate for completed events.
-          </p>
-        </div>
-      </Link>
-    </li>
+              <div className="announcements-body flex-grow-1 p-0 color-anim-list">
+                <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
+                  <li className="announcement-item">
+                    <Link
+                      href="/auction"
+                      className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
+                    >
+                      <div className="announcement-content p-3">
+                        <span className="badge bg-warning text-dark px-2 py-0.5 rounded-pill text-xs fw-bold mb-1">
+                          LIVE NOW
+                        </span>
+                        <h4 className="h5 fw-bold mb-1" style={{ color: '#0A3D7A' }}>
+                          PDVL 2026 Live Auction Hub
+                        </h4>
+                        <p className="mb-0 text-muted small">
+                          Watch real-time live bidding, big-screen stage display, and team purse boards.
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
 
-    <li className="announcement-item">
-      <Link
-        href="/pdvl-registration"
-        className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
-      >
-        <div className="announcement-content p-3">
-          <h4 className="h5 fw-bold mb-1">
-            Palghar District Volleyball League (PDVL) 2026
-          </h4>
-          <p className="mb-0 text-muted">
-            Access event results, registrations, and more.
-          </p>
-        </div>
-      </Link>
-    </li>
-  </ul>
-</div>
+                  <li className="announcement-item">
+                    <Link
+                      href="/events/boisar-varsha-marathon-2026"
+                      className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
+                    >
+                      <div className="announcement-content p-3">
+                        <span className="badge bg-primary text-white px-2 py-0.5 rounded-pill text-xs fw-bold mb-1">
+                          EVENT HIGHLIGHTS
+                        </span>
+                        <h4 className="h5 fw-bold mb-1" style={{ color: '#0A3D7A' }}>
+                          Boisar Varsha Marathon
+                        </h4>
+                        <p className="mb-0 text-muted small">
+                          Explore highlights, finish-line excitement, and photo galleries from the race.
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-    
   );
-  
 }
-
-
-<style jsx>{`
-  .announcement-link {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  }
-
-  .announcement-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-`}</style>

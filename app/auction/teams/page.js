@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { formatRupees } from '@/lib/sports-config';
 import AuctionNavbar from '@/components/auction/AuctionNavbar';
 import TeamSquadsDashboard from '@/components/auction/TeamSquadsDashboard';

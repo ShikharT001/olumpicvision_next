@@ -1309,3 +1309,105 @@ body:has(.broadcast-shell) {
     min-height: 36px !important;
   }
 }
+
+/* ========================================================
+   TOP 10 DYNAMIC LEADERBOARD & MAXIMUM PRICE STAGE STYLES
+   ======================================================== */
+.top10-live-stage-root {
+  width: 100%;
+  animation: fadeInTop10 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInTop10 {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.top10-live-stage-root.is-split-layout {
+  font-size: 0.92rem;
+}
+
+.top10-live-stage-root.is-split-layout .auction-card {
+  padding: 1rem !important;
+}
+
+.top10-live-stage-root.is-split-layout .display-5,
+.top10-live-stage-root.is-split-layout .fs-2 {
+  font-size: 1.5rem !important;
+}
+
+.top10-live-stage-root .table-hover tbody tr:hover {
+  background: rgba(245, 158, 11, 0.08) !important;
+  transform: scale(1.002);
+  transition: all 0.15s ease-in-out;
+}
+
+.top10-live-stage-root .progress {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================================================
+   BROADCAST CINEMATIC STAGE TRANSITIONS & ANIMATED VIEWS
+   ======================================================== */
+.broadcast-stage-container {
+  animation: broadcastReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center top;
+}
+
+@keyframes broadcastReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(24px);
+    filter: blur(8px) brightness(1.15);
+  }
+  50% {
+    opacity: 0.9;
+    filter: blur(2px) brightness(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0) brightness(1);
+  }
+}
+
+.broadcast-table-row {
+  animation: broadcastRowSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes broadcastRowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.remote-channel-card {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.remote-channel-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.25) !important;
+}
+
+.remote-channel-card.is-active {
+  border-color: #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(30, 41, 59, 0.9) 100%) !important;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.4) !important;
+}

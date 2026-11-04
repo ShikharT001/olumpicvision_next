@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { advanceHammer, finalizeSale, markPlayerUnsold, undoLastAction } from '@/lib/auction-db';
+import { advanceHammer, finalizeSale, markPlayerUnsold, undoLastAction, setStageView } from '@/lib/auction-db';
 import { isAuctionAdmin } from '@/app/auction/actions';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +23,12 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { action, stage, tournamentId } = body;
+    const { action, stage, view, tournamentId } = body;
+
+    if (action === 'stage_view' || action === 'set_stage_view') {
+      const result = await setStageView(view || 'podium', tournamentId);
+      return NextResponse.json(result);
+    }
 
     if (action === 'stage') {
       const result = await advanceHammer(Number(stage), tournamentId);

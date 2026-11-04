@@ -17,6 +17,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   const [filter, setFilter] = useState({ status: '', lot: '', position: '', category: '', search: '' });
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [editForm, setEditForm] = useState({
+    playerno: '',
     base_price: '',
     lot_number: '',
     player_grade: '',
@@ -54,6 +55,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
   const defaultCat = availableCategories[0]?.value || 'palghar_open';
 
   const [addForm, setAddForm] = useState({
+    playerno: '',
     full_name: '',
     photo_url: '',
     playing_position: defaultPos,
@@ -406,6 +408,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
     if (!isAdmin) return;
     setEditingPlayer(player);
     setEditForm({
+      playerno: player.playerno !== undefined && player.playerno !== null ? player.playerno : '',
       base_price: player.base_price || 1000,
       lot_number: player.lot_number || 1,
       player_grade: player.player_grade || 'Grade A',
@@ -474,12 +477,13 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
     if (filter.position && p.playing_position !== filter.position) return false;
     if (filter.category && p.player_category !== filter.category) return false;
     if (filter.search) {
-      const term = filter.search.toLowerCase();
+      const term = filter.search.toLowerCase().replace('#', '').trim();
       return (
         p.full_name?.toLowerCase().includes(term) ||
         p.playing_position?.toLowerCase().includes(term) ||
         p.player_category?.toLowerCase().includes(term) ||
-        p.team_name?.toLowerCase().includes(term)
+        p.team_name?.toLowerCase().includes(term) ||
+        (p.playerno !== undefined && p.playerno !== null && String(p.playerno).includes(term))
       );
     }
     return true;
@@ -670,6 +674,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
             <thead className="table-dark text-white-50 text-uppercase text-xs border-secondary border-opacity-25">
               <tr>
                 <th scope="col" style={{ width: 60 }}>#</th>
+                <th scope="col" style={{ width: 110 }} className="text-center text-warning">Player No.</th>
                 <th scope="col">Player Details</th>
                 <th scope="col">Position & Height</th>
                 <th scope="col">Grade & Category</th>
@@ -682,7 +687,7 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="text-center py-4 text-white-50">
+                  <td colSpan={isAdmin ? 9 : 8} className="text-center py-4 text-white-50">
                     No players found matching your criteria.
                   </td>
                 </tr>
@@ -695,6 +700,11 @@ export default function PlayerPoolManager({ initialPlayers, isAdmin = false, tou
                     }`}
                   >
                     <td className="text-white-50 font-monospace">{idx + 1}</td>
+                    <td className="text-center">
+                      <span className="badge bg-warning text-dark font-monospace fw-black px-2.5 py-1 rounded-pill shadow-sm" style={{ fontSize: '0.85rem' }}>
+                        #{player.playerno !== undefined && player.playerno !== null ? player.playerno : '—'}
+                      </span>
+                    </td>
                     <td>
                       <div className="d-flex align-items-center gap-2.5">
                         <div className="rounded-circle overflow-hidden bg-dark d-flex align-items-center justify-content-center border border-secondary border-opacity-40" style={{ width: 40, height: 40, flexShrink: 0 }}>

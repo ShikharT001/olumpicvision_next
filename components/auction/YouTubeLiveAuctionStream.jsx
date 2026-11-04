@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import Top10LiveScreen from './Top10LiveScreen';
 import {
   formatCategoryLabel,
   getCategoryBadgeClass,
@@ -776,7 +777,7 @@ export default function YouTubeLiveAuctionStream({
                           <div className="d-flex align-items-center gap-1.5">
                             <span className="badge bg-danger rounded-circle p-1 d-inline-block" style={{ width: 8, height: 8 }} />
                             <span className="text-xs fw-black text-uppercase text-warning tracking-wider">
-                              LOT #{activePlayer.lot_number || 1} • {hammerConfig.label}
+                              PLAYER #{activePlayer.playerno || activePlayer.lot_number || 1} • {hammerConfig.label}
                             </span>
                           </div>
                           <button
@@ -872,6 +873,14 @@ export default function YouTubeLiveAuctionStream({
                       <span>📜</span>
                       <span>Bids ({recentBids.length})</span>
                     </button>
+                    <button
+                      type="button"
+                      className={`broadcast-tab-btn ${sidebarTab === 'top10' ? 'active tab-gold' : ''}`}
+                      onClick={() => setSidebarTab('top10')}
+                    >
+                      <span>🏆</span>
+                      <span>Top 10 Bids</span>
+                    </button>
                   </div>
 
                   {/* TAB 1: ACTIVE PLAYER DOSSIER CARD WITH COMPREHENSIVE DETAILS */}
@@ -898,7 +907,7 @@ export default function YouTubeLiveAuctionStream({
                                     {formatCategoryLabel(activePlayer.player_category)}
                                   </span>
                                   <span className="badge bg-secondary bg-opacity-40 text-white-50 text-xs">
-                                    LOT #{activePlayer.lot_number || 1}
+                                    PLAYER #{activePlayer.playerno || activePlayer.lot_number || 1}
                                   </span>
                                 </div>
 
@@ -1112,6 +1121,19 @@ export default function YouTubeLiveAuctionStream({
                           )}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* TAB 4: TOP 10 PLAYERS BY MAXIMUM PRICES */}
+                  {sidebarTab === 'top10' && (
+                    <div className="flex-grow-1 overflow-y-auto pe-1" style={{ maxHeight: 'calc(64vh - 30px)' }}>
+                      <Top10LiveScreen
+                        data={data}
+                        tournament={currentTourn}
+                        tournamentId={activeTournamentId}
+                        isSplitView={true}
+                        currentView="top10"
+                      />
                     </div>
                   )}
 

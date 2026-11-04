@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
+import { useState, useEffect, useCallback, useTransition, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import Top10LiveScreen from './Top10LiveScreen';
 
 // Web Audio API fanfare synthesizer for live sales
 function playFanfareSound() {
@@ -43,6 +44,62 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   const [isAdminState, setIsAdminState] = useState(propIsAdmin !== undefined ? propIsAdmin : role === 'admin');
   const isAdmin = isAdminState;
   const [unlockModalOpen, setUnlockModalOpen] = useState(false);
+  const [top10ModalOpen, setTop10ModalOpen] = useState(false);
+  const [stageRemoteModalOpen, setStageRemoteModalOpen] = useState(false);
+  const [quickCallNumber, setQuickCallNumber] = useState('');
+  const [poolRemoteNumPools, setPoolRemoteNumPools] = useState(2);
+  const [poolRemoteSpinning, setPoolRemoteSpinning] = useState(false);
+
+  const [editPlayerNoModal, setEditPlayerNoModal] = useState(null);
+  const [editPlayerNoInput, setEditPlayerNoInput] = useState('');
+
+  const handleSetStageView = async (view) => {
+    // Instant optimistic update for maximum responsiveness
+    setData((prev) => ({
+      ...prev,
+      state: {
+        ...(prev?.state || {}),
+        stage_view: view,
+      },
+    }));
+
+    try {
+      // 1. Send hammer stage_view update
+      const res = await fetch('/api/auction/hammer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': unlockPasscode || 'pdvladmin2026',
+        },
+        body: JSON.stringify({ action: 'stage_view', view, tournamentId: activeTournamentId }),
+      });
+
+      // 2. Also ensure /api/auction/state is notified
+      if (!res.ok) {
+        await fetch('/api/auction/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'set_stage_view', view, tournamentId: activeTournamentId }),
+        });
+      }
+
+      const viewLabel =
+        view === 'top10'
+          ? '🏆 Top 10 Highest Priced Players Leaderboard'
+          : view === 'pools'
+          ? '🎰 Tournament Pool Draw (Group Stage Wheel)'
+          : view === 'split'
+          ? '⚡ Split Screen (Podium + Top 10)'
+          : '🎯 Active Player Podium';
+
+      setActionMessage(`📺 Projector Screen is now broadcasting: ${viewLabel}`);
+      fetchState();
+    } catch (err) {
+      setError(err.message || 'Failed to update stage view');
+      fetchState();
+    }
+  };
+
   const [unlockPasscode, setUnlockPasscode] = useState('');
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [unlockError, setUnlockError] = useState('');
@@ -65,6 +122,13 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const lastNotifIdRef = useRef(initialData?.lastNotification?.id || null);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (data?.state?.pool_num_pools && [2, 3, 4].includes(data.state.pool_num_pools)) {
+      setPoolRemoteNumPools(data.state.pool_num_pools);
+    }
+  }, [data?.state?.pool_num_pools]);
+
 
   // Keep admin state synced with server session / props
   useEffect(() => {
@@ -575,6 +639,176 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
     }
   };
 
+  
+  
+  // Pool Remote Systematic Definitions & Helpers
+  const poolRemoteNames = useMemo(() => {
+    const letters = ['A', 'B', 'C', 'D'];
+    return letters.slice(0, poolRemoteNumPools).map((l) => `Pool ${l}`);
+  }, [poolRemoteNumPools]);
+
+  const currentTeamsList = data?.teams || [];
+  const poolDrawnTeams = useMemo(() => {
+    return currentTeamsList.filter((t) => t.pool);
+  }, [currentTeamsList]);
+
+  const poolRemainingTeams = useMemo(() => {
+    return currentTeamsList.filter((t) => !t.pool);
+  }, [currentTeamsList]);
+
+  const poolTargetNext = useMemo(() => {
+    const count = poolDrawnTeams.length;
+    return poolRemoteNames[count % poolRemoteNames.length];
+  }, [poolDrawnTeams, poolRemoteNames]);
+
+  const handleRemoteSpinPoolTeam = async () => {
+    if (poolRemainingTeams.length === 0) {
+      setActionMessage('All teams have already been assigned to tournament pools!');
+      return;
+    }
+    setPoolRemoteSpinning(true);
+    try {
+      const res = await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'spin',
+          tournamentId: activeTournamentId,
+          numPools: poolRemoteNumPools,
+        }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || 'Failed to spin team');
+
+      playFanfareSound();
+      setActionMessage(`🎉 ${resData.team?.team_name || 'Team'} DRAWN INTO ${resData.pool?.toUpperCase()}! (Wheel spinning on Big Screen)`);
+      
+      if (data?.state?.stage_view !== 'pools') {
+        await handleSetStageView('pools');
+      }
+      fetchState();
+    } catch (err) {
+      setError(err.message || 'Failed to draw team');
+    } finally {
+      setPoolRemoteSpinning(false);
+    }
+  };
+
+  const handleRemoteAutoDrawAll = async () => {
+    if (poolRemainingTeams.length === 0) return;
+    try {
+      const res = await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'auto_draw',
+          tournamentId: activeTournamentId,
+          numPools: poolRemoteNumPools,
+        }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || 'Failed to auto-draw pools');
+
+      playFanfareSound();
+      setActionMessage('All remaining teams have been automatically drawn into pools!');
+      if (data?.state?.stage_view !== 'pools') {
+        await handleSetStageView('pools');
+      }
+      fetchState();
+    } catch (err) {
+      setError(err.message || 'Failed to auto-draw');
+    }
+  };
+
+  const handleRemoteResetPools = async () => {
+    if (!confirm('Are you sure you want to reset all pools and return all teams to the spin wheel?')) return;
+    try {
+      const res = await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset',
+          tournamentId: activeTournamentId,
+        }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || 'Failed to reset pools');
+
+      setActionMessage('Tournament pools reset. All teams returned to wheel.');
+      fetchState();
+    } catch (err) {
+      setError(err.message || 'Failed to reset pools');
+    }
+  };
+
+  const handleRemoteSetFormat = async (num) => {
+    setPoolRemoteNumPools(num);
+    try {
+      await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'format',
+          tournamentId: activeTournamentId,
+          numPools: num,
+        }),
+      });
+      fetchState();
+    } catch (err) {
+      console.warn('Format update error:', err);
+    }
+  };
+
+  const handleQuickCallByNumber = async (e) => {
+    if (e) e.preventDefault();
+    if (!quickCallNumber) return;
+    const targetNo = Number(quickCallNumber);
+    let list = allPlayers;
+    if (!list || list.length === 0) {
+      try {
+        const res = await fetch(`/api/auction/players?tournamentId=${activeTournamentId}`);
+        const json = await res.json();
+        list = json.players || [];
+        setAllPlayers(list);
+      } catch {}
+    }
+    const found = list.find((p) => Number(p.playerno) === targetNo || Number(p.lot_number) === targetNo);
+    if (!found) {
+      setError(`Player #${targetNo} not found in this tournament roster.`);
+      return;
+    }
+    await handleSelectPlayerToHammer(found);
+    setQuickCallNumber('');
+  };
+
+  const handleSavePlayerNo = async (e) => {
+    if (e) e.preventDefault();
+    if (!editPlayerNoModal) return;
+    try {
+      const newNo = editPlayerNoInput.trim() === '' ? null : Number(editPlayerNoInput);
+      const res = await fetch('/api/auction/players', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': unlockPasscode || 'pdvladmin2026',
+        },
+        body: JSON.stringify({
+          action: 'update',
+          playerId: editPlayerNoModal.id,
+          tournamentId: activeTournamentId,
+          data: { playerno: newNo, clear_playerno: newNo === null },
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update player number');
+      setActionMessage(`Updated player number to #${newNo || '(cleared)'} successfully!`);
+      setEditPlayerNoModal(null);
+      fetchPlayersList();
+      fetchState();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleSelectPlayerToHammer = async (player) => {
     if (!player) return null;
     if (!(await ensureAdminUnlocked())) {
@@ -701,6 +935,19 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
           <div className="d-flex align-items-center gap-2">
             <button
               type="button"
+              className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-extrabold shadow-sm d-inline-flex align-items-center gap-1.5 transition-all ${
+                data?.state?.stage_view === 'top10'
+                  ? 'btn-warning text-dark border-2 border-white'
+                  : 'btn-outline-warning'
+              }`}
+              onClick={() => handleSetStageView(data?.state?.stage_view === 'top10' ? 'podium' : 'top10')}
+              title="Broadcast Top 10 Highest Priced Players on live projector screen"
+            >
+              <span>🏆</span>
+              <span>{data?.state?.stage_view === 'top10' ? '🔴 Live: Top 10 Screen' : 'Show Top 10 on Live Screen'}</span>
+            </button>
+            <button
+              type="button"
               className="btn btn-sm btn-warning rounded-pill px-3 py-1 text-xs fw-extrabold shadow-sm d-inline-flex align-items-center gap-1.5"
               onClick={() => setUnlockModalOpen(true)}
             >
@@ -710,7 +957,11 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
             <span className="badge bg-black bg-opacity-50 text-warning border border-warning border-opacity-25 px-2.5 py-1 rounded-pill text-xs font-monospace">
               ● LIVE SYNC (1.5s)
             </span>
-            <Link href="/auction/live" className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5 text-xs fw-bold">
+            <Link
+              href={activeTournamentId ? `/auction/t/${activeTournamentId}/live` : '/auction/live'}
+              target="_blank"
+              className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5 text-xs fw-bold"
+            >
               Stage Projector ↗
             </Link>
           </div>
@@ -745,7 +996,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 {liveNotification.message}
               </h4>
               <span className="text-white-50 text-xs">
-                Live Broadcast Notification • {new Date(liveNotification.timestamp || Date.now()).toLocaleTimeString()}
+                Live Broadcast Notification • {liveNotification.timestamp ? new Date(liveNotification.timestamp).toLocaleTimeString() : ''}
               </span>
             </div>
           </div>
@@ -774,6 +1025,112 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
         </div>
       )}
 
+            {/* ADMIN STAGE DISPLAY CONTROLS & TOP 10 LEADERBOARD TRIGGER */}
+      <div
+        className="auction-card p-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-lg border border-warning border-opacity-40"
+        style={{ background: 'linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.95) 50%, rgba(20,20,35,0.98) 100%)' }}
+      >
+        <div className="d-flex flex-wrap align-items-center gap-2.5">
+          <span className="badge bg-warning text-dark px-2.5 py-1.5 rounded-pill text-xs fw-black tracking-wide shadow-sm">
+            📺 LIVE PROJECTOR STAGE CONTROL
+          </span>
+          <span className="text-white small fw-semibold d-none d-md-inline">
+            Direct Big-Screen Broadcast:
+          </span>
+          <span className={`badge px-2.5 py-1 rounded-pill text-xs font-monospace border ${
+            (data?.state?.stage_view || 'podium') === 'top10'
+              ? 'bg-warning text-dark border-warning fw-black'
+              : data?.state?.stage_view === 'split'
+              ? 'bg-info text-dark border-info fw-black'
+              : 'bg-dark text-info border-info border-opacity-40'
+          }`}>
+            {((data?.state?.stage_view || 'podium') === 'top10' ? '🏆 LIVE NOW: CH 2 - TOP 10 TABLE' : (data?.state?.stage_view === 'pools' ? '🎰 LIVE NOW: CH 4 - POOL DRAW' : (data?.state?.stage_view === 'split' ? '⚡ LIVE NOW: CH 3 - SPLIT SCREEN' : '🎯 LIVE NOW: CH 1 - ACTIVE PLAYER')))}
+          </span>
+        </div>
+
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          {/* PRIMARY STANDOUT BUTTON TO OPEN BIG SCREEN REMOTE MODAL */}
+          <button
+            type="button"
+            className="btn btn-sm btn-warning text-dark rounded-pill px-3.5 py-2 fw-black text-xs d-inline-flex align-items-center gap-2 shadow-lg transition-all"
+            style={{
+              letterSpacing: '0.02em',
+              boxShadow: '0 0 16px rgba(245, 158, 11, 0.5)',
+              border: '2px solid #fef08a',
+            }}
+            onClick={() => setStageRemoteModalOpen(true)}
+            title="Open Big Screen Remote Controller to switch Projector display (Top 10 / Podium)"
+          >
+            <span className="fs-6">📺</span>
+            <span>BIG SCREEN REMOTE CONTROLLER</span>
+            <span className="badge bg-black text-warning rounded-pill px-2 py-0.5" style={{ fontSize: '0.72rem' }}>
+              {(data?.state?.stage_view || 'podium') === 'top10' ? '🏆 CH 2' : (data?.state?.stage_view === 'pools' ? '🎰 CH 4' : (data?.state?.stage_view === 'split' ? '⚡ CH 3' : '🎯 CH 1'))}
+            </span>
+          </button>
+
+          <div className="btn-group btn-group-sm p-0.5 rounded-pill bg-black bg-opacity-70 border border-secondary border-opacity-40">
+            <button
+              type="button"
+              className={`btn btn-sm rounded-pill px-3 py-1.5 text-xs fw-bold transition-all ${
+                (data?.state?.stage_view || 'podium') === 'podium'
+                  ? 'btn-primary shadow-sm'
+                  : 'btn-outline-secondary text-light'
+              }`}
+              onClick={() => handleSetStageView('podium')}
+              title="Show Active Player on live big screen"
+            >
+              🎯 Active Player
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm rounded-pill px-3 py-1.5 text-xs fw-bold transition-all ${
+                data?.state?.stage_view === 'top10'
+                  ? 'btn-warning text-dark shadow-sm'
+                  : 'btn-outline-secondary text-light'
+              }`}
+              onClick={() => handleSetStageView('top10')}
+              title="Broadcast Top 10 Highest Price Players Table on live big screen"
+            >
+              🏆 Top 10 Table
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm rounded-pill px-3 py-1.5 text-xs fw-bold transition-all ${
+                data?.state?.stage_view === 'split'
+                  ? 'btn-info text-dark shadow-sm'
+                  : 'btn-outline-secondary text-light'
+              }`}
+              onClick={() => handleSetStageView('split')}
+              title="Show Split Screen (Podium + Top 10)"
+            >
+              ⚡ Split Screen
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm rounded-pill px-3 py-1.5 text-xs fw-bold transition-all ${
+                data?.state?.stage_view === 'pools'
+                  ? 'btn-info text-dark shadow-sm fw-black'
+                  : 'btn-outline-secondary text-light'
+              }`}
+              onClick={() => handleSetStageView('pools')}
+              title="Show Tournament Pool Draw & Wheel on live stage"
+            >
+              🎰 Pool Draw
+            </button>
+          </div>
+
+          <Link
+            href={activeTournamentId ? `/auction/t/${activeTournamentId}/live` : '/auction/live'}
+            target="_blank"
+            className="btn btn-sm btn-outline-light rounded-pill px-2.5 py-1.5 text-xs fw-bold d-none d-xl-inline-flex align-items-center gap-1"
+            title="Open projector screen in new window"
+          >
+            <span>📺</span>
+            <span>Open Stage ↗</span>
+          </Link>
+        </div>
+      </div>
+
       {/* Main Grid: Left = Player & Podium Controls, Right = Team Paddle Pad */}
       <div className="row g-3">
         {/* LEFT COLUMN: ACTIVE PLAYER & GAVEL STAGE */}
@@ -790,6 +1147,23 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 </span>
               </div>
               <div className="d-flex align-items-center gap-1.5">
+                {/* PROMINENT BIG SCREEN REMOTE CONTROLLER MODAL TRIGGER */}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-warning text-dark rounded-pill px-3 py-1 fw-black text-xs d-inline-flex align-items-center gap-1.5 shadow-lg transition-all"
+                  style={{
+                    boxShadow: '0 0 16px rgba(245, 158, 11, 0.5)',
+                    border: '2px solid #fef08a',
+                  }}
+                  onClick={() => setStageRemoteModalOpen(true)}
+                  title="Open Big Screen Remote Controller to switch Projector display (Top 10 / Podium)"
+                >
+                  <span className="fs-6">📺</span>
+                  <span>{data?.state?.stage_view === 'top10' ? 'Big Screen: Top 10 🏆' : 'Big Screen Remote 📺'}</span>
+                  <span className="badge bg-black text-warning rounded-pill px-1.5 py-0.5" style={{ fontSize: '0.7rem' }}>
+                    {data?.state?.stage_view === 'top10' ? 'CH 2' : 'CH 1'}
+                  </span>
+                </button>
                 <Link
                   href={activeTournamentId ? `/auction/t/${activeTournamentId}/stream` : '/auction/stream'}
                   className="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 fw-bold text-xs d-inline-flex align-items-center gap-1 shadow-sm"
@@ -804,7 +1178,7 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   onClick={openPlayerDrawer}
                 >
                   <span>{isAdmin ? 'Change Player Queue' : 'Explore Player Queue'}</span>
-                  <span className="badge bg-info text-dark rounded-pill">☰</span>
+                  <span className="badge bg-info text-dark rounded-pill">📋</span>
                 </button>
               </div>
             </div>
@@ -904,11 +1278,59 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               )}
             </div>
 
+            
+            {/* QUICK CALL PLAYER TO PODIUM BY NUMBER */}
+            <div className="bg-black bg-opacity-60 rounded-3 p-2.5 px-3 border border-warning border-opacity-40 mb-3 shadow-md d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div className="d-flex align-items-center gap-2">
+                <span className="badge bg-warning text-dark px-2.5 py-1 rounded-pill text-xs fw-black">
+                  🔢 CALL PLAYER BY NO.
+                </span>
+                <span className="text-white-50 text-xs fw-bold d-none d-sm-inline">
+                  Direct Podium Call:
+                </span>
+              </div>
+              <form onSubmit={handleQuickCallByNumber} className="d-flex align-items-center gap-2 ms-auto">
+                <div className="input-group input-group-sm" style={{ width: 130 }}>
+                  <span className="input-group-text bg-dark text-warning border-warning border-opacity-40 fw-black">#</span>
+                  <input
+                    type="number"
+                    className="form-control bg-black text-warning border-warning border-opacity-40 fw-black font-monospace text-center fs-6"
+                    placeholder="e.g. 4"
+                    value={quickCallNumber}
+                    onChange={(e) => setQuickCallNumber(e.target.value)}
+                    min="1"
+                    max="9999"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-sm btn-warning text-dark rounded-pill px-3 py-1 fw-black text-xs d-inline-flex align-items-center gap-1.5 shadow"
+                  disabled={!quickCallNumber || actionLoading}
+                  title="Call this player number directly to the live hammer stage"
+                >
+                  <span>🎯</span>
+                  <span>Call #{quickCallNumber || '?'}</span>
+                </button>
+              </form>
+            </div>
+
             {/* Active Player Card */}
             {activePlayer ? (
               <div className="row g-3 align-items-center mb-3">
                 <div className="col-4 col-sm-3">
-                  <div className="auction-portrait-frame shadow-sm">
+                  <div className="auction-portrait-frame shadow-sm position-relative">
+                    <div
+                      className="position-absolute top-0 end-0 m-1.5 px-2.5 py-0.5 rounded-pill fw-black font-monospace shadow"
+                      style={{
+                        background: '#f59e0b',
+                        color: '#000',
+                        fontSize: '0.95rem',
+                        border: '1.5px solid #fff',
+                        zIndex: 5,
+                      }}
+                    >
+                      #{activePlayer.playerno || activePlayer.lot_number || 1}
+                    </div>
                     {activePlayer.photo_url ? (
                       <img src={activePlayer.photo_url} alt={activePlayer.full_name} />
                     ) : (
@@ -1055,19 +1477,72 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
 
             {/* Podium Gavel Action Bar */}
             <div className="mt-auto pt-2 border-top border-secondary border-opacity-25">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-white-50 text-xs text-uppercase fw-bold">
-                  {isAdmin ? 'Gavel Stage Controls' : 'Live Gavel Status (Admin Controlled)'}
+              {/* Quick Live Screen Broadcast Bar */}
+              <div className="d-flex align-items-center justify-content-between mb-2 p-1.5 px-2.5 rounded-2 bg-black bg-opacity-40 border border-secondary border-opacity-30">
+                <span className="text-white-50 text-xs fw-semibold d-flex align-items-center gap-1">
+                  <span>📺</span>
+                  <span>Live Screen:</span>
                 </span>
-                {!isAdmin && (
+                <div className="d-flex align-items-center gap-1.5">
                   <button
                     type="button"
-                    className="btn btn-outline-warning btn-xs rounded-pill px-2.5 py-0.5 text-xs fw-bold"
-                    onClick={() => setUnlockModalOpen(true)}
+                    className={`btn btn-xs rounded-pill px-2.5 py-1 text-xs fw-bold transition-all ${
+                      (data?.state?.stage_view || 'podium') === 'podium'
+                        ? 'btn-primary'
+                        : 'btn-outline-secondary text-light'
+                    }`}
+                    onClick={() => handleSetStageView('podium')}
+                    title="Display Active Player on Stage Projector"
                   >
-                    👑 Unlock Admin
+                    🎯 Active Player
                   </button>
-                )}
+                  <button
+                    type="button"
+                    className={`btn btn-xs rounded-pill px-2.5 py-1 text-xs fw-black transition-all ${
+                      data?.state?.stage_view === 'top10'
+                        ? 'btn-warning text-dark shadow-sm'
+                        : 'btn-outline-warning'
+                    }`}
+                    onClick={() => handleSetStageView('top10')}
+                    title="Broadcast Top 10 priced players list on stage projector"
+                  >
+                    🏆 Show Top 10 on Live Screen
+                  </button>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-white-50 text-xs text-uppercase fw-bold d-flex align-items-center gap-1.5">
+                  <span>🔨 GAVEL STAGE CONTROLS</span>
+                </span>
+                <div className="d-flex align-items-center gap-1.5">
+                  <button
+                    type="button"
+                    className={`btn btn-xs rounded-pill px-3 py-1 text-xs fw-black d-inline-flex align-items-center gap-1 shadow-sm transition-all ${
+                      data?.state?.stage_view === 'top10'
+                        ? 'btn-warning text-dark border-2 border-white'
+                        : 'btn-outline-warning text-warning'
+                    }`}
+                    style={{
+                      background: data?.state?.stage_view === 'top10' ? '#f59e0b' : 'rgba(245,158,11,0.15)',
+                      fontSize: '0.78rem',
+                    }}
+                    onClick={() => handleSetStageView(data?.state?.stage_view === 'top10' ? 'podium' : 'top10')}
+                    title="Change Big-Screen content to Top 10 Highest Priced Players"
+                  >
+                    <span>🏆</span>
+                    <span>{data?.state?.stage_view === 'top10' ? '🔴 Live on Big Screen: Top 10' : 'Big Screen: Top 10'}</span>
+                  </button>
+                  {!isAdmin && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-warning btn-xs rounded-pill px-2.5 py-0.5 text-xs fw-bold"
+                      onClick={() => setUnlockModalOpen(true)}
+                    >
+                      👑 Unlock Admin
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="d-flex flex-wrap align-items-center gap-2">
                 <button
@@ -1330,7 +1805,11 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 Active Teams: <strong>{teams.length}</strong>
               </span>
               <div className="d-flex align-items-center gap-2">
-                <Link href="/auction/live" target="_blank" className="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 text-xs fw-bold">
+                <Link
+                  href={activeTournamentId ? `/auction/t/${activeTournamentId}/live` : '/auction/live'}
+                  target="_blank"
+                  className="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 text-xs fw-bold"
+                >
                   Open Stage Projector ↗
                 </Link>
                 <Link href="/auction/teams" target="_blank" className="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-xs fw-bold">
@@ -2040,13 +2519,27 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark w-100 shadow"
-                onClick={() => setSoldModalData(null)}
-              >
-                Continue Live Console ➔
-              </button>
+              <div className="d-flex flex-column flex-sm-row gap-2">
+                <button
+                  type="button"
+                  className="btn btn-warning rounded-pill px-3 py-2 fw-bold text-dark flex-grow-1 shadow"
+                  onClick={() => setSoldModalData(null)}
+                >
+                  Continue Live Console ➔
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-warning rounded-pill px-3 py-2 fw-bold text-xs d-inline-flex align-items-center justify-content-center gap-1.5 shadow"
+                  onClick={async () => {
+                    await handleSetStageView('top10');
+                    setSoldModalData(null);
+                  }}
+                  title="Broadcast Top 10 Priced Players to live stage screen right now"
+                >
+                  <span>🏆</span>
+                  <span>Show Top 10 on Live Screen</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2136,6 +2629,525 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
               >
                 Acknowledge & Next Player ➔
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {/* EDIT PLAYER NUMBER MODAL */}
+      {editPlayerNoModal && (
+        <div
+          className="modal show d-block"
+          tabIndex="-1"
+          style={{
+            backgroundColor: 'rgba(5, 10, 20, 0.85)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 1070,
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+            <div className="modal-content text-white border border-warning border-opacity-40 shadow-2xl p-4" style={{ background: '#0e1626', borderRadius: '18px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-2.5">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="fs-3">🔢</span>
+                  <div>
+                    <h5 className="fw-black text-white mb-0">Edit Player Number</h5>
+                    <span className="text-warning text-xs font-monospace">{editPlayerNoModal.full_name}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setEditPlayerNoModal(null)}
+                />
+              </div>
+
+              <form onSubmit={handleSavePlayerNo}>
+                <div className="mb-3">
+                  <label className="form-label text-xs fw-bold text-uppercase text-white-50">
+                    Player Number (playerno)
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-dark text-warning border-warning fw-black">#</span>
+                    <input
+                      type="number"
+                      className="form-control bg-black text-warning border-warning fw-black font-monospace fs-5"
+                      placeholder="e.g. 25 (leave empty to delete)"
+                      value={editPlayerNoInput}
+                      onChange={(e) => setEditPlayerNoInput(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <span className="text-white-50 text-xs mt-1 d-block">
+                    Enter any number, or clear it completely to delete the player number.
+                  </span>
+                </div>
+
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger rounded-pill px-3 py-2 text-xs fw-bold"
+                    onClick={() => {
+                      setEditPlayerNoInput('');
+                    }}
+                    title="Clear number"
+                  >
+                    Clear Number
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary rounded-pill px-3 py-2 text-xs flex-fill"
+                    onClick={() => setEditPlayerNoModal(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-warning rounded-pill px-4 py-2 text-xs fw-black text-dark flex-fill shadow"
+                  >
+                    Save Number ✓
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {/* ========================================================
+          BIG SCREEN REMOTE CONTROLLER MODAL (PROJECTOR / TV CONTROL)
+         ======================================================== */}
+      {stageRemoteModalOpen && (
+        <div
+          className="modal show d-block"
+          tabIndex="-1"
+          style={{
+            backgroundColor: 'rgba(5, 10, 20, 0.88)',
+            backdropFilter: 'blur(14px)',
+            zIndex: 1060,
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered modal-xl">
+            <div
+              className="modal-content text-white border border-warning border-opacity-40 shadow-2xl"
+              style={{
+                background: 'linear-gradient(180deg, #0d1527 0%, #080d19 100%)',
+                borderRadius: '20px',
+              }}
+            >
+              {/* Remote Header */}
+              <div className="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-2.5">
+                  <div className="p-2.5 rounded-circle bg-warning bg-opacity-20 border border-warning text-warning fs-4 shadow-sm">
+                    📺
+                  </div>
+                  <div>
+                    <div className="d-flex align-items-center gap-2 mb-0.5">
+                      <span className="badge badge-gold px-2.5 py-0.5 rounded-pill text-xs fw-black text-uppercase">
+                        Big Screen Remote Controller
+                      </span>
+                      <span className="badge bg-danger text-white rounded-pill px-2.5 py-0.5 text-xs fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                        <span className="spinner-grow spinner-grow-sm" style={{ width: 6, height: 6 }} role="status"></span>
+                        LIVE ON PROJECTOR
+                      </span>
+                    </div>
+                    <h5 className="modal-title fw-black tracking-tight mb-0">
+                      Live Stage Screen Controller
+                    </h5>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setStageRemoteModalOpen(false)}
+                  aria-label="Close"
+                ></button>
+              </div>
+
+              {/* Remote Body */}
+              <div className="modal-body p-4">
+                {/* Active Live Status Banner */}
+                <div
+                  className="p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-inner"
+                  style={{
+                    background:
+                      data?.state?.stage_view === 'top10'
+                        ? 'linear-gradient(90deg, rgba(245, 158, 11, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                        : data?.state?.stage_view === 'pools'
+                        ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                        : data?.state?.stage_view === 'split'
+                        ? 'linear-gradient(90deg, rgba(6, 182, 212, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                        : 'linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2.5">
+                    <span className="fs-3">
+                      {data?.state?.stage_view === 'top10' ? '🏆' : data?.state?.stage_view === 'pools' ? '🎰' : data?.state?.stage_view === 'split' ? '⚡' : '🎯'}
+                    </span>
+                    <div>
+                      <span className="text-white-50 text-xs text-uppercase fw-bold d-block">
+                        Currently Broadcasting on Big Screen:
+                      </span>
+                      <strong className="fs-6 text-white">
+                        {data?.state?.stage_view === 'top10'
+                          ? 'CHANNEL 2: TOP 10 HIGHEST PRICED PLAYERS TABLE'
+                          : data?.state?.stage_view === 'pools'
+                          ? 'CHANNEL 4: TOURNAMENT POOL DRAW & WHEEL LOTTERY'
+                          : data?.state?.stage_view === 'split'
+                          ? 'CHANNEL 3: SPLIT SCREEN (PODIUM + LEADERBOARD)'
+                          : 'CHANNEL 1: ACTIVE ATHLETE PODIUM & LIVE BIDDING'}
+                      </strong>
+                    </div>
+                  </div>
+                  <span className="badge bg-black bg-opacity-60 text-warning border border-warning border-opacity-40 rounded-pill px-3 py-1.5 text-xs fw-black font-monospace">
+                    {data?.state?.stage_view === 'top10'
+                      ? 'CHANNEL #2 ACTIVE'
+                      : data?.state?.stage_view === 'pools'
+                      ? 'CHANNEL #4 ACTIVE'
+                      : data?.state?.stage_view === 'split'
+                      ? 'CHANNEL #3 ACTIVE'
+                      : 'CHANNEL #1 ACTIVE'}
+                  </span>
+                </div>
+
+                <p className="text-white-50 small mb-3">
+                  Click any channel below to instantly switch the stadium/projector live screen with smooth TV-broadcast transitions:
+                </p>
+
+                {/* 4 Remote Channel Cards */}
+                <div className="row g-3 mb-4">
+                  {/* Channel 1: Active Player Podium */}
+                  <div className="col-12 col-sm-6 col-xl-3">
+                    <div
+                      className={`remote-channel-card p-3 rounded-4 h-100 d-flex flex-column justify-content-between position-relative ${
+                        (data?.state?.stage_view || 'podium') === 'podium' ? 'is-active' : 'bg-black bg-opacity-40'
+                      }`}
+                      onClick={() => handleSetStageView('podium')}
+                    >
+                      <div>
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="badge bg-secondary text-white rounded-pill px-2 py-0.5 text-xs fw-black font-monospace">
+                            CH 1
+                          </span>
+                          {(data?.state?.stage_view || 'podium') === 'podium' && (
+                            <span className="badge bg-success text-white rounded-pill px-2 py-0.5 text-xs fw-bold">
+                              ● LIVE
+                            </span>
+                          )}
+                        </div>
+                        <div className="fs-2 mb-1">🎯</div>
+                        <h6 className="fw-black text-white mb-1">Athlete Podium</h6>
+                        <p className="text-white-50 text-xs mb-2">
+                          Active athlete, live bid paddle counter, and gavel.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-100 rounded-pill fw-black text-xs py-1.5 shadow-sm ${
+                          (data?.state?.stage_view || 'podium') === 'podium'
+                            ? 'btn-light text-dark'
+                            : 'btn-outline-light'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetStageView('podium');
+                        }}
+                      >
+                        {(data?.state?.stage_view || 'podium') === 'podium' ? '✓ Showing' : '▶ Switch to Player'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Channel 2: Top 10 Price Leaderboard Table */}
+                  <div className="col-12 col-sm-6 col-xl-3">
+                    <div
+                      className={`remote-channel-card p-3 rounded-4 h-100 d-flex flex-column justify-content-between position-relative ${
+                        data?.state?.stage_view === 'top10' ? 'is-active' : 'bg-black bg-opacity-40'
+                      }`}
+                      onClick={() => handleSetStageView('top10')}
+                    >
+                      <div>
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="badge bg-warning text-dark rounded-pill px-2 py-0.5 text-xs fw-black font-monospace">
+                            CH 2
+                          </span>
+                          {data?.state?.stage_view === 'top10' && (
+                            <span className="badge bg-warning text-dark rounded-pill px-2 py-0.5 text-xs fw-bold">
+                              ● LIVE
+                            </span>
+                          )}
+                        </div>
+                        <div className="fs-2 mb-1">🏆</div>
+                        <h6 className="fw-black text-warning mb-1">Top 10 Table</h6>
+                        <p className="text-white-50 text-xs mb-2">
+                          ONLY the clean, broadcast table of top 10 highest bids.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-100 rounded-pill fw-black text-xs py-1.5 shadow-sm ${
+                          data?.state?.stage_view === 'top10'
+                            ? 'btn-warning text-dark'
+                            : 'btn-outline-warning'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetStageView('top10');
+                        }}
+                      >
+                        {data?.state?.stage_view === 'top10' ? '✓ Showing' : '▶ Switch to Top 10'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Channel 3: Split Screen */}
+                  <div className="col-12 col-sm-6 col-xl-3">
+                    <div
+                      className={`remote-channel-card p-3 rounded-4 h-100 d-flex flex-column justify-content-between position-relative ${
+                        data?.state?.stage_view === 'split' ? 'is-active' : 'bg-black bg-opacity-40'
+                      }`}
+                      onClick={() => handleSetStageView('split')}
+                    >
+                      <div>
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="badge bg-info text-dark rounded-pill px-2 py-0.5 text-xs fw-black font-monospace">
+                            CH 3
+                          </span>
+                          {data?.state?.stage_view === 'split' && (
+                            <span className="badge bg-info text-dark rounded-pill px-2 py-0.5 text-xs fw-bold">
+                              ● LIVE
+                            </span>
+                          )}
+                        </div>
+                        <div className="fs-2 mb-1">⚡</div>
+                        <h6 className="fw-black text-info mb-1">Split Screen</h6>
+                        <p className="text-white-50 text-xs mb-2">
+                          Dual stadium view: Active player on left + Top 10 on right.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-100 rounded-pill fw-black text-xs py-1.5 shadow-sm ${
+                          data?.state?.stage_view === 'split'
+                            ? 'btn-info text-dark'
+                            : 'btn-outline-info'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetStageView('split');
+                        }}
+                      >
+                        {data?.state?.stage_view === 'split' ? '✓ Showing' : '▶ Switch to Split'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Channel 4: Tournament Pool Draw */}
+                  <div className="col-12 col-sm-6 col-xl-3">
+                    <div
+                      className={`remote-channel-card p-3 rounded-4 h-100 d-flex flex-column justify-content-between position-relative ${
+                        data?.state?.stage_view === 'pools' ? 'is-active' : 'bg-black bg-opacity-40'
+                      }`}
+                      onClick={() => handleSetStageView('pools')}
+                    >
+                      <div>
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span className="badge bg-success text-white rounded-pill px-2 py-0.5 text-xs fw-black font-monospace">
+                            CH 4
+                          </span>
+                          {data?.state?.stage_view === 'pools' && (
+                            <span className="badge bg-success text-white rounded-pill px-2 py-0.5 text-xs fw-bold">
+                              ● LIVE
+                            </span>
+                          )}
+                        </div>
+                        <div className="fs-2 mb-1">🎰</div>
+                        <h6 className="fw-black text-success mb-1">Pool & Draw Screen</h6>
+                        <p className="text-white-50 text-xs mb-2">
+                          Spin wheel & Pool A/B rosters on big screen with zero audience controls.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-100 rounded-pill fw-black text-xs py-1.5 shadow-sm ${
+                          data?.state?.stage_view === 'pools'
+                            ? 'btn-success text-white'
+                            : 'btn-outline-success'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetStageView('pools');
+                        }}
+                      >
+                        {data?.state?.stage_view === 'pools' ? '✓ Showing' : '▶ Switch to Pool Draw'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ========================================================
+                    🎰 LIVE POOL DRAW CONSOLE CONTROLLER (OPERATED BY ADMIN)
+                   ======================================================== */}
+                <div className="bg-black bg-opacity-50 rounded-4 p-3.5 border border-success border-opacity-40 mb-3 shadow-lg">
+                  <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom border-secondary border-opacity-30 pb-2.5 mb-3">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fs-4">🎰</span>
+                      <div>
+                        <h6 className="fw-black text-white mb-0">Pool Draw Remote Controls (Auction Console)</h6>
+                        <span className="text-white-50 text-xs">Controls the spin wheel and group allocations shown on the big screen.</span>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="text-white-50 text-xs">Pool Format:</span>
+                      {[2, 3, 4].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          className={`btn btn-xs rounded-pill px-2.5 py-0.5 text-xs fw-bold ${
+                            poolRemoteNumPools === num
+                              ? 'btn-success text-white shadow-sm'
+                              : 'btn-outline-secondary text-light'
+                          }`}
+                          onClick={() => handleRemoteSetFormat(num)}
+                        >
+                          {num} Pools
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Draw Action Strip */}
+                  <div className="row g-3 align-items-center mb-3">
+                    <div className="col-12 col-md-4">
+                      <div className="p-2.5 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
+                        <span className="text-white-50 text-xs d-block mb-0.5">Next Spin Draws For:</span>
+                        <strong className="fs-5 fw-black text-info font-monospace d-flex align-items-center gap-1.5">
+                          <span>🎯</span>
+                          <span>{poolTargetNext}</span>
+                        </strong>
+                        <span className="text-white-50 text-xs font-monospace">
+                          {poolRemainingTeams.length} / {currentTeamsList.length} Teams remaining on wheel
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="col-12 col-md-8">
+                      <div className="d-flex flex-wrap align-items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-warning text-dark flex-fill py-2.5 px-3 rounded-pill fw-black text-xs shadow-lg d-inline-flex align-items-center justify-content-center gap-2"
+                          style={{ border: '2px solid #fef08a' }}
+                          onClick={handleRemoteSpinPoolTeam}
+                          disabled={poolRemoteSpinning || poolRemainingTeams.length === 0}
+                        >
+                          <span className="fs-6">🎯</span>
+                          <span>
+                            {poolRemoteSpinning
+                              ? 'Spinning Wheel...'
+                              : poolRemainingTeams.length === 0
+                              ? 'All Teams Assigned to Pools'
+                              : `SPIN WHEEL FOR ${poolTargetNext.toUpperCase()} ➔`}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-outline-info rounded-pill px-3 py-2 text-xs fw-bold"
+                          onClick={handleRemoteAutoDrawAll}
+                          disabled={poolRemoteSpinning || poolRemainingTeams.length === 0}
+                          title="Auto-draw all remaining franchises"
+                        >
+                          ⚡ Auto-Draw All
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger rounded-pill px-3 py-2 text-xs fw-bold"
+                          onClick={handleRemoteResetPools}
+                          disabled={poolRemoteSpinning || poolDrawnTeams.length === 0}
+                          title="Reset all team pools back to wheel"
+                        >
+                          ↺ Reset Pools
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Pool Rosters Mini Grid */}
+                  <div className="row g-2">
+                    {poolRemoteNames.map((pName, idx) => {
+                      const inPool = currentTeamsList.filter((t) => t.pool === pName);
+                      const color = idx === 0 ? '#10b981' : idx === 1 ? '#f59e0b' : idx === 2 ? '#06b6d4' : '#8b5cf6';
+                      return (
+                        <div key={pName} className="col-12 col-md-6 col-xl-3">
+                          <div className="p-2 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25" style={{ borderLeft: `4px solid ${color}` }}>
+                            <div className="d-flex align-items-center justify-content-between mb-1">
+                              <strong className="text-white text-xs">{pName}</strong>
+                              <span className="badge rounded-pill text-xs font-monospace px-1.5 py-0.5" style={{ backgroundColor: color, color: '#000' }}>
+                                {inPool.length} Teams
+                              </span>
+                            </div>
+                            <div className="d-flex flex-wrap gap-1">
+                              {inPool.length === 0 ? (
+                                <span className="text-white-50 text-xs fst-italic">Waiting for draw...</span>
+                              ) : (
+                                inPool.map((t) => (
+                                  <span key={t.id} className="badge bg-dark text-white border border-secondary border-opacity-40 text-xs font-monospace">
+                                    {t.team_code}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Quick Sound & Stage Tools */}
+                <div className="pt-2 border-top border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-warning rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5"
+                      onClick={playFanfareSound}
+                      title="Play celebratory victory audio fanfare"
+                    >
+                      <span>🎺</span>
+                      <span>Play Fanfare Audio</span>
+                    </button>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <Link
+                      href={activeTournamentId ? `/auction/t/${activeTournamentId}/live` : '/auction/live'}
+                      target="_blank"
+                      className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 text-xs fw-bold d-inline-flex align-items-center gap-1.5"
+                      title="Open Live Projector Big Screen in separate window"
+                    >
+                      <span>↗️ Open Live Stage Window</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Remote Footer */}
+              <div className="modal-footer border-top border-secondary border-opacity-25 px-4 py-2.5 d-flex justify-content-between">
+                <span className="text-white-50 text-xs">
+                  ✨ Live big screen changes between Player, Top 10, and Pool Draw are animated seamlessly.
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary rounded-pill px-4 py-1.5 text-xs fw-bold"
+                  onClick={() => setStageRemoteModalOpen(false)}
+                >
+                  Close Remote
+                </button>
+              </div>
             </div>
           </div>
         </div>

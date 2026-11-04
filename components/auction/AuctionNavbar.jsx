@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAuction } from '@/app/auction/actions';
@@ -9,11 +9,43 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isAdmin = role === 'admin';
-
   const tournamentId = tournament?.id || tournament?.slug;
   const basePath = tournamentId ? `/auction/t/${tournamentId}` : '/auction';
 
   const isTeam = role === 'team' || Boolean(team?.id);
+  const [navStageView, setNavStageView] = useState('podium');
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const checkState = async () => {
+      try {
+        const url = tournamentId ? `/api/auction/state?tournamentId=${encodeURIComponent(tournamentId)}` : '/api/auction/state';
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.state?.stage_view) {
+            setNavStageView(json.state.stage_view);
+          }
+        }
+      } catch {}
+    };
+    checkState();
+    const timer = setInterval(checkState, 2000);
+    return () => clearInterval(timer);
+  }, [isAdmin, tournamentId]);
+
+  const handleToggleNavbarStageView = async () => {
+    const nextView = navStageView === 'top10' ? 'podium' : 'top10';
+    setNavStageView(nextView);
+    try {
+      await fetch('/api/auction/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_stage_view', view: nextView, tournamentId }),
+      });
+    } catch {}
+  };
+
 
   const tournamentLinks = tournamentId
     ? isAdmin
@@ -115,19 +147,38 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
 
           {visibleLinks.map((link) => {
             const isActive = pathname === link.href;
+            const isBigScreenLink = link.label.includes('Big-Screen');
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`btn btn-sm rounded-pill px-2.5 px-md-3 py-1 fw-semibold transition-all ${
-                  isActive
-                    ? 'btn-primary text-white shadow-sm'
-                    : 'btn-outline-secondary border-0 text-light opacity-75 hover-opacity-100'
-                }`}
-                style={{ fontSize: '0.82rem' }}
-              >
-                {link.label}
-              </Link>
+              <div key={link.href} className="d-inline-flex align-items-center gap-1">
+                <Link
+                  href={link.href}
+                  target={isBigScreenLink ? "_blank" : undefined}
+                  className={`btn btn-sm rounded-pill px-2.5 px-md-3 py-1 fw-semibold transition-all ${
+                    isActive
+                      ? 'btn-primary text-white shadow-sm'
+                      : 'btn-outline-secondary border-0 text-light opacity-75 hover-opacity-100'
+                  }`}
+                  style={{ fontSize: '0.82rem' }}
+                >
+                  {link.label}
+                </Link>
+                {isBigScreenLink && isAdmin && (
+                  <button
+                    type="button"
+                    className={`btn btn-sm rounded-pill px-2 py-0.5 text-xs fw-black d-inline-flex align-items-center gap-1 shadow-sm transition-all ${
+                      navStageView === 'top10'
+                        ? 'btn-warning text-dark border-2 border-white'
+                        : 'btn-outline-warning text-warning'
+                    }`}
+                    style={{ fontSize: '0.78rem' }}
+                    onClick={handleToggleNavbarStageView}
+                    title="Change Big-Screen live stage content to Top 10 Highest Priced Players"
+                  >
+                    <span>🏆</span>
+                    <span>{navStageView === 'top10' ? 'Top 10 Live' : 'Top 10'}</span>
+                  </button>
+                )}
+              </div>
             );
           })}
 

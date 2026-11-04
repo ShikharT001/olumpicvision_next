@@ -9,6 +9,8 @@ export default function TeamsPoolingWheel({
   tournamentId: propTournamentId,
   isAdmin = false,
   onPoolsUpdated = null,
+  isBigScreen = false,
+  state = null,
 }) {
   const activeTournamentId = propTournamentId || tournament?.id || tournament?.slug;
 
@@ -19,6 +21,7 @@ export default function TeamsPoolingWheel({
     return letters.slice(0, numPools).map((l) => `Pool ${l}`);
   }, [numPools]);
 
+  
   // Initial pools mapping: { 'Pool A': [team1, ...], 'Pool B': [team2, ...] }
   const [pools, setPools] = useState(() => {
     const initial = {};
@@ -56,6 +59,103 @@ export default function TeamsPoolingWheel({
   const [drawOutcomeModal, setDrawOutcomeModal] = useState(null);
   const [savingStatus, setSavingStatus] = useState(''); // 'saving' | 'saved' | 'error'
   const [saveMessage, setSaveMessage] = useState('');
+
+  // Synchronize pools whenever teams prop updates (e.g. from backend polling)
+  useEffect(() => {
+    const updated = {};
+    const letters = ['A', 'B', 'C', 'D'];
+    letters.forEach((l) => {
+      updated[`Pool ${l}`] = [];
+    });
+    teams.forEach((t) => {
+      if (t.pool && updated[t.pool]) {
+        updated[t.pool].push(t);
+      }
+    });
+    setPools(updated);
+  }, [teams]);
+
+  // Auto-dismiss outcome celebration on big screen without needing manual click
+  useEffect(() => {
+    if (isBigScreen && drawOutcomeModal) {
+      const timer = setTimeout(() => {
+        setDrawOutcomeModal(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [isBigScreen, drawOutcomeModal]);
+
+  // Optional background sync when used standalone
+  const [livePoolData, setLivePoolData] = useState(null);
+  useEffect(() => {
+    if (state || !activeTournamentId) return;
+    const fetchLive = async () => {
+      try {
+        const res = await fetch(`/api/auction/pools?tournamentId=${activeTournamentId}`);
+        if (res.ok) {
+          const json = await res.json();
+          setLivePoolData(json);
+        }
+      } catch {
+        // ignore background poll error
+      }
+    };
+    fetchLive();
+    const timer = setInterval(fetchLive, 1200);
+    return () => clearInterval(timer);
+  }, [state, activeTournamentId]);
+
+  const effectiveSpinEvent = state?.pool_spin_event || livePoolData?.spinEvent;
+  const effectiveNumPools = state?.pool_num_pools || livePoolData?.numPools;
+
+  // Synchronize pool format (2, 3, 4 pools)
+  useEffect(() => {
+    if (effectiveNumPools && [2, 3, 4].includes(effectiveNumPools) && effectiveNumPools !== numPools) {
+      setNumPools(effectiveNumPools);
+    }
+  }, [effectiveNumPools, numPools]);
+
+  // Synchronize live wheel spin event across screens (Big Screen + Admin)
+  const lastHandledSpinEventIdRef = useRef(null);
+  useEffect(() => {
+    if (!effectiveSpinEvent || !effectiveSpinEvent.eventId) return;
+    if (effectiveSpinEvent.eventId === lastHandledSpinEventIdRef.current) return;
+    lastHandledSpinEventIdRef.current = effectiveSpinEvent.eventId;
+
+    // Only animate fresh spin events within 12 seconds
+    const age = Date.now() - (effectiveSpinEvent.startedAt || Date.now());
+    if (age > 12000) return;
+
+    setIsSpinning(true);
+    playSpinStartSound();
+    setWheelRotation(effectiveSpinEvent.finalRotation || 2880);
+
+    const duration = 3800;
+    const startTime = Date.now();
+    const playTicksLoop = () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= duration) return;
+      playTickSound(500 + Math.random() * 120);
+      const progress = elapsed / duration;
+      const nextDelay = Math.max(35, Math.min(280, 40 + progress * progress * 320));
+      setTimeout(playTicksLoop, nextDelay);
+    };
+    playTicksLoop();
+
+    setTimeout(() => {
+      setIsSpinning(false);
+      playFanfareSound();
+      const drawnTeam = teams.find((t) => String(t.id) === String(effectiveSpinEvent.teamId)) || {
+        team_name: effectiveSpinEvent.teamName,
+        team_code: effectiveSpinEvent.teamCode,
+        primary_color: effectiveSpinEvent.primaryColor,
+      };
+      setDrawOutcomeModal({
+        team: drawnTeam,
+        pool: effectiveSpinEvent.pool,
+      });
+    }, duration + 50);
+  }, [effectiveSpinEvent, teams]);
 
   // Ticker sound timer ref
   const tickIntervalRef = useRef(null);
@@ -121,6 +221,24 @@ export default function TeamsPoolingWheel({
     };
     playTicksLoop();
 
+    // Broadcast to backend immediately so Big Screen spins in sync!
+    try {
+      fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'spin',
+          tournamentId: activeTournamentId,
+          teamId: winningTeam.id,
+          pool: targetPoolName,
+          finalRotation,
+          numPools,
+        }),
+      }).catch((e) => console.warn('Spin broadcast error:', e));
+    } catch (err) {
+      console.warn('Error broadcasting pool spin:', err);
+    }
+
     // Wheel stop trigger
     setTimeout(() => {
       setIsSpinning(false);
@@ -139,7 +257,7 @@ export default function TeamsPoolingWheel({
         pool: assignedPool,
       });
     }, duration + 50);
-  }, [isSpinning, remainingTeams, wheelRotation, targetPoolName]);
+  }, [isAdmin, isSpinning, remainingTeams, wheelRotation, targetPoolName, activeTournamentId, numPools]);
 
   // Remove a team from a pool (returns them back to the wheel)
   const handleRemoveTeamFromPool = (poolName, teamId) => {
@@ -151,34 +269,80 @@ export default function TeamsPoolingWheel({
   };
 
   // Reset entire draw
-  const handleResetDraw = () => {
-    if (!isAdmin) return;
-    if (confirm('Are you sure you want to reset all pools and return all teams to the spin wheel?')) {
+  const handleResetDraw = async () => {
+    if (!isAdmin || isSpinning) return;
+    if (!confirm('Are you sure you want to reset all pools and return all teams to the spin wheel?')) return;
+    try {
+      await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset',
+          tournamentId: activeTournamentId,
+        }),
+      });
       const empty = {};
       poolNames.forEach((p) => {
         empty[p] = [];
       });
       setPools(empty);
+      setWheelRotation(0);
+      setDrawOutcomeModal(null);
       setSaveMessage('Pool draw reset. All teams returned to wheel.');
+    } catch (err) {
+      console.warn('Error resetting pools:', err);
     }
   };
 
   // Quick auto-draw all remaining teams systematically
-  const handleAutoDrawAll = () => {
-    if (!isAdmin || remainingTeams.length === 0) return;
-    const shuffled = [...remainingTeams].sort(() => Math.random() - 0.5);
-    const updated = { ...pools };
-    let currIndex = drawnTeamIds.length;
+  const handleAutoDrawAll = async () => {
+    if (!isAdmin || isSpinning || remainingTeams.length === 0) return;
+    setSavingStatus('saving');
+    try {
+      const res = await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'auto_draw',
+          tournamentId: activeTournamentId,
+          numPools,
+        }),
+      });
+      const data = await res.json();
+      if (data.teams) {
+        const updated = {};
+        poolNames.forEach((p) => { updated[p] = []; });
+        data.teams.forEach((t) => {
+          if (t.pool && updated[t.pool]) updated[t.pool].push(t);
+        });
+        setPools(updated);
+      }
+      playFanfareSound();
+      setSavingStatus('saved');
+      setSaveMessage('All remaining teams have been automatically drawn into pools!');
+    } catch (err) {
+      setSavingStatus('error');
+      setSaveMessage(err.message || 'Auto-draw failed');
+    }
+  };
 
-    shuffled.forEach((team) => {
-      const pName = poolNames[currIndex % poolNames.length];
-      updated[pName] = [...(updated[pName] || []), team];
-      currIndex++;
-    });
-
-    setPools(updated);
-    playFanfareSound();
-    setSaveMessage('All remaining teams have been automatically drawn into pools!');
+  const handleSelectFormat = async (num) => {
+    if (isSpinning) return;
+    if (drawnTeamIds.length > 0 && !confirm('Changing pool count will reconfigure groups. Proceed?')) return;
+    setNumPools(num);
+    try {
+      await fetch('/api/auction/pools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'format',
+          tournamentId: activeTournamentId,
+          numPools: num,
+        }),
+      });
+    } catch (err) {
+      console.warn('Error saving pool format:', err);
+    }
   };
 
   // Save official pool draw to backend API
@@ -274,8 +438,9 @@ export default function TeamsPoolingWheel({
         </div>
       </div>
 
-      {/* Control Toolbar */}
-      <div className="auction-card p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+      {/* Control Toolbar (Hidden on Big Screen) */}
+      {!isBigScreen && (
+        <div className="auction-card p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
         {/* Pool Configuration Tabs */}
         <div className="d-flex align-items-center gap-2">
           <span className="text-white-50 text-xs fw-bold text-uppercase" style={{ letterSpacing: '0.04em' }}>
@@ -289,11 +454,7 @@ export default function TeamsPoolingWheel({
                 className={`btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold ${
                   numPools === num ? 'btn-info text-dark shadow-sm' : 'btn-outline-secondary text-light'
                 }`}
-                onClick={() => {
-                  if (!isSpinning && (drawnTeamIds.length === 0 || confirm('Changing pool count will reconfigure groups. Proceed?'))) {
-                    setNumPools(num);
-                  }
-                }}
+                onClick={() => handleSelectFormat(num)}
                 disabled={isSpinning}
               >
                 {num} Pools ({num === 2 ? 'A & B' : num === 3 ? 'A, B & C' : 'A, B, C & D'})
@@ -348,6 +509,7 @@ export default function TeamsPoolingWheel({
           )}
         </div>
       </div>
+      )}
 
       {saveMessage && (
         <div
@@ -382,9 +544,9 @@ export default function TeamsPoolingWheel({
                 maxWidth: '100%',
                 aspectRatio: '1/1',
                 filter: 'drop-shadow(0 15px 35px rgba(0,0,0,0.7))',
-                cursor: isAdmin && remainingTeams.length > 0 && !isSpinning ? 'pointer' : 'default',
+                cursor: !isBigScreen && isAdmin && remainingTeams.length > 0 && !isSpinning ? 'pointer' : 'default',
               }}
-              onClick={isAdmin ? handleSpinWheel : undefined}
+              onClick={!isBigScreen && isAdmin ? handleSpinWheel : undefined}
             >
               {/* Outer Metallic Bezel Ring */}
               <svg
@@ -605,7 +767,11 @@ export default function TeamsPoolingWheel({
 
             {/* Action Area below wheel: Spin Button for Admin, Locked notice for Teams */}
             <div className="w-100 mt-3">
-              {isAdmin ? (
+              {isBigScreen ? (
+                <div className="p-2.5 rounded-pill bg-dark bg-opacity-70 border border-warning border-opacity-30 text-center text-warning text-xs shadow-sm font-monospace">
+                  <span>🎰 <strong>OFFICIAL TOURNAMENT POOL DRAW</strong> • OPERATED FROM PODIUM CONSOLE</span>
+                </div>
+              ) : isAdmin ? (
                 <button
                   type="button"
                   className={`btn btn-lg w-100 rounded-pill py-2.5 fw-black text-sm d-flex align-items-center justify-content-center gap-2 shadow-lg transition-all ${
@@ -840,13 +1006,19 @@ export default function TeamsPoolingWheel({
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="btn btn-warning rounded-pill px-4 py-2 fw-black text-dark w-100 shadow"
-                onClick={() => setDrawOutcomeModal(null)}
-              >
-                Continue Pool Draw ➔
-              </button>
+              {!isBigScreen ? (
+                <button
+                  type="button"
+                  className="btn btn-warning rounded-pill px-4 py-2 fw-black text-dark w-100 shadow"
+                  onClick={() => setDrawOutcomeModal(null)}
+                >
+                  Continue Pool Draw ➔
+                </button>
+              ) : (
+                <div className="p-2 rounded-pill bg-black bg-opacity-40 border border-warning border-opacity-30 text-warning text-xs font-monospace animate-pulse">
+                  ⚡ Live draw auto-advancing on big screen...
+                </div>
+              )}
             </div>
           </div>
         </div>
