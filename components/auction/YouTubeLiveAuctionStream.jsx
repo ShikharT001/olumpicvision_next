@@ -389,15 +389,27 @@ export default function YouTubeLiveAuctionStream({
 
   const backHubUrl = activeTournamentId ? `/auction/t/${activeTournamentId}` : '/auction';
 
-  // Helper function to render player avatar/photo safely without image breaking errors
-  const renderPlayerAvatar = (photoUrl, name, size = 88, borderColor = '#06b6d4') => {
+  // Helper function to render player avatar/photo safely without image breaking errors or fallback overlapping
+  const renderPlayerAvatar = (
+    photoUrl,
+    name,
+    size = 88,
+    borderColor = '#06b6d4',
+    shape = 'circle',
+    customWidth = null,
+    customHeight = null
+  ) => {
     const initial = (name || 'P').trim().charAt(0).toUpperCase();
+    const isCircle = shape === 'circle';
+    const w = customWidth || size;
+    const h = customHeight || size;
     return (
       <div
-        className="player-portrait-halo flex-shrink-0 d-flex align-items-center justify-content-center position-relative shadow-2xl"
+        className="flex-shrink-0 position-relative shadow-2xl overflow-hidden"
         style={{
-          width: size,
-          height: size,
+          width: w,
+          height: h,
+          borderRadius: isCircle ? '50%' : '14px',
           border: `2.5px solid ${borderColor}`,
           backgroundColor: '#040918',
           boxShadow: `0 0 35px ${borderColor}66`,
@@ -407,7 +419,13 @@ export default function YouTubeLiveAuctionStream({
           <img
             src={photoUrl}
             alt={name || 'Player'}
-            className="w-100 h-100 object-fit-cover"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'top center',
+              display: 'block',
+            }}
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget.nextElementSibling;
@@ -416,11 +434,17 @@ export default function YouTubeLiveAuctionStream({
           />
         ) : null}
         <div
-          className="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-white fw-black"
           style={{
+            width: '100%',
+            height: '100%',
             display: photoUrl ? 'none' : 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
             background: 'linear-gradient(135deg, #1e293b 0%, #0a1128 100%)',
-            fontSize: size * 0.42,
+            color: '#ffffff',
+            fontWeight: 900,
+            fontSize: Math.min(w, h) * 0.42,
           }}
         >
           <span>{initial}</span>
@@ -680,7 +704,7 @@ export default function YouTubeLiveAuctionStream({
             {/* TOP ROW: REAL CAMERA SHOOTING FEED (LEFT) + RIGHT PANEL (DOSSIER / PURSE TOWER) */}
             <div className="row g-2.5 flex-grow-1 align-items-stretch">
               {/* LEFT: THE LIVE SHOOTING CAMERA ARENA */}
-              <div className="col-12 col-xl-8 col-xxl-9 d-flex flex-column">
+              <div className="col-12 col-xl-7 col-xxl-7 d-flex flex-column">
                 <div
                   className="broadcast-hud-card p-2.5 p-md-3 flex-grow-1 d-flex flex-column justify-content-between shadow-2xl position-relative overflow-hidden"
                   style={{
@@ -798,7 +822,7 @@ export default function YouTubeLiveAuctionStream({
 
                         {bugMinimized ? (
                           <div className="d-flex align-items-center gap-2">
-                            {renderPlayerAvatar(activePlayer.photo_url, activePlayer.full_name, 38, highestTeam?.primary_color || '#06b6d4')}
+                            {renderPlayerAvatar(activePlayer.photo_url, activePlayer.full_name, 44, highestTeam?.primary_color || '#06b6d4', 'rounded')}
                             <div className="min-w-0">
                               <div className="fw-black text-white text-xs text-truncate">
                                 {activePlayer.full_name}
@@ -810,27 +834,67 @@ export default function YouTubeLiveAuctionStream({
                           </div>
                         ) : (
                           <div className="d-flex align-items-center gap-3">
-                            {renderPlayerAvatar(activePlayer.photo_url, activePlayer.full_name, 68, highestTeam?.primary_color || '#06b6d4')}
+                            {renderPlayerAvatar(
+                              activePlayer.photo_url,
+                              activePlayer.full_name,
+                              120,
+                              highestTeam?.primary_color || '#06b6d4',
+                              'rounded',
+                              120,
+                              150
+                            )}
                             <div className="min-w-0 flex-grow-1">
-                              <h4 className="fw-black text-white text-sm mb-0 text-truncate tracking-tight">
+                              <h3
+                                className="fw-black text-white mb-1 tracking-tight text-truncate"
+                                style={{ fontSize: '1.4rem', lineHeight: 1.15 }}
+                              >
                                 {activePlayer.full_name}
-                              </h4>
-                              <div className="d-flex align-items-center gap-1 text-xs text-info fw-bold">
-                                <span>{formatPositionLabel(activePlayer.playing_position)}</span>
-                                <span>•</span>
-                                <span className="text-white-50">{activePlayer.district || 'Palghar'}</span>
+                              </h3>
+
+                              <div className="d-flex align-items-center gap-1.5 flex-wrap mb-1">
+                                <span className="badge badge-gold px-2 py-0.5 rounded-pill text-xs fw-extrabold text-uppercase">
+                                  {activePlayer.player_grade || 'Grade A'}
+                                </span>
+                                <span className={`badge px-2 py-0.5 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer.player_category)}`}>
+                                  {formatCategoryLabel(activePlayer.player_category)}
+                                </span>
+                                <span className="fw-bold text-info text-xs">
+                                  {formatPositionLabel(activePlayer.playing_position)}
+                                </span>
                               </div>
 
-                              <div className="d-flex align-items-center justify-content-between mt-1 pt-1 border-top border-secondary border-opacity-20 text-xs">
+                              <div className="text-white-50 text-xs mb-1.5 d-flex align-items-center gap-2">
+                                <span>📍 {activePlayer.district || 'Palghar'}</span>
+                                {activePlayer.team_name && <span className="text-truncate">• 🏛️ {activePlayer.team_name}</span>}
+                              </div>
+
+                              <div
+                                className="d-flex align-items-end justify-content-between p-2 rounded-3 mt-1.5"
+                                style={{
+                                  background: 'rgba(0, 0, 0, 0.55)',
+                                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                                }}
+                              >
                                 <div>
-                                  <span className="text-white-50 text-xs d-block">Leading:</span>
-                                  <strong className="text-white text-truncate d-inline-block" style={{ maxWidth: 120 }}>
-                                    {highestTeam?.team_code || 'No Bids'}
+                                  <span className="text-white-50 text-xs text-uppercase fw-bold d-block" style={{ fontSize: '0.7rem' }}>
+                                    Leading Franchise:
+                                  </span>
+                                  <strong
+                                    className="text-white fs-6 text-truncate d-block"
+                                    style={{ maxWidth: 170, color: highestTeam?.primary_color }}
+                                  >
+                                    {highestTeam ? `${highestTeam.team_name} (${highestTeam.team_code})` : 'Awaiting Bids'}
                                   </strong>
                                 </div>
-                                <div className="text-end">
-                                  <span className="text-white-50 text-xs d-block">Current Bid:</span>
-                                  <strong className="text-warning font-monospace fs-6 fw-black" suppressHydrationWarning>
+                                <div className="text-end ps-2">
+                                  <span className="text-white-50 text-xs text-uppercase fw-bold d-block" style={{ fontSize: '0.7rem' }}>
+                                    Current Bid:
+                                  </span>
+                                  <strong
+                                    className="text-warning font-monospace fw-black fs-4 lh-1 d-block"
+                                    style={{ textShadow: '0 0 16px rgba(245, 158, 11, 0.45)' }}
+                                    suppressHydrationWarning
+                                  >
                                     ₹{formatCurrency(currentBid > 0 ? currentBid : basePrice)}
                                   </strong>
                                 </div>
@@ -845,7 +909,7 @@ export default function YouTubeLiveAuctionStream({
               </div>
 
               {/* RIGHT: THE IPL MULTI-TAB HUB (PLAYER DOSSIER vs PURSE TOWER vs BIDS STREAM) */}
-              <div className="col-12 col-xl-4 col-xxl-3 d-flex flex-column">
+              <div className="col-12 col-xl-5 col-xxl-5 d-flex flex-column">
                 <div
                   className="broadcast-hud-card p-3 flex-grow-1 d-flex flex-column shadow-2xl"
                   style={{
@@ -895,13 +959,13 @@ export default function YouTubeLiveAuctionStream({
                       {activePlayer ? (
                         <>
                           <div>
-                            {/* Player Photo Card — Premium ID-card style with accent strip */}
+                            {/* PLAYER BROADCAST HERO CARD: SIDE-BY-SIDE (IMAGE ON LEFT, SEPARATE DETAILS ON RIGHT) */}
                             <div
-                              className="d-flex flex-column align-items-center text-center rounded-3 mb-3 overflow-hidden"
+                              className="rounded-3 mb-2.5 overflow-hidden shadow-2xl"
                               style={{
-                                background: 'linear-gradient(180deg, rgba(6,182,212,0.08) 0%, rgba(8,14,28,0.98) 100%)',
+                                background: 'linear-gradient(145deg, rgba(6,182,212,0.1) 0%, rgba(8,14,28,0.98) 100%)',
                                 border: `2px solid ${highestTeam?.primary_color || '#06b6d4'}55`,
-                                boxShadow: `0 0 40px ${highestTeam?.primary_color || '#06b6d4'}22`,
+                                boxShadow: `0 0 45px ${highestTeam?.primary_color || '#06b6d4'}22`,
                               }}
                             >
                               {/* Accent colour top-strip */}
@@ -912,93 +976,177 @@ export default function YouTubeLiveAuctionStream({
                                   background: `linear-gradient(90deg, ${highestTeam?.primary_color || '#06b6d4'}, #f59e0b, ${highestTeam?.primary_color || '#06b6d4'})`,
                                 }}
                               />
-                              <div className="pt-3 pb-1 px-3 w-100 d-flex flex-column align-items-center">
-                                {/* LOT badge above photo */}
-                                <span className="badge bg-secondary bg-opacity-40 text-white-50 text-xs mb-2 px-3 py-1 rounded-pill fw-bold tracking-wider">
-                                  🎫 PLAYER #{activePlayer.playerno || activePlayer.lot_number || 1}
-                                </span>
 
-                                {renderPlayerAvatar(
-                                  activePlayer.photo_url,
-                                  activePlayer.full_name,
-                                  160,
-                                  highestTeam?.primary_color || '#06b6d4'
-                                )}
+                              <div className="p-3">
+                                <div className="row g-3 align-items-stretch">
+                                  {/* ─── LEFT SIDE: LARGE PLAYER PORTRAIT IMAGE ─── */}
+                                  <div className="col-12 col-sm-5 d-flex flex-column align-items-center justify-content-start">
+                                    <div className="position-relative w-100 d-flex flex-column align-items-center">
+                                      <span
+                                        className="badge bg-warning text-dark text-xs px-2.5 py-1 rounded-pill fw-black mb-2 shadow"
+                                        style={{ letterSpacing: '0.04em' }}
+                                      >
+                                        PLAYER #{activePlayer.playerno || activePlayer.lot_number || 1}
+                                      </span>
 
-                                <div className="mt-3 w-100">
-                                  <div className="d-flex align-items-center justify-content-center gap-1.5 mb-2 flex-wrap">
-                                    <span className="badge badge-gold px-3 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
-                                      {activePlayer.player_grade || 'Grade A'}
-                                    </span>
-                                    <span className={`badge px-2.5 py-1 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer.player_category)}`}>
-                                      {formatCategoryLabel(activePlayer.player_category)}
-                                    </span>
+                                      {/* Large prominent portrait frame */}
+                                      <div
+                                        className="position-relative overflow-hidden shadow-2xl w-100"
+                                        style={{
+                                          maxWidth: 210,
+                                          aspectRatio: '3/4',
+                                          minHeight: 200,
+                                          borderRadius: 16,
+                                          border: `2.5px solid ${highestTeam?.primary_color || '#06b6d4'}`,
+                                          backgroundColor: '#030712',
+                                          boxShadow: `0 0 35px ${highestTeam?.primary_color || '#06b6d4'}55`,
+                                        }}
+                                      >
+                                        {activePlayer.photo_url ? (
+                                          <img
+                                            src={activePlayer.photo_url}
+                                            alt={activePlayer.full_name}
+                                            style={{
+                                              width: '100%',
+                                              height: '100%',
+                                              objectFit: 'cover',
+                                              objectPosition: 'top center',
+                                              display: 'block',
+                                            }}
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                              const fb = e.currentTarget.nextElementSibling;
+                                              if (fb) fb.style.display = 'flex';
+                                            }}
+                                          />
+                                        ) : null}
+                                        <div
+                                          style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            display: activePlayer.photo_url ? 'none' : 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            background: 'linear-gradient(135deg, #1e293b 0%, #0a1128 100%)',
+                                            color: '#ffffff',
+                                            fontWeight: 900,
+                                            fontSize: '3rem',
+                                          }}
+                                        >
+                                          <span>{(activePlayer.full_name || 'P').trim().charAt(0).toUpperCase()}</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Hammer Stage Tag */}
+                                      <div className="mt-2 text-center">
+                                        <span className={`badge px-2.5 py-1 rounded-pill text-xs fw-black text-uppercase ${hammerConfig.badgeClass}`}>
+                                          {hammerConfig.label}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
 
-                                  <h2 className="fw-black text-white mb-0 tracking-tight" style={{ fontSize: '1.4rem', lineHeight: 1.15 }}>
-                                    {activePlayer.full_name}
-                                  </h2>
+                                  {/* ─── RIGHT SIDE: SEPARATE & LARGE DETAILS ─── */}
+                                  <div className="col-12 col-sm-7 d-flex flex-column justify-content-between">
+                                    <div>
+                                      {/* Badges: Grade & Category */}
+                                      <div className="d-flex align-items-center gap-1.5 mb-2 flex-wrap">
+                                        <span className="badge badge-gold px-2.5 py-1 rounded-pill text-xs fw-extrabold text-uppercase">
+                                          {activePlayer.player_grade || 'Grade A'}
+                                        </span>
+                                        <span className={`badge px-2.5 py-1 rounded-pill text-xs fw-bold ${getCategoryBadgeClass(activePlayer.player_category)}`}>
+                                          {formatCategoryLabel(activePlayer.player_category)}
+                                        </span>
+                                      </div>
 
-                                  <span
-                                    className="fw-bold d-block mt-1 mb-2"
-                                    style={{ color: highestTeam?.primary_color || '#06b6d4', fontSize: '0.85rem' }}
-                                  >
-                                    {formatPositionLabel(activePlayer.playing_position)}
-                                  </span>
+                                      {/* Player Full Name (Large & Bold) */}
+                                      <h2
+                                        className="fw-black text-white mb-1 tracking-tight"
+                                        style={{ fontSize: '1.65rem', lineHeight: 1.15 }}
+                                      >
+                                        {activePlayer.full_name}
+                                      </h2>
+
+                                      {/* Position Label */}
+                                      <span
+                                        className="fw-extrabold d-block mb-3 fs-6"
+                                        style={{ color: highestTeam?.primary_color || '#06b6d4' }}
+                                      >
+                                        {formatPositionLabel(activePlayer.playing_position)}
+                                      </span>
+
+                                      {/* Separate Vitals Grid (Large & Clear) */}
+                                      <div
+                                        className="p-2.5 rounded-3 border mb-2"
+                                        style={{
+                                          background: 'rgba(3, 7, 18, 0.7)',
+                                          borderColor: 'rgba(255, 255, 255, 0.1)',
+                                        }}
+                                      >
+                                        <div className="text-white-50 text-xs fw-bold text-uppercase mb-2 tracking-wider">
+                                          📊 Player Vitals
+                                        </div>
+                                        <div className="row g-2">
+                                          <div className="col-6">
+                                            <span className="text-white-50 text-xs d-block">Height:</span>
+                                            <strong className="text-white fs-6">
+                                              {activePlayer.height_cm ? `${activePlayer.height_cm} cm` : '182 cm'}
+                                            </strong>
+                                          </div>
+                                          <div className="col-6">
+                                            <span className="text-white-50 text-xs d-block">Weight:</span>
+                                            <strong className="text-white fs-6">
+                                              {activePlayer.weight_kg ? `${activePlayer.weight_kg} kg` : '74 kg'}
+                                            </strong>
+                                          </div>
+                                          <div className="col-6">
+                                            <span className="text-white-50 text-xs d-block">District:</span>
+                                            <strong className="text-info fs-6 text-truncate d-block">
+                                              {activePlayer.district || 'Palghar'}
+                                            </strong>
+                                          </div>
+                                          <div className="col-6">
+                                            <span className="text-white-50 text-xs d-block">Home Club:</span>
+                                            <strong className="text-white fs-6 text-truncate d-block">
+                                              {activePlayer.team_name || 'District Club'}
+                                            </strong>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Player Physical Attributes & Profile Grid */}
-                            <div className="p-2.5 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-20 mb-2.5">
-                              <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-1.5 tracking-wider">
-                                📊 Player Dossier &amp; Vitals
-                              </span>
-                              <div className="row g-2 text-xs">
-                                <div className="col-6">
-                                  <span className="text-white-50 d-block">Height:</span>
-                                  <strong className="text-white fs-6">
-                                    {activePlayer.height_cm ? `${activePlayer.height_cm} cm` : '182 cm'}
-                                  </strong>
-                                </div>
-                                <div className="col-6">
-                                  <span className="text-white-50 d-block">Weight:</span>
-                                  <strong className="text-white fs-6">
-                                    {activePlayer.weight_kg ? `${activePlayer.weight_kg} kg` : '74 kg'}
-                                  </strong>
-                                </div>
-                                <div className="col-6">
-                                  <span className="text-white-50 d-block">Home Club:</span>
-                                  <strong className="text-white text-truncate d-block">
-                                    {activePlayer.team_name || 'District Club'}
-                                  </strong>
-                                </div>
-                                <div className="col-6">
-                                  <span className="text-white-50 d-block">District:</span>
-                                  <strong className="text-white">
-                                    {activePlayer.district || 'Palghar'}
-                                  </strong>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Live Bidding Financials */}
-                            <div className="p-2.5 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-20 mb-2.5">
-                              <div className="d-flex align-items-center justify-content-between text-xs mb-1">
-                                <span className="text-white-50">Base Price:</span>
-                                <strong className="text-white" suppressHydrationWarning>
+                            {/* Live Bidding Financials (Prominent & Clear) */}
+                            <div
+                              className="p-3 rounded-3 border mb-2.5 shadow-lg"
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(3,7,18,0.98) 100%)',
+                                borderColor: 'rgba(255, 255, 255, 0.14)',
+                              }}
+                            >
+                              <div className="d-flex align-items-center justify-content-between mb-2">
+                                <span className="text-white-50 text-xs fw-bold text-uppercase">Base Price:</span>
+                                <strong className="text-white fs-6" suppressHydrationWarning>
                                   ₹{formatCurrency(basePrice)}
                                 </strong>
                               </div>
-                              <div className="d-flex align-items-center justify-content-between text-xs mb-1">
-                                <span className="text-white-50">Current Highest Bid:</span>
-                                <strong className="text-warning fs-6 font-monospace fw-black" suppressHydrationWarning>
+                              <div className="d-flex align-items-center justify-content-between mb-2">
+                                <span className="text-white-50 text-xs fw-bold text-uppercase">Current Highest Bid:</span>
+                                <strong
+                                  className="text-warning font-monospace fw-black"
+                                  style={{ fontSize: '1.45rem', textShadow: '0 0 20px rgba(245, 158, 11, 0.4)' }}
+                                  suppressHydrationWarning
+                                >
                                   ₹{formatCurrency(currentBid > 0 ? currentBid : basePrice)}
                                 </strong>
                               </div>
-                              <div className="d-flex align-items-center justify-content-between text-xs pt-1 border-top border-secondary border-opacity-20">
-                                <span className="text-white-50">Next Minimum Raise:</span>
-                                <span className="badge badge-emerald px-2 py-0.5 rounded-pill text-xs fw-black" suppressHydrationWarning>
+                              <div className="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                                <span className="text-white-50 text-xs fw-bold text-uppercase">Next Minimum Raise:</span>
+                                <span className="badge badge-emerald px-2.5 py-1 rounded-pill text-xs fw-black" suppressHydrationWarning>
                                   ₹{formatCurrency(nextMinBid)} (+₹{formatCurrency(minIncrement)})
                                 </span>
                               </div>
@@ -1006,29 +1154,29 @@ export default function YouTubeLiveAuctionStream({
 
                             {/* Leading Franchise Spotlight */}
                             <div
-                              className="p-2.5 rounded-3 border transition-all"
+                              className="p-3 rounded-3 border mb-2.5 transition-all shadow-lg"
                               style={{
-                                background: highestTeam ? 'rgba(15, 23, 42, 0.9)' : 'rgba(0,0,0,0.3)',
-                                borderColor: highestTeam?.primary_color || 'rgba(255, 255, 255, 0.1)',
+                                background: highestTeam ? 'rgba(15, 23, 42, 0.95)' : 'rgba(0,0,0,0.35)',
+                                borderColor: highestTeam?.primary_color || 'rgba(255, 255, 255, 0.12)',
                               }}
                             >
-                              <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-1">
+                              <span className="text-white-50 text-xs fw-bold text-uppercase d-block mb-1.5 tracking-wider">
                                 🛡️ Leading Franchise Paddle
                               </span>
                               {highestTeam ? (
                                 <div className="d-flex align-items-center justify-content-between">
-                                  <div className="d-flex align-items-center gap-2 min-w-0">
+                                  <div className="d-flex align-items-center gap-2.5 min-w-0">
                                     <span
-                                      className="rounded-circle d-inline-block flex-shrink-0 shadow-sm"
+                                      className="rounded-circle d-inline-block flex-shrink-0 shadow-md"
                                       style={{
-                                        width: 22,
-                                        height: 22,
+                                        width: 28,
+                                        height: 28,
                                         backgroundColor: highestTeam.primary_color || '#06b6d4',
                                         border: '2px solid #fff',
                                       }}
                                     />
                                     <div className="min-w-0">
-                                      <strong className="text-white text-xs d-block text-truncate">
+                                      <strong className="text-white fs-6 d-block text-truncate">
                                         {highestTeam.team_name}
                                       </strong>
                                       <span className="text-white-50 text-xs">
@@ -1036,7 +1184,7 @@ export default function YouTubeLiveAuctionStream({
                                       </span>
                                     </div>
                                   </div>
-                                  <span className="badge bg-warning text-dark px-2 py-1 rounded-pill text-xs fw-black">
+                                  <span className="badge bg-warning text-dark px-2.5 py-1 rounded-pill text-xs fw-black">
                                     LEAD
                                   </span>
                                 </div>
@@ -1344,8 +1492,9 @@ export default function YouTubeLiveAuctionStream({
                   {renderPlayerAvatar(
                     activePlayer?.photo_url,
                     activePlayer?.full_name,
-                    88,
-                    highestTeam?.primary_color || '#06b6d4'
+                    96,
+                    highestTeam?.primary_color || '#06b6d4',
+                    'rounded'
                   )}
 
                   <div className="min-w-0 flex-grow-1">
@@ -1493,8 +1642,9 @@ export default function YouTubeLiveAuctionStream({
                   {renderPlayerAvatar(
                     activePlayer?.photo_url,
                     activePlayer?.full_name,
-                    74,
-                    highestTeam?.primary_color || '#06b6d4'
+                    82,
+                    highestTeam?.primary_color || '#06b6d4',
+                    'rounded'
                   )}
                   <div className="min-w-0">
                     <div className="d-flex align-items-center gap-1.5 mb-1">
@@ -1604,8 +1754,9 @@ export default function YouTubeLiveAuctionStream({
                     {renderPlayerAvatar(
                       activePlayer.photo_url,
                       activePlayer.full_name,
-                      150,
-                      highestTeam?.primary_color || '#06b6d4'
+                      180,
+                      highestTeam?.primary_color || '#06b6d4',
+                      'rounded'
                     )}
                   </div>
 
@@ -1687,8 +1838,9 @@ export default function YouTubeLiveAuctionStream({
                   {renderPlayerAvatar(
                     activePlayer?.photo_url,
                     activePlayer?.full_name,
-                    60,
-                    highestTeam?.primary_color || '#06b6d4'
+                    68,
+                    highestTeam?.primary_color || '#06b6d4',
+                    'rounded'
                   )}
                   <div className="min-w-0">
                     <h5 className="fw-black text-white mb-0 text-truncate">
