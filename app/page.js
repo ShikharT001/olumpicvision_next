@@ -194,16 +194,6 @@ export default function Home() {
             <li className="nav-item"><a className="nav-link" href="#coaching">Coaching</a></li>
             <li className="nav-item"><a className="nav-link" href="#services">Services</a></li>
             <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>
-            <li className="nav-item ms-2">
-              <a
-                href="/auction"
-                className="btn btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #f5a623 0%, #e08b10 100%)', color: '#090e1a' }}
-              >
-                <span>🏆</span>
-                <span>Auction Hub</span>
-              </a>
-            </li>
           </ul>
 
           {/* Custom Mobile Toggler Button */}
@@ -234,11 +224,6 @@ export default function Home() {
               <li><a href="#coaching" onClick={() => setMenuOpen(false)}>Coaching</a></li>
               <li><a href="#services" onClick={() => setMenuOpen(false)}>Services</a></li>
               <li><a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a></li>
-              <li>
-                <a href="/auction" style={{ color: '#f5a623', fontWeight: 700 }} onClick={() => setMenuOpen(false)}>
-                  🏆 Auction Hub
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -260,7 +245,6 @@ export default function Home() {
           <p>Empowering Athletes | Building Champions | Creating Excellence</p>
           <div className="d-flex flex-wrap items-center justify-content-center gap-3 mt-3">
             <a href="#contact" className="btn btn-lg" style={{ background: 'var(--accent)', color: 'var(--dark)', fontWeight: 700, borderRadius: 50, padding: '0.85rem 2.5rem' }}>Contact Us</a>
-            <a href="/auction" className="btn btn-lg btn-outline-warning" style={{ borderRadius: 50, padding: '0.85rem 2.5rem', fontWeight: 700 }}>🏆 Live Auction</a>
           </div>
         </div>
       </section>

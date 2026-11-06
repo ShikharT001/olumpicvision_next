@@ -12,8 +12,8 @@ export default function EventsAndHighlights() {
       title: 'PALGHAR DISTRICT VOLLEYBALL LEAGUE (PDVL) 2026',
       tag: 'CHAMPIONSHIP',
       bgImage: '/images/volleyball/image4.jpeg',
-      desc: 'Official Palghar District Volleyball League 2026/27. Follow live player auctions, franchise team squads, and tournament standings.',
-      href: '/auction',
+      desc: 'Official Palghar District Volleyball League 2026/27. Follow matches, franchise team squads, and tournament standings.',
+      href: '/events/volleyball-tournament',
     },
     {
       id: 7,
@@ -137,7 +137,7 @@ export default function EventsAndHighlights() {
                           href={event.href}
                           className="btn bg-white fw-semibold px-4 d-inline-flex align-items-center gap-2 highlight-explore-btn"
                         >
-                          {event.id === 5 ? 'Live Auction Hub' : 'Explore Event'} <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                          Explore Event <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
                         </Link>
                       ) : (
                         <button
@@ -175,18 +175,18 @@ export default function EventsAndHighlights() {
                 <ul className="list-unstyled mb-0 d-flex flex-column gap-3">
                   <li className="announcement-item">
                     <Link
-                      href="/auction"
+                      href="/events/volleyball-tournament"
                       className="announcement-link d-block text-decoration-none overflow-hidden rounded border bg-white h-100"
                     >
                       <div className="announcement-content p-3">
                         <span className="badge bg-warning text-dark px-2 py-0.5 rounded-pill text-xs fw-bold mb-1">
-                          LIVE NOW
+                          UPCOMING
                         </span>
                         <h4 className="h5 fw-bold mb-1" style={{ color: '#0A3D7A' }}>
-                          PDVL 2026 Live Auction Hub
+                          Palghar District Volleyball League 2026
                         </h4>
                         <p className="mb-0 text-muted small">
-                          Watch real-time live bidding, big-screen stage display, and team purse boards.
+                          Access tournament schedules, team squads, and match results.
                         </p>
                       </div>
                     </Link>
