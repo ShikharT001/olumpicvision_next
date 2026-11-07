@@ -2,7 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatRupees } from '@/lib/sports-config';
+import {
+  formatRupees,
+  formatCategoryLabel,
+  CATEGORY_LIMIT_PRESETS,
+  DEFAULT_MENS_CATEGORY_LIMITS,
+  DEFAULT_WOMENS_CATEGORY_LIMITS,
+  DEFAULT_MENS_PURSE,
+  DEFAULT_MENS_MAX_BID,
+  DEFAULT_WOMENS_PURSE,
+  DEFAULT_WOMENS_MAX_BID,
+} from '@/lib/sports-config';
 
 export default function TournamentsManager({ sport, initialTournaments = [], role = 'team', isAdmin = false }) {
   const [tournaments, setTournaments] = useState(initialTournaments || []);
@@ -17,10 +27,12 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
     tournament_name: '',
     season_year: '2026/27',
     venue: '',
-    default_purse: sport?.defaultPurse || 100000,
-    min_bid_increment: sport?.minBidIncrement || 500,
-    min_squad_size: sport?.minSquadSize || 8,
-    max_squad_size: sport?.maxSquadSize || 15,
+    default_purse: DEFAULT_MENS_PURSE,
+    max_bid_per_player: DEFAULT_MENS_MAX_BID,
+    min_bid_increment: 100,
+    min_squad_size: 8,
+    max_squad_size: 12,
+    category_limits: { ...DEFAULT_MENS_CATEGORY_LIMITS },
     status: 'active',
   });
 
@@ -32,10 +44,12 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
       tournament_name: '',
       season_year: '2026/27',
       venue: '',
-      default_purse: sport?.defaultPurse || 100000,
-      min_bid_increment: sport?.minBidIncrement || 500,
-      min_squad_size: sport?.minSquadSize || 8,
-      max_squad_size: sport?.maxSquadSize || 15,
+      default_purse: DEFAULT_MENS_PURSE,
+      max_bid_per_player: DEFAULT_MENS_MAX_BID,
+      min_bid_increment: 100,
+      min_squad_size: 8,
+      max_squad_size: 12,
+      category_limits: { ...DEFAULT_MENS_CATEGORY_LIMITS },
       status: 'active',
     });
     setShowAddModal(true);
@@ -50,10 +64,12 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
       tournament_name: tourn.tournament_name || '',
       season_year: tourn.season_year || '2026/27',
       venue: tourn.venue || '',
-      default_purse: tourn.default_purse || sport?.defaultPurse || 100000,
-      min_bid_increment: tourn.min_bid_increment || sport?.minBidIncrement || 500,
-      min_squad_size: tourn.min_squad_size || sport?.minSquadSize || 8,
-      max_squad_size: tourn.max_squad_size || sport?.maxSquadSize || 15,
+      default_purse: tourn.default_purse ? Number(tourn.default_purse) : DEFAULT_MENS_PURSE,
+      max_bid_per_player: tourn.max_bid_per_player ? Number(tourn.max_bid_per_player) : (Number(tourn.default_purse) || DEFAULT_MENS_MAX_BID),
+      min_bid_increment: tourn.min_bid_increment ? Number(tourn.min_bid_increment) : 100,
+      min_squad_size: tourn.min_squad_size ? Number(tourn.min_squad_size) : 8,
+      max_squad_size: tourn.max_squad_size ? Number(tourn.max_squad_size) : 12,
+      category_limits: tourn.category_limits || { ...DEFAULT_MENS_CATEGORY_LIMITS },
       status: tourn.status || 'active',
     });
   };
@@ -326,6 +342,17 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
                         <strong className="text-success fw-bold text-xs" suppressHydrationWarning>₹{formatRupees(t.min_bid_increment || 500)}</strong>
                       </div>
                     </div>
+
+                    {t.category_limits && (
+                      <div className="d-flex flex-wrap align-items-center gap-1 my-2 text-xs">
+                        <span className="text-white-50 text-xs">Category Quotas:</span>
+                        {Object.entries(t.category_limits).filter(([_, v]) => Number(v) > 0).map(([k, v]) => (
+                          <span key={k} className="badge bg-dark border border-secondary border-opacity-30 text-light text-xs font-monospace px-1.5 py-0.5">
+                            {formatCategoryLabel(k)}: <strong className="text-warning">{v}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
@@ -553,6 +580,170 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
                         onChange={(e) => setForm((prev) => ({ ...prev, max_squad_size: Number(e.target.value) }))}
                         required
                       />
+                    </div>
+                  </div>
+
+                  {/* Category Quota Limits Section */}
+                  <div className="border border-secondary border-opacity-30 rounded-3 p-3 bg-dark bg-opacity-40">
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2.5">
+                      <div>
+                        <label className="form-label text-warning small fw-bold mb-0 d-flex align-items-center gap-1.5">
+                          <span>🎯 Squad Category Quota Limits</span>
+                          <span className="badge bg-warning text-dark text-xs font-monospace">Enforced on Bids</span>
+                        </label>
+                        <span className="text-secondary text-xs d-block">
+                          Max players a team can buy in each category (blocks bidding once full).
+                        </span>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="d-flex align-items-center gap-1.5">
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-outline-info rounded-pill px-2.5 py-1 text-xs fw-bold"
+                          onClick={() => setForm((prev) => ({
+                            ...prev,
+                            max_squad_size: 12,
+                            category_limits: { ...DEFAULT_MENS_CATEGORY_LIMITS },
+                          }))}
+                          title="Apply Men's standard (U14:1, U17:2, U19:3, Open:4, Icon:2)"
+                        >
+                          👨 Men's (12)
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-outline-light rounded-pill px-2.5 py-1 text-xs fw-bold"
+                          onClick={() => setForm((prev) => ({
+                            ...prev,
+                            max_squad_size: 12,
+                            category_limits: { ...DEFAULT_WOMENS_CATEGORY_LIMITS },
+                          }))}
+                          title="Apply Women's standard (U14:1, U17:5, U21:4, Open:2)"
+                        >
+                          👩 Women's (12)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="row g-2">
+                      <div className="col-4 col-sm-2">
+                        <label className="text-white-50 text-xs fw-bold d-block mb-1">U-14</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          className="form-control form-control-sm text-center font-monospace fw-bold"
+                          value={form.category_limits?.u14 ?? 1}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setForm((prev) => ({
+                              ...prev,
+                              category_limits: { ...(prev.category_limits || {}), u14: val },
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <label className="text-white-50 text-xs fw-bold d-block mb-1">U-17</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          className="form-control form-control-sm text-center font-monospace fw-bold"
+                          value={form.category_limits?.u17 ?? 2}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setForm((prev) => ({
+                              ...prev,
+                              category_limits: { ...(prev.category_limits || {}), u17: val },
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <label className="text-white-50 text-xs fw-bold d-block mb-1">U-19</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          className="form-control form-control-sm text-center font-monospace fw-bold"
+                          value={form.category_limits?.u19 ?? 3}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setForm((prev) => ({
+                              ...prev,
+                              category_limits: { ...(prev.category_limits || {}), u19: val },
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <label className="text-white-50 text-xs fw-bold d-block mb-1">U-21</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          className="form-control form-control-sm text-center font-monospace fw-bold"
+                          value={form.category_limits?.u21 ?? 0}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setForm((prev) => ({
+                              ...prev,
+                              category_limits: { ...(prev.category_limits || {}), u21: val },
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <label className="text-white-50 text-xs fw-bold d-block mb-1">Open</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          className="form-control form-control-sm text-center font-monospace fw-bold"
+                          value={form.category_limits?.open ?? 4}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setForm((prev) => ({
+                              ...prev,
+                              category_limits: { ...(prev.category_limits || {}), open: val },
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <label className="text-white-50 text-xs fw-bold d-block mb-1">Icon</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          className="form-control form-control-sm text-center font-monospace fw-bold"
+                          value={form.category_limits?.icon_player ?? 2}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            setForm((prev) => ({
+                              ...prev,
+                              category_limits: { ...(prev.category_limits || {}), icon_player: val },
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Total tally */}
+                    <div className="d-flex align-items-center justify-content-between mt-2 pt-2 border-top border-secondary border-opacity-20 text-xs">
+                      <span className="text-white-50">
+                        Total Category Limit Slots:
+                      </span>
+                      {(() => {
+                        const total = Object.values(form.category_limits || {}).reduce((acc, v) => acc + (Number(v) || 0), 0);
+                        const matches = total === Number(form.max_squad_size);
+                        return (
+                          <span className={`fw-bold font-monospace ${matches ? 'text-success' : 'text-warning'}`}>
+                            {total} / {form.max_squad_size} Players {matches ? '✓ (Balanced)' : `(Max Squad is ${form.max_squad_size})`}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

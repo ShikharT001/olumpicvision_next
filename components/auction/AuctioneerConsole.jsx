@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useTransition, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import { normalizeCategory, formatCategoryLabel, getCategoryBadgeClass, getEffectiveCategoryLimits } from '@/lib/sports-config';
 import Top10LiveScreen from './Top10LiveScreen';
 
 // Web Audio API fanfare synthesizer for live sales
@@ -35,6 +35,8 @@ const SYSTEMATIC_CATEGORIES = [
   { key: 'icon_player', label: 'Icon / Marquee', shortLabel: 'Icon', icon: '⭐', badgeClass: 'badge-gold' },
   { key: 'open', label: 'Open Category (Senior)', shortLabel: 'Open', icon: '🏐', badgeClass: 'badge-emerald' },
   { key: 'u19', label: 'Under-19 (U19 Youth)', shortLabel: 'U19', icon: '⚡', badgeClass: 'badge-cyan' },
+  { key: 'u17', label: 'Under-17 (U17 Youth)', shortLabel: 'U17', icon: '🔥', badgeClass: 'bg-amber-500 text-dark' },
+  { key: 'u21', label: 'Under-21 (U21 Youth)', shortLabel: 'U21', icon: '✨', badgeClass: 'bg-pink-600 text-white' },
   { key: 'u14', label: 'Under-14 (U14 Junior)', shortLabel: 'U14', icon: '🌱', badgeClass: 'bg-purple-600 text-white' },
   { key: 'unsold', label: 'Unsold Pool (Round 2)', shortLabel: 'Unsold Pool', icon: '🛑', badgeClass: 'badge-danger bg-danger text-white' },
 ];
@@ -348,6 +350,26 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
       );
       setActionLoading(false);
       return;
+    }
+
+    // Validate category limits
+    const playerCat = normalizeCategory(currentPlayer?.player_category);
+    const effectiveLimits = getEffectiveCategoryLimits(team, tournament);
+    if (effectiveLimits && effectiveLimits[playerCat] !== undefined) {
+      const maxAllowed = Number(effectiveLimits[playerCat]);
+      if (!isNaN(maxAllowed) && maxAllowed >= 0) {
+        const currentCatCount = (team.squad || []).filter(
+          (p) => normalizeCategory(p.player_category) === playerCat
+        ).length;
+
+        if (currentCatCount >= maxAllowed) {
+          setError(
+            `Cannot place bid: ${team.team_name} has already reached the maximum limit of ${maxAllowed} player(s) for the "${formatCategoryLabel(currentPlayer?.player_category)}" category (Current: ${currentCatCount}/${maxAllowed}).`
+          );
+          setActionLoading(false);
+          return;
+        }
+      }
     }
 
     setError('');
@@ -1752,14 +1774,22 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                   const hasPurse = remainingPurseNum >= bidAmountToPlace;
                   const isFull = squadCount >= maxSquad;
 
+                  const playerCat = normalizeCategory(activePlayer?.player_category);
+                  const effectiveLimits = getEffectiveCategoryLimits(team, tournament);
+                  const maxCatAllowed = activePlayer && effectiveLimits && effectiveLimits[playerCat] !== undefined ? Number(effectiveLimits[playerCat]) : null;
+                  const currentCatCount = maxCatAllowed !== null
+                    ? (team.squad || []).filter((p) => normalizeCategory(p.player_category) === playerCat).length
+                    : 0;
+                  const isCatFull = maxCatAllowed !== null && currentCatCount >= maxCatAllowed;
+
                   return (
                     <div key={team.id} className="col-12 col-sm-6">
                       <button
                         type="button"
-                        className={`team-paddle-btn w-100 ${!isAdmin ? 'is-view-only' : ''} ${isHigh ? 'is-highest-bidder' : ''} ${!hasPurse || isFull ? 'opacity-75' : ''}`}
+                        className={`team-paddle-btn w-100 ${!isAdmin ? 'is-view-only' : ''} ${isHigh ? 'is-highest-bidder' : ''} ${!hasPurse || isFull || isCatFull ? 'opacity-75' : ''}`}
                         style={{
                           '--team-color': team.primary_color || '#0d6efd',
-                          cursor: 'pointer',
+                          cursor: isCatFull ? 'not-allowed' : 'pointer',
                           ...(isMyTeam
                             ? {
                                 border: '2px solid #06b6d4',
@@ -1774,6 +1804,8 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                             ? 'Click to unlock admin bidding controls'
                             : !activePlayer
                             ? 'Bring a player to the podium first (click for instructions)'
+                            : isCatFull
+                            ? `Category limit reached: ${formatCategoryLabel(activePlayer.player_category)} (${currentCatCount}/${maxCatAllowed})`
                             : !hasPurse
                             ? `Purse insufficient (₹${remainingPurseNum.toLocaleString()} left)`
                             : isFull
@@ -1795,9 +1827,20 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
                               </span>
                             )}
                           </div>
-                          <span className="badge bg-secondary bg-opacity-30 text-light text-xs font-monospace">
-                            Squad: {squadCount}/{maxSquad}
-                          </span>
+                          <div className="d-flex align-items-center gap-1">
+                            {activePlayer && maxCatAllowed !== null && (
+                              <span
+                                className={`badge px-1.5 py-0.5 rounded-pill text-xs font-monospace ${
+                                  isCatFull ? 'bg-danger text-white' : 'bg-dark text-cyan border border-cyan border-opacity-30'
+                                }`}
+                              >
+                                {isCatFull ? '⛔ ' : ''}{formatCategoryLabel(activePlayer.player_category)}: {currentCatCount}/{maxCatAllowed}
+                              </span>
+                            )}
+                            <span className="badge bg-secondary bg-opacity-30 text-light text-xs font-monospace">
+                              {squadCount}/{maxSquad}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="fw-bold text-white text-truncate small mb-1">

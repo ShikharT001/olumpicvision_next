@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { formatRupees, normalizeCategory, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import { formatRupees, normalizeCategory, formatCategoryLabel, getCategoryBadgeClass, getEffectiveCategoryLimits } from '@/lib/sports-config';
 import TopBidsLeaderboard from './TopBidsLeaderboard';
 import TeamsPoolingWheel from './TeamsPoolingWheel';
 
@@ -795,21 +795,27 @@ export default function TeamSquadsDashboard({
                     {/* Systematic Category Distribution */}
                     <div className="col-12 col-md-6 border-end-md border-secondary border-opacity-20 pe-md-3">
                       <span className="text-white-50 text-xs d-block mb-2 text-uppercase fw-bold" style={{ letterSpacing: '0.04em' }}>
-                        Category Distribution ({squadCount} Players)
+                        Category Distribution & Quotas ({squadCount} Players)
                       </span>
                       <div className="d-flex flex-wrap align-items-center gap-2">
-                        <span className="badge badge-gold px-3 py-1.5 rounded-pill text-xs fw-bold">
-                          ⭐ Icon: <strong>{iconSquad.length}</strong>
-                        </span>
-                        <span className="badge badge-emerald px-3 py-1.5 rounded-pill text-xs fw-bold">
-                          🏐 Open Category: <strong>{openSquad.length}</strong>
-                        </span>
-                        <span className="badge badge-cyan px-3 py-1.5 rounded-pill text-xs fw-bold">
-                          ⚡ Under-19 (U19): <strong>{u19Squad.length}</strong>
-                        </span>
-                        <span className="badge bg-purple-600 text-white px-3 py-1.5 rounded-pill text-xs fw-bold">
-                          🌱 Under-14 (U14): <strong>{u14Squad.length}</strong>
-                        </span>
+                        {(() => {
+                          const effLimits = getEffectiveCategoryLimits(focusedTeam, tournament);
+                          return Object.entries(effLimits).map(([catKey, limit]) => {
+                            const count = squad.filter((p) => normalizeCategory(p.player_category) === catKey).length;
+                            const isFull = count >= limit;
+                            const badgeCls = getCategoryBadgeClass(catKey);
+                            return (
+                              <span
+                                key={catKey}
+                                className={`badge px-3 py-1.5 rounded-pill text-xs fw-bold ${badgeCls} ${
+                                  isFull ? 'shadow-sm border border-danger' : ''
+                                }`}
+                              >
+                                {formatCategoryLabel(catKey)}: <strong>{count}</strong> / {limit} {isFull ? '(FULL)' : ''}
+                              </span>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
 

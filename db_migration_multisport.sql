@@ -71,6 +71,10 @@ CREATE TABLE IF NOT EXISTS auction_teams (
 
 ALTER TABLE auction_teams ADD COLUMN IF NOT EXISTS tournament_id UUID REFERENCES auction_tournaments(id) ON DELETE CASCADE;
 ALTER TABLE auction_teams ADD COLUMN IF NOT EXISTS pool_group VARCHAR(20);
+ALTER TABLE auction_teams ADD COLUMN IF NOT EXISTS category_limits JSONB;
+ALTER TABLE auction_teams ADD COLUMN IF NOT EXISTS max_bid_per_player NUMERIC;
+ALTER TABLE auction_tournaments ADD COLUMN IF NOT EXISTS category_limits JSONB DEFAULT '{"u14":1,"u17":2,"u19":3,"open":4,"icon_player":2}'::jsonb;
+ALTER TABLE auction_tournaments ADD COLUMN IF NOT EXISTS max_bid_per_player NUMERIC DEFAULT 11400;
 UPDATE auction_teams SET tournament_id = '00000000-0000-0000-0000-000000000001' WHERE tournament_id IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_auction_teams_tournament ON auction_teams(tournament_id);

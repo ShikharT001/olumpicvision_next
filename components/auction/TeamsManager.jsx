@@ -2,7 +2,15 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { formatRupees, formatCategoryLabel, getCategoryBadgeClass } from '@/lib/sports-config';
+import {
+  formatRupees,
+  formatCategoryLabel,
+  getCategoryBadgeClass,
+  normalizeCategory,
+  getEffectiveCategoryLimits,
+  DEFAULT_MENS_CATEGORY_LIMITS,
+  DEFAULT_WOMENS_CATEGORY_LIMITS,
+} from '@/lib/sports-config';
 
 const PRESET_COLORS = [
   { name: 'Royal Blue', hex: '#2563eb' },
@@ -165,9 +173,18 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
     }
   };
 
+  const openEditTeam = (team) => {
+    setEditingTeam({
+      ...team,
+      useCustomLimits: Boolean(team.category_limits && Object.keys(team.category_limits).length > 0),
+      category_limits: team.category_limits || tournament?.category_limits || { ...DEFAULT_MENS_CATEGORY_LIMITS },
+    });
+  };
+
   const handleUpdateTeam = async () => {
     if (!editingTeam) return;
     try {
+      const payloadLimits = editingTeam.useCustomLimits ? editingTeam.category_limits : null;
       const res = await fetch('/api/auction/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -176,6 +193,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
           teamId: editingTeam.id,
           tournamentId: activeTournamentId,
           ...editingTeam,
+          category_limits: payloadLimits,
         }),
       });
       let data = {};
@@ -583,9 +601,9 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 text-xs"
-                    onClick={() => setEditingTeam({ ...focusedTeam })}
+                    onClick={() => openEditTeam(focusedTeam)}
                   >
-                    ✏️ Edit Purse
+                    ✏️ Edit Purse & Limits
                   </button>
                 </div>
               </div>
@@ -625,6 +643,55 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                   </div>
                 </div>
               </div>
+
+              {/* Category Quota Limits & Progress */}
+              {(() => {
+                const effectiveLimits = getEffectiveCategoryLimits(focusedTeam, tournament);
+                const hasCustom = Boolean(focusedTeam.category_limits && Object.keys(focusedTeam.category_limits).length > 0);
+                return (
+                  <div className="p-3 mb-4 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="text-warning text-xs fw-bold d-flex align-items-center gap-1.5">
+                        <span>🎯 Category Quotas & Progress</span>
+                        <span className={`badge ${hasCustom ? 'bg-primary text-white' : 'bg-secondary bg-opacity-30 text-white-50'} text-xs`}>
+                          {hasCustom ? 'Custom Team Override' : 'Tournament Default'}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-outline-warning rounded-pill px-2.5 py-0.5 text-xs fw-bold"
+                        onClick={() => openEditTeam(focusedTeam)}
+                      >
+                        ⚙️ Adjust Quotas
+                      </button>
+                    </div>
+                    <div className="d-flex flex-wrap gap-2">
+                      {Object.entries(effectiveLimits).map(([catKey, limit]) => {
+                        const count = (focusedSquad || []).filter(
+                          (p) => normalizeCategory(p.player_category) === catKey
+                        ).length;
+                        const isFull = count >= limit;
+                        return (
+                          <div
+                            key={catKey}
+                            className={`px-2.5 py-1.5 rounded-2 border text-xs d-flex align-items-center gap-2 ${
+                              isFull
+                                ? 'bg-danger bg-opacity-20 border-danger border-opacity-40 text-danger'
+                                : 'bg-black bg-opacity-40 border-secondary border-opacity-30 text-light'
+                            }`}
+                          >
+                            <span className="fw-semibold">{formatCategoryLabel(catKey)}:</span>
+                            <strong className={`font-monospace ${isFull ? 'text-danger' : 'text-cyan'}`}>
+                              {count} / {limit}
+                            </strong>
+                            {isFull && <span className="badge bg-danger text-white text-xs px-1 py-0.5">FULL</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Squad Players Table */}
               <h5 className="text-white fw-bold mb-3 fs-6">Acquired Roster ({focusedSquad.length} Players)</h5>
@@ -782,9 +849,9 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-xs"
-                              onClick={() => setEditingTeam({ ...team })}
+                              onClick={() => openEditTeam(team)}
                             >
-                              ✏️ Edit Purse
+                              ✏️ Edit Purse & Limits
                             </button>
                           </td>
                         </tr>
@@ -1303,6 +1370,108 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                       onChange={(e) => setEditingTeam((prev) => ({ ...prev, remaining_purse: e.target.value }))}
                     />
                   </div>
+                </div>
+
+                {/* Category Quota Limits Override */}
+                <div className="border border-secondary border-opacity-30 rounded-3 p-3 bg-dark bg-opacity-40 mb-3">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <label className="form-label text-warning small fw-bold mb-0 d-flex align-items-center gap-1.5">
+                      <span>🎯 Category Quotas (Max Players Allowed)</span>
+                    </label>
+                    <div className="form-check form-switch mb-0">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="customCatLimitsSwitch"
+                        checked={editingTeam.useCustomLimits || false}
+                        onChange={(e) =>
+                          setEditingTeam((prev) => ({
+                            ...prev,
+                            useCustomLimits: e.target.checked,
+                            category_limits: e.target.checked
+                              ? (prev.category_limits || tournament?.category_limits || { ...DEFAULT_MENS_CATEGORY_LIMITS })
+                              : null,
+                          }))
+                        }
+                      />
+                      <label className="form-check-label text-xs text-light" htmlFor="customCatLimitsSwitch">
+                        Custom Team Override
+                      </label>
+                    </div>
+                  </div>
+
+                  {!editingTeam.useCustomLimits ? (
+                    <div className="p-2 rounded bg-black bg-opacity-40 text-xs text-white-50">
+                      <span className="text-cyan fw-bold">Inheriting Tournament Defaults:</span>{' '}
+                      {(() => {
+                        const eff = tournament?.category_limits || DEFAULT_MENS_CATEGORY_LIMITS;
+                        return Object.entries(eff)
+                          .filter(([_, v]) => Number(v) > 0)
+                          .map(([k, v]) => `${formatCategoryLabel(k)}: ${v}`)
+                          .join(' · ');
+                      })()}
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="d-flex align-items-center justify-content-between gap-1 mb-2">
+                        <span className="text-secondary text-xs">Set custom limits for {editingTeam.team_name}:</span>
+                        <div className="d-flex gap-1">
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline-info rounded-pill px-2 py-0.5 text-xs"
+                            onClick={() =>
+                              setEditingTeam((prev) => ({
+                                ...prev,
+                                category_limits: { ...DEFAULT_MENS_CATEGORY_LIMITS },
+                              }))
+                            }
+                          >
+                            Men's (12)
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline-light rounded-pill px-2 py-0.5 text-xs"
+                            onClick={() =>
+                              setEditingTeam((prev) => ({
+                                ...prev,
+                                category_limits: { ...DEFAULT_WOMENS_CATEGORY_LIMITS },
+                              }))
+                            }
+                          >
+                            Women's (12)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="row g-2">
+                        {['u14', 'u17', 'u19', 'u21', 'open', 'icon_player'].map((catKey) => (
+                          <div key={catKey} className="col-4 col-sm-2 text-center">
+                            <label className="text-white-50 text-xs fw-bold d-block mb-1">
+                              {catKey === 'icon_player' ? 'Icon' : catKey.toUpperCase()}
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="20"
+                              className="form-control form-control-sm text-center font-monospace fw-bold"
+                              value={editingTeam.category_limits?.[catKey] ?? 0}
+                              onChange={(e) => {
+                                const val = Math.max(0, parseInt(e.target.value) || 0);
+                                setEditingTeam((prev) => ({
+                                  ...prev,
+                                  category_limits: {
+                                    ...(prev.category_limits || {}),
+                                    [catKey]: val,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-3">
