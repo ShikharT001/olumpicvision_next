@@ -1427,7 +1427,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                               }))
                             }
                           >
-                            Men's (12)
+                            Men&apos;s (12)
                           </button>
                           <button
                             type="button"
@@ -1439,7 +1439,7 @@ export default function TeamsManager({ initialTeams, tournament = null, tourname
                               }))
                             }
                           >
-                            Women's (12)
+                            Women&apos;s (12)
                           </button>
                         </div>
                       </div>

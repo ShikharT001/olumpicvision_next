@@ -608,7 +608,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
                           }))}
                           title="Apply Men's standard (U14:1, U17:2, U19:3, Open:4, Icon:2)"
                         >
-                          👨 Men's (12)
+                          👨 Men&apos;s (12)
                         </button>
                         <button
                           type="button"
@@ -620,7 +620,7 @@ export default function TournamentsManager({ sport, initialTournaments = [], rol
                           }))}
                           title="Apply Women's standard (U14:1, U17:5, U21:4, Open:2)"
                         >
-                          👩 Women's (12)
+                          👩 Women&apos;s (12)
                         </button>
                       </div>
                     </div>
