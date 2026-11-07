@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import AuctionLoginGate from '@/components/auction/AuctionLoginGate';
 import { isAuctionAuthenticated, getAuctionSession } from '../actions';
-import { getTournaments, getAuctionTeams, getTournamentById } from '@/lib/auction-db';
+import { getTournaments, getAllTeamsLightweight, getTournamentById } from '@/lib/auction-db';
 import '@/app/auction/auction.css';
 
 export const metadata = {
@@ -30,21 +30,22 @@ export default async function AuctionLoginPage(props) {
     redirect('/auction');
   }
 
-  const allTournaments = await getTournaments();
+  const [allTournaments, allTeams] = await Promise.all([
+    getTournaments(),
+    getAllTeamsLightweight(),
+  ]);
   // Attach teams to tournaments for instant selection
-  const tournamentsWithTeams = await Promise.all(
-    allTournaments.map(async (t) => {
-      const teams = await getAuctionTeams(t.id);
-      return { ...t, teams };
-    })
-  );
+  const tournamentsWithTeams = allTournaments.map((t) => ({
+    ...t,
+    teams: allTeams.filter((tm) => String(tm.tournament_id) === String(t.id)),
+  }));
 
   let initialTournament = null;
   let tournamentTeams = [];
   if (searchParams?.tournamentId) {
     initialTournament = await getTournamentById(searchParams.tournamentId);
     if (initialTournament) {
-      tournamentTeams = await getAuctionTeams(initialTournament.id);
+      tournamentTeams = allTeams.filter((tm) => String(tm.tournament_id) === String(initialTournament.id));
     }
   }
 

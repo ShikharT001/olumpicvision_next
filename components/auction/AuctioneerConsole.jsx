@@ -206,40 +206,42 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   }, [fetchState]);
 
   // Derive category queue and next sequential player per category
-  const categoryStats = SYSTEMATIC_CATEGORIES.map((catDef) => {
-    let pool = [];
-    if (catDef.key === 'unsold') {
-      pool = allPlayers.filter((p) => p.auction_status === 'unsold');
-    } else {
-      pool = allPlayers.filter(
-        (p) => normalizeCategory(p.player_category) === catDef.key
-      );
-    }
+  const categoryStats = useMemo(() => {
+    return SYSTEMATIC_CATEGORIES.map((catDef) => {
+      let pool = [];
+      if (catDef.key === 'unsold') {
+        pool = allPlayers.filter((p) => p.auction_status === 'unsold');
+      } else {
+        pool = allPlayers.filter(
+          (p) => normalizeCategory(p.player_category) === catDef.key
+        );
+      }
 
-    const queued = pool.filter((p) => (catDef.key === 'unsold' ? true : p.auction_status === 'queued'));
-    const sold = pool.filter((p) => p.auction_status === 'sold');
-    const onHammer = pool.filter((p) => p.auction_status === 'on_hammer');
+      const queued = pool.filter((p) => (catDef.key === 'unsold' ? true : p.auction_status === 'queued'));
+      const sold = pool.filter((p) => p.auction_status === 'sold');
+      const onHammer = pool.filter((p) => p.auction_status === 'on_hammer');
 
-    const sortedQueued = [...queued].sort((a, b) => {
-      const lotA = Number(a.lot_number || 1);
-      const lotB = Number(b.lot_number || 1);
-      if (lotA !== lotB) return lotA - lotB;
-      const orderA = Number(a.bidding_order || 0);
-      const orderB = Number(b.bidding_order || 0);
-      if (orderA !== orderB) return orderA - orderB;
-      return String(a.full_name || '').localeCompare(String(b.full_name || ''));
+      const sortedQueued = [...queued].sort((a, b) => {
+        const lotA = Number(a.lot_number || 1);
+        const lotB = Number(b.lot_number || 1);
+        if (lotA !== lotB) return lotA - lotB;
+        const orderA = Number(a.bidding_order || 0);
+        const orderB = Number(b.bidding_order || 0);
+        if (orderA !== orderB) return orderA - orderB;
+        return String(a.full_name || '').localeCompare(String(b.full_name || ''));
+      });
+
+      return {
+        ...catDef,
+        totalCount: pool.length,
+        queuedCount: queued.length,
+        soldCount: sold.length,
+        onHammerCount: onHammer.length,
+        nextPlayer: sortedQueued[0] || null,
+        queuedPlayers: sortedQueued,
+      };
     });
-
-    return {
-      ...catDef,
-      totalCount: pool.length,
-      queuedCount: queued.length,
-      soldCount: sold.length,
-      onHammerCount: onHammer.length,
-      nextPlayer: sortedQueued[0] || null,
-      queuedPlayers: sortedQueued,
-    };
-  });
+  }, [allPlayers]);
 
   const currentCategoryInfo = categoryStats.find((c) => c.key === activeCategory) || categoryStats[0];
   const nextPlayerInActiveCategory = currentCategoryInfo?.nextPlayer;
@@ -625,8 +627,12 @@ export default function AuctioneerConsole({ initialData, role = 'admin', isAdmin
   // Initial and periodic player list sync
   useEffect(() => {
     fetchPlayersList();
-    const pTimer = setInterval(fetchPlayersList, 3000);
-    return () => clearInterval(pTimer);
+    const pTimer = setInterval(fetchPlayersList, 30000);
+    window.addEventListener('focus', fetchPlayersList);
+    return () => {
+      clearInterval(pTimer);
+      window.removeEventListener('focus', fetchPlayersList);
+    };
   }, [fetchPlayersList]);
 
   // Load Players Drawer

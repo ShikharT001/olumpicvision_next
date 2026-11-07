@@ -10,6 +10,7 @@ import {
   getTournaments,
   getTournamentById,
   getAuctionTeams,
+  getAllTeamsLightweight,
   getLiveAuctionState,
 } from '@/lib/auction-db';
 import { getSportById } from '@/lib/sports-config';
@@ -45,18 +46,21 @@ export default async function AuctionHubPage(props) {
     const sportParam = searchParams?.sport ? `?sport=${searchParams.sport}` : '';
     const tournParam = searchParams?.tournamentId ? `?tournamentId=${searchParams.tournamentId}` : '';
     const returnTo = `/auction${sportParam || tournParam}`;
-    const all = await getTournaments();
-    const tournamentsWithTeams = await Promise.all(
-      all.map(async (t) => {
-        const teams = await getAuctionTeams(t.id);
-        return { ...t, teams };
-      })
-    );
+    const [all, allTeams] = await Promise.all([
+      getTournaments(),
+      getAllTeamsLightweight(),
+    ]);
+    const tournamentsWithTeams = all.map((t) => ({
+      ...t,
+      teams: allTeams.filter((tm) => String(tm.tournament_id) === String(t.id)),
+    }));
     let tourn = null;
     let tournTeams = [];
     if (searchParams?.tournamentId) {
       tourn = await getTournamentById(searchParams.tournamentId);
-      if (tourn) tournTeams = await getAuctionTeams(tourn.id);
+      if (tourn) {
+        tournTeams = allTeams.filter((tm) => String(tm.tournament_id) === String(tourn.id));
+      }
     }
     return (
       <AuctionLoginGate

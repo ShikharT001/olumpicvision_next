@@ -31,8 +31,12 @@ export default function AuctionNavbar({ role = 'team', tournament = null, team =
       } catch {}
     };
     checkState();
-    const timer = setInterval(checkState, 2000);
-    return () => clearInterval(timer);
+    const timer = setInterval(checkState, 20000);
+    window.addEventListener('focus', checkState);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', checkState);
+    };
   }, [isAdmin, tournamentId]);
 
   const handleToggleNavbarStageView = async () => {
